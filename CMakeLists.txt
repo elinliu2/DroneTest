@@ -71,3 +71,7 @@ install(
   DESTINATION
     share/crazyflie_cpp
 )
+
+add_executable(test_parameters
+  src/test_parameters.cpp
+)
