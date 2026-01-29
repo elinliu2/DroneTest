@@ -1,4 +1,4 @@
-#include "Crazyflie.h"
+#include <crazyflie_cpp/Crazyflie.h>
 #include <iostream>
 
 class TestLogger : public Logger
@@ -17,13 +17,15 @@ class TestLogger : public Logger
 
 int main()
 {
-    std::string link_uri = "E7E7E7E7E7";
+    std::string link_uri = "radio://0/80/2M/E7E7E7E7E7";
     TestLogger testLogger; 
     Crazyflie crazyflie(link_uri, testLogger);
     crazyflie.requestParamToc(true);
-    // figure out id of one of the pid gains
-    crazyflie.setParam(12, 1.0);
-    crazyflie.requestParamToc(true);
-
+    // 164,6,0,pid_attitude,roll_kp
+    float gain = crazyflie.getParam<float>(164);
+    std::cout << "pid attitude roll_kp gain is: " << gain << std::endl;
+    crazyflie.setParam(164, 3.5f);
+    gain = crazyflie.getParam<float>(164);
+    std::cout << "pid attitude roll_kp gain is: " << gain << std::endl;
     return 0;
 }

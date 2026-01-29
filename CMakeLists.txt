@@ -75,3 +75,7 @@ install(
 add_executable(test_parameters
   src/test_parameters.cpp
 )
+
+ target_link_libraries(test_parameters
+  crazyflie_cpp
+)
