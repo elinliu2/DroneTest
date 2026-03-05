@@ -3,6 +3,7 @@
 
 #define NUM_PLANT_STATES 12
 #define NUM_CTRL_STATES 12
+#define NUM_ALGE_STATES 4
 #define NUM_DIST_STATES 6
 #define NUM_REF_STATES 3
 
@@ -69,17 +70,15 @@ struct DroneParameters
 
 struct CtrlOut
 {
-    double ft;
-    double tx;
-    double ty;
-    double tz;
-    Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrlState;
+    Eigen::Vector<double, NUM_ALGE_STATES> algeStates;
+    Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrlStates;
 };
 
 struct SystemState
 {
     Eigen::Vector<double, NUM_PLANT_STATES> plant;
     Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrl;
+    Eigen::Vector<double, NUM_ALGE_STATES> alge;
     bool stable = true;
 };
 
@@ -89,10 +88,11 @@ struct SimResults{
     bool stable;
 };
 
-enum plantIndex{x, y, z, theta, phi, psi, xdot, ydot, zdot, p, q, r};
+enum plantIndex{x, y, z, phi, theta, psi, xdot, ydot, zdot, p, q, r};
 enum ctrlIndex {posX, posY, posZ, velX, velY, velZ, attX, attY, attZ, attRateX, attRateY, attRateZ};
+enum algeIndex {ft, tx, ty, tz};
 enum distIndex {Fwx, Fwy, Fwz, Twx, Twy, Twz};
-enum refIndex  {x, y, z};
+enum refIndex  {refx, refy, refz};
 
 class DroneTrajectory 
 {
