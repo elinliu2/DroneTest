@@ -1,4 +1,4 @@
-#include <crazyflie_cpp/Crazyflie.h>
+#include "Crazyflie.h"
 #include <iostream>
 
 class TestLogger : public Logger

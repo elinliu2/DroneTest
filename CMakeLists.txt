@@ -3,8 +3,10 @@ project(crazyflie_cpp VERSION 0.0.1)
 
 find_library(USB_LIB usb-1.0)
 
+include_directories(${CMAKE_SOURCE_DIR}/eigen)
+
 # Enable C++11 and warnings
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -17,6 +19,7 @@ add_library(crazyflie_cpp
   src/crtp.cpp
   src/USBDevice.cpp
   src/ITransport.cpp
+  src/DroneTrajectory.cpp
 )
 
 target_include_directories(crazyflie_cpp
@@ -76,6 +79,18 @@ add_executable(test_parameters
   src/test_parameters.cpp
 )
 
- target_link_libraries(test_parameters
+target_link_libraries(test_parameters
+  crazyflie_cpp
+)
+
+add_executable(test_simulation
+  src/test_simulation.cpp
+)
+
+target_include_directories(test_simulation PRIVATE
+  ${CMAKE_SOURCE_DIR}/eigen
+)
+
+target_link_libraries(test_simulation
   crazyflie_cpp
 )

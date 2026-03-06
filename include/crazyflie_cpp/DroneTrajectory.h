@@ -1,5 +1,5 @@
 #include <vector>
-#include <array>
+#include <Eigen/Dense>
 
 #define NUM_PLANT_STATES 12
 #define NUM_CTRL_STATES 12
