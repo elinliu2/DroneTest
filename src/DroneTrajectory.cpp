@@ -1,6 +1,42 @@
 #include "DroneTrajectory.h"
+
 #include <cmath>
 #include <Eigen/Dense>
+
+SystemState simulateTimestep(SystemState prev, 
+    std::array<double(*)(double), NUM_REF_STATES> const& ref, 
+    std::array<double(*)(double), NUM_DIST_STATES> const& dist, 
+    PIDCtrllers ctrlParams, 
+    double time,
+    double timestep, 
+    DroneParameters droneParams);
+Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, 
+    Eigen::Vector<double, NUM_PLANT_STATES> guess, 
+    std::array<double(*)(double), NUM_REF_STATES> const& ref, 
+    std::array<double(*)(double), NUM_DIST_STATES> const& dist, 
+    PIDCtrllers ctrlParams,
+    double time, 
+    double timestep,
+    DroneParameters droneParams);
+Eigen::MatrixX<double> DH(SystemState state, DroneParameters const& droneParams, double timestep);
+Eigen::MatrixX<double> dfdx(SystemState state, DroneParameters const& droneParams);
+Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, 
+    std::array<double(*)(double), NUM_REF_STATES> const& ref, 
+    std::array<double(*)(double), NUM_DIST_STATES> const& dist, 
+    PIDCtrllers ctrlParams,
+    double time, 
+    double timestep,
+    DroneParameters const& droneParams);
+CtrlOut CascadedPIDController( 
+    std::array<double(*)(double), NUM_REF_STATES> const& ref, 
+    PIDCtrllers ctrlParams,
+    double time,
+    double timestep,
+    Eigen::Vector<double, NUM_PLANT_STATES> plantState,
+    Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrlState, 
+    DroneParameters const& droneParams);
+double PIDctrl(PIDParameters params, PIDstate state);
+PIDstate updatePIDstate(PIDstate currVal, double currSig, double ref, double timestep);
 
 DroneTrajectory::DroneTrajectory(
     PIDCtrllers ctrlParams,
@@ -21,39 +57,71 @@ SimResults DroneTrajectory::Trajectory(std::array<double(*)(double), NUM_REF_STA
     simResults.time.push_back(time);
     while(time <= m_finalTime){
         SystemState prev = simResults.stateProgression.back();
-        // Simulate two timesteps
-        // Simulate double timestep
-        // Possibly adjust timestep
-        // Update simResults
+        SystemState state1 = simulateTimestep(prev, ref, m_dist, m_ctrlParams, time, m_simTimestep, m_droneParameters);
+        SystemState state2 = simulateTimestep(state1, ref, m_dist, m_ctrlParams, time, m_simTimestep, m_droneParameters);
+        SystemState stateDouble = simulateTimestep(prev, ref, m_dist, m_ctrlParams, time, m_simTimestep, m_droneParameters);
+
+        simResults.stateProgression.push_back(state2);
+        simResults.stable = simResults.stable & state2.stable;
         time += m_simTimestep;
         simResults.time.push_back(time);
-        // check convergence
+
+        double diff = (stateDouble.plant - state2.plant).norm();
+        if( diff < 1e-7 && stateDouble.stable){
+            m_simTimestep = m_simTimestep * 2;
+        } else if (diff > 1e-4 || !state1.stable || !state2.stable){
+            if (m_simTimestep > 1e-3) {
+                m_simTimestep = m_simTimestep / 2;
+            }
+        }
+        // check convergence for stable and end early or unstable and not converging
     }
+    return simResults;
 }
 
-SystemState simulateTimestep(Eigen::Vector<double, NUM_PLANT_STATES> prev, double timestep, 
+SystemState simulateTimestep(SystemState prev, 
     std::array<double(*)(double), NUM_REF_STATES> const& ref, 
     std::array<double(*)(double), NUM_DIST_STATES> const& dist, 
     PIDCtrllers ctrlParams, 
+    double time,
+    double timestep, 
     DroneParameters droneParams)
 {
     double tol = 1e-12;
     SystemState guess;
-    
+    guess.ctrl = prev.ctrl;
+    guess.alge = prev.alge;
+    int count = 0;
+
+    Eigen::Vector<double, NUM_PLANT_STATES> h = H(prev, guess.plant, ref, dist, ctrlParams, time, timestep, droneParams);
+    for(; count < 20 && h.norm() < tol; count++ ){
+        Eigen::MatrixX<double> dh = DH(guess, droneParams, timestep);
+        if (dh.determinant() != 0) {
+            guess.plant = guess.plant - dh.inverse()*h;
+            count++;
+        } else {
+            guess.stable = false;
+        }
+    }
+
+    CtrlOut ctrlOut = CascadedPIDController(ref, ctrlParams, time, timestep, guess.plant, guess.ctrl, droneParams);
+    guess.ctrl = ctrlOut.ctrlStates;
+    guess.alge = ctrlOut.algeStates;
+    guess.stable = guess.stable && count < 20;   
+    return guess;
 }
 
 Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, 
-        Eigen::Vector<double, NUM_PLANT_STATES> guess, 
-        std::array<double(*)(double), NUM_REF_STATES> const& ref, 
-        std::array<double(*)(double), NUM_DIST_STATES> const& dist, 
-        PIDCtrllers ctrlParams,
-        double time, 
-        double timestep,
-        DroneParameters droneParams)
+    Eigen::Vector<double, NUM_PLANT_STATES> guess, 
+    std::array<double(*)(double), NUM_REF_STATES> const& ref, 
+    std::array<double(*)(double), NUM_DIST_STATES> const& dist, 
+    PIDCtrllers ctrlParams,
+    double time, 
+    double timestep,
+    DroneParameters droneParams)
 {
     Eigen::Vector<double, NUM_PLANT_STATES> fprev = f(prev, ref, dist, ctrlParams, time, timestep, droneParams);
     Eigen::Vector<double, NUM_PLANT_STATES> fguess = f({guess, prev.ctrl, prev.alge, true}, ref, dist, ctrlParams, time, timestep, droneParams);
-
     return prev.plant - guess + timestep/2*(fprev - fguess);
 }
 
@@ -70,7 +138,7 @@ Eigen::MatrixX<double> dfdx(SystemState state, DroneParameters const& droneParam
     int n = droneParams.numPlantStates;
     Eigen::MatrixX<double> dfdx(n, n);
     Eigen::Vector<double, NUM_PLANT_STATES> plant = state.plant;
-    Eigen::Vector<double, NUM_PLANT_STATES> alge = state.alge;
+    Eigen::Vector<double, NUM_ALGE_STATES> alge = state.alge;
     dfdx(0,6) = 1;
     dfdx(1,7) = 1;
     dfdx(2,8) = 1;
@@ -112,17 +180,16 @@ Eigen::MatrixX<double> dfdx(SystemState state, DroneParameters const& droneParam
 }
 
 // dynamics and updated control state
- Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, 
-        std::array<double(*)(double), NUM_REF_STATES> const& ref, 
-        std::array<double(*)(double), NUM_DIST_STATES> const& dist, 
-        PIDCtrllers ctrlParams,
-        double time, 
-        double timestep,
-        DroneParameters const& droneParams
-        )
+Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, 
+    std::array<double(*)(double), NUM_REF_STATES> const& ref, 
+    std::array<double(*)(double), NUM_DIST_STATES> const& dist, 
+    PIDCtrllers ctrlParams,
+    double time, 
+    double timestep,
+    DroneParameters const& droneParams)
 {
     Eigen::Vector<double, NUM_PLANT_STATES> dot;
-    CtrlOut ctrlOut = CascadedPIDController(ref, dist, ctrlParams, time, timestep, state.plant, state.ctrl, droneParams);
+    CtrlOut ctrlOut = CascadedPIDController(ref, ctrlParams, time, timestep, state.plant, state.ctrl, droneParams);
 
     dot(x) = state.plant(xdot);
     dot(y) = state.plant(ydot);
@@ -156,7 +223,6 @@ Eigen::MatrixX<double> dfdx(SystemState state, DroneParameters const& droneParam
 
 CtrlOut CascadedPIDController( 
     std::array<double(*)(double), NUM_REF_STATES> const& ref, 
-    std::array<double(*)(double), NUM_DIST_STATES> const& dist,
     PIDCtrllers ctrlParams,
     double time,
     double timestep,
@@ -166,30 +232,30 @@ CtrlOut CascadedPIDController(
 {
     CtrlOut ctrlOut;
     Eigen::Vector<PIDstate, NUM_CTRL_STATES> newCtrlState;
-    newCtrlState(::posX) = updatePIDstate(ctrlState(::posX), plantState(x), ref.at(refx)(time), timestep);
-    newCtrlState(::posY) = updatePIDstate(ctrlState(::posY), plantState(y), ref.at(refy)(time), timestep);
-    newCtrlState(::posZ) = updatePIDstate(ctrlState(::posZ), plantState(z), ref.at(refz)(time), timestep);
+    newCtrlState(posX) = updatePIDstate(ctrlState(posX), plantState(x), ref.at(refx)(time), timestep);
+    newCtrlState(posY) = updatePIDstate(ctrlState(posY), plantState(y), ref.at(refy)(time), timestep);
+    newCtrlState(posZ) = updatePIDstate(ctrlState(posZ), plantState(z), ref.at(refz)(time), timestep);
 
-    double desVelX = PIDctrl(ctrlParams.posX, newCtrlState(::posX));
-    double desVelY = PIDctrl(ctrlParams.posY, newCtrlState(::posY));
-    double desVelZ = PIDctrl(ctrlParams.posZ, newCtrlState(::posZ));
+    double desVelX = PIDctrl(ctrlParams.posX, newCtrlState(posX));
+    double desVelY = PIDctrl(ctrlParams.posY, newCtrlState(posY));
+    double desVelZ = PIDctrl(ctrlParams.posZ, newCtrlState(posZ));
 
-    newCtrlState(::velX) = updatePIDstate(ctrlState(::velX), plantState(xdot), desVelX, timestep);
-    newCtrlState(::velY) = updatePIDstate(ctrlState(::velY), plantState(ydot), desVelY, timestep);
-    newCtrlState(::velZ) = updatePIDstate(ctrlState(::velZ), plantState(zdot), desVelZ, timestep);
+    newCtrlState(velX) = updatePIDstate(ctrlState(velX), plantState(xdot), desVelX, timestep);
+    newCtrlState(velY) = updatePIDstate(ctrlState(velY), plantState(ydot), desVelY, timestep);
+    newCtrlState(velZ) = updatePIDstate(ctrlState(velZ), plantState(zdot), desVelZ, timestep);
 
     // output of vel goes into attitude but has negative signs for pitch and roll
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c
     // line 236
-    double desAttPhi   = -PIDctrl(ctrlParams.velX, newCtrlState(::velX));
-    double desAttTheta = -PIDctrl(ctrlParams.velY, newCtrlState(::velY));
+    double desAttPhi   = -PIDctrl(ctrlParams.velX, newCtrlState(velX));
+    double desAttTheta = -PIDctrl(ctrlParams.velY, newCtrlState(velY));
 
     // TODO: Can add constraints later
 
     // For some reason they scale their thrust by 1000 and add thrust base
     double thrustScale = 1000;
     double thrustBase = droneParams.g*droneParams.mass/4;
-    double desThrust = PIDctrl(ctrlParams.velZ, newCtrlState(::velZ))*thrustScale+thrustBase;
+    double desThrust = PIDctrl(ctrlParams.velZ, newCtrlState(velZ))*thrustScale+thrustBase;
 
     // Also they have minimum thrust as 20000 ?? 
     // TODO: Can add constraints later 
@@ -197,29 +263,29 @@ CtrlOut CascadedPIDController(
     {
         desThrust = 2000;
     }
-    newCtrlState(::attX) = updatePIDstate(ctrlState(::attX), plantState(phi), desAttPhi, timestep);
-    newCtrlState(::attY) = updatePIDstate(ctrlState(::attY), plantState(theta), desAttTheta, timestep);
+    newCtrlState(attX) = updatePIDstate(ctrlState(attX), plantState(phi), desAttPhi, timestep);
+    newCtrlState(attY) = updatePIDstate(ctrlState(attY), plantState(theta), desAttTheta, timestep);
     // TODO: Can implement ref yaw, for now fixed
-    newCtrlState(::attZ) = updatePIDstate(ctrlState(::attZ), plantState(psi), 0, timestep);
+    newCtrlState(attZ) = updatePIDstate(ctrlState(attZ), plantState(psi), 0, timestep);
 
-    double desAttRateX = PIDctrl(ctrlParams.attX, newCtrlState(::attX));
-    double desAttRateY = PIDctrl(ctrlParams.attY, newCtrlState(::attY));
-    double desAttRateZ = PIDctrl(ctrlParams.attZ, newCtrlState(::attZ));
+    double desAttRateX = PIDctrl(ctrlParams.attX, newCtrlState(attX));
+    double desAttRateY = PIDctrl(ctrlParams.attY, newCtrlState(attY));
+    double desAttRateZ = PIDctrl(ctrlParams.attZ, newCtrlState(attZ));
 
     // Assume that [phi dot theta dot psi dot] = [p q r]
     // This assumption holds true for small angles of movement
-    newCtrlState(::attRateX) = updatePIDstate(ctrlState(::attRateX), plantState(p), desAttRateX, timestep);
-    newCtrlState(::attRateY) = updatePIDstate(ctrlState(::attRateY), plantState(q), desAttRateY, timestep);
-    newCtrlState(::attRateZ) = updatePIDstate(ctrlState(::attRateZ), plantState(r), desAttRateZ, timestep);
+    newCtrlState(attRateX) = updatePIDstate(ctrlState(attRateX), plantState(p), desAttRateX, timestep);
+    newCtrlState(attRateY) = updatePIDstate(ctrlState(attRateY), plantState(q), desAttRateY, timestep);
+    newCtrlState(attRateZ) = updatePIDstate(ctrlState(attRateZ), plantState(r), desAttRateZ, timestep);
     ctrlOut.ctrlStates = newCtrlState;
     
-    double pitch = PIDctrl(ctrlParams.attRateX, newCtrlState(::attRateX));
-    double roll  = PIDctrl(ctrlParams.attRateY, newCtrlState(::attRateY));
-    double yaw   = PIDctrl(ctrlParams.attRateZ, newCtrlState(::attRateZ));
+    double pitch = PIDctrl(ctrlParams.attRateX, newCtrlState(attRateX));
+    double roll  = PIDctrl(ctrlParams.attRateY, newCtrlState(attRateY));
+    double yaw   = PIDctrl(ctrlParams.attRateZ, newCtrlState(attRateZ));
 
     // TODO: implement saturation
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/power_distribution_quadrotor.c
-    // line 86 they divide roll and pitch by 2
+    // line 86 they divide roll and pitch by 2 
     double r = roll / 2;
     double p = pitch / 2;
     double m1 = desThrust - r + p + yaw;
@@ -247,11 +313,6 @@ PIDstate updatePIDstate(PIDstate currVal, double currSig, double ref, double tim
     newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error;
     newPIDstate.kd_error = 1.0/timestep*(currVal.kp_error - newPIDstate.kp_error);
     return newPIDstate;
-}
-
-double calcFt()
-{
-
 }
 
 
