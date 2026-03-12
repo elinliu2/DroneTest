@@ -74,6 +74,9 @@ struct DroneParameters
     double numPlantStates = 12;
     // 2 pids * 3 translational directions * 2 states per error
     double numCtrlStates = 12; 
+
+    double pid_vel_roll_max = 20;
+    double pid_vel_pitch_max = 20;
 };
 
 struct CtrlOut
@@ -131,7 +134,7 @@ class DroneTrajectory
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
             PIDCtrllers ctrlParams = {},
             DroneParameters droneParameters = {},
-            double simTimestep = 1e-3, double finalTime = 1);
+            double simTimestep = 1e-3, double finalTime = 15);
         
         SimResults Trajectory(SystemState initialState); 
 };

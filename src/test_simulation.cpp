@@ -31,12 +31,17 @@ double zeroRef(double time){
 
 double oneRef(double time){
     (void)time;
-    return 0.01;
+    return 1;
+}
+
+double negativeOneRef(double time){
+    (void)time;
+    return -1;
 }
 
 double oneHundredRef(double time){
     (void)time;
-    return 0.101;
+    return 0.100;
 }
 
 SystemState initializeState()
@@ -48,7 +53,6 @@ SystemState initializeState()
         PIDstate empty;
         initialState.ctrl(i) = empty;
     }
-    initialState.plant(z) = 0.100;
     return initialState;
 }
 
@@ -56,13 +60,16 @@ int main()
 {
     Logger log("log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, oneHundredRef};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, oneRef};
     DroneTrajectory droneTrajectory(log, dist, ref);
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
     
     Logger splot("splot.txt");
     splotTrajectory(simResults, splot);
+
+    // Logger splotx("x.txt");
+    // splotPlantState(simResults, splotx, x);
 
     Logger splotz("z.txt");
     splotPlantState(simResults, splotz, z);
