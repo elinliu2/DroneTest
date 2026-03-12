@@ -6,7 +6,7 @@ find_library(USB_LIB usb-1.0)
 include_directories(${CMAKE_SOURCE_DIR}/eigen)
 
 # Enable C++11 and warnings
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
