@@ -48,7 +48,7 @@ void splotPlantState(SimResults simResults, Logger & log, int plantIndex)
     }
 
     // Send gnuplot commands
-    fprintf(gp, "set title 'Plant State'\n");
+    fprintf(gp, "set title 'Plant State %d' \n", plantIndex);
     fprintf(gp, "set xlabel 'time'\n");
     fprintf(gp, "set ylabel 'plantSate'\n");
     fprintf(gp, "plot '-' with lines title 'trajectory'\n");

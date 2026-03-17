@@ -60,7 +60,7 @@ int main()
 {
     Logger log("log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, oneRef};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, zeroRef};
     DroneTrajectory droneTrajectory(log, dist, ref);
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
@@ -68,11 +68,17 @@ int main()
     Logger splot("splot.txt");
     splotTrajectory(simResults, splot);
 
-    // Logger splotx("x.txt");
-    // splotPlantState(simResults, splotx, x);
+    Logger splotx("x.txt");
+    splotPlantState(simResults, splotx, x);
+
+    Logger sploty("y.txt");
+    splotPlantState(simResults, sploty, y);
 
     Logger splotz("z.txt");
     splotPlantState(simResults, splotz, z);
+
+    Logger splotyaw("yaw.txt");
+    splotPlantState(simResults, splotz, psi);
 
     std::cout << ":D" << std::endl;
     return 0;

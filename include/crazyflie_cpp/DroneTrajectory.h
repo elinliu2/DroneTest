@@ -1,6 +1,8 @@
 #ifndef DRONE_TRAJECTORY_H
 #define DRONE_TRAJECTORY_H
 
+#define _USE_MATH_DEFINES // Must be defined before including cmath or math.h
+#include <cmath>
 #include <vector>
 #include <array>
 #include <Eigen/Dense>
@@ -18,6 +20,7 @@ struct PIDParameters
     double kp = 0;
     double ki = 0;
     double kd = 0;
+    double integration_limit = 0;
     
 };
 
@@ -26,26 +29,47 @@ struct PIDstate
     double kp_error = 0;
     double ki_error = 0;
     double kd_error = 0;
+    double prev_sig = 0;
 };
+
+// struct PIDCtrllers
+// {
+//     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/platform/interface/platform_defaults_tag.h#L46
+//     PIDParameters posX = {2, 0, 0};
+//     PIDParameters posY = {2, 0, 0};
+//     PIDParameters posZ = {2, 0.5, 0};
+    
+//     PIDParameters velX = {25, 1, 0};
+//     PIDParameters velY = {25, 1, 0};
+//     PIDParameters velZ = {25, 15, 0};
+
+//     PIDParameters attX = {6, 3, 0, 20.0/180.0*M_PI};
+//     PIDParameters attY = {6, 3, 0, 20.0/180.0*M_PI};
+//     PIDParameters attZ = {6, 1, 0.35, 2*M_PI};
+
+//     PIDParameters attRateX = {250.0, 500, 2.5, 33.3/180.0*M_PI};
+//     PIDParameters attRateY = {250.0, 500, 2.5, 33.3/180.0*M_PI};
+//     PIDParameters attRateZ = {120, 16.7, 0, 166.7/180.0*M_PI};
+// };
 
 struct PIDCtrllers
 {
-    // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/platform/interface/platform_defaults_tag.h#L46
+    // Sanity check: just try P controller
     PIDParameters posX = {2, 0, 0};
     PIDParameters posY = {2, 0, 0};
-    PIDParameters posZ = {2, 0.5, 0};
+    PIDParameters posZ = {2, 0, 0};
     
-    PIDParameters velX = {25, 1, 0};
-    PIDParameters velY = {25, 1, 0};
-    PIDParameters velZ = {25, 15, 0};
+    PIDParameters velX = {25, 0, 0};
+    PIDParameters velY = {25, 0, 0};
+    PIDParameters velZ = {25, 0, 0};
 
-    PIDParameters attX = {6, 3, 0};
-    PIDParameters attY = {6, 3, 9};
-    PIDParameters attZ = {6, 1, 0.35};
+    PIDParameters attX = {6, 0, 0, 20.0/180.0*M_PI};
+    PIDParameters attY = {6, 0, 0, 20.0/180.0*M_PI};
+    PIDParameters attZ = {6, 0, 0, 2*M_PI};
 
-    PIDParameters attRateX = {250.0, 500, 2.5};
-    PIDParameters attRateY = {250.0, 500, 2.5};
-    PIDParameters attRateZ = {120, 16.7, 0};
+    PIDParameters attRateX = {250.0, 0, 0, 33.3/180.0*M_PI};
+    PIDParameters attRateY = {250.0, 0, 0, 33.3/180.0*M_PI};
+    PIDParameters attRateZ = {120, 0, 0, 166.7/180.0*M_PI};
 };
 
 struct DroneParameters 
@@ -75,8 +99,8 @@ struct DroneParameters
     // 2 pids * 3 translational directions * 2 states per error
     double numCtrlStates = 12; 
 
-    double pid_vel_roll_max = 20;
-    double pid_vel_pitch_max = 20;
+    double pid_vel_roll_max = M_PI*20.0/180.0;
+    double pid_vel_pitch_max = M_PI*20.0/180.0;
 };
 
 struct CtrlOut
@@ -134,7 +158,7 @@ class DroneTrajectory
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
             PIDCtrllers ctrlParams = {},
             DroneParameters droneParameters = {},
-            double simTimestep = 1e-3, double finalTime = 15);
+            double simTimestep = 1e-3, double finalTime = 5);
         
         SimResults Trajectory(SystemState initialState); 
 };
