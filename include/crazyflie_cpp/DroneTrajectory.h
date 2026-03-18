@@ -32,44 +32,24 @@ struct PIDstate
     double prev_sig = 0;
 };
 
-// struct PIDCtrllers
-// {
-//     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/platform/interface/platform_defaults_tag.h#L46
-//     PIDParameters posX = {2, 0, 0};
-//     PIDParameters posY = {2, 0, 0};
-//     PIDParameters posZ = {2, 0.5, 0};
-    
-//     PIDParameters velX = {25, 1, 0};
-//     PIDParameters velY = {25, 1, 0};
-//     PIDParameters velZ = {25, 15, 0};
-
-//     PIDParameters attX = {6, 3, 0, 20.0/180.0*M_PI};
-//     PIDParameters attY = {6, 3, 0, 20.0/180.0*M_PI};
-//     PIDParameters attZ = {6, 1, 0.35, 2*M_PI};
-
-//     PIDParameters attRateX = {250.0, 500, 2.5, 33.3/180.0*M_PI};
-//     PIDParameters attRateY = {250.0, 500, 2.5, 33.3/180.0*M_PI};
-//     PIDParameters attRateZ = {120, 16.7, 0, 166.7/180.0*M_PI};
-// };
-
 struct PIDCtrllers
 {
-    // Sanity check: just try P controller
+    // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/platform/interface/platform_defaults_tag.h#L46
     PIDParameters posX = {2, 0, 0};
     PIDParameters posY = {2, 0, 0};
-    PIDParameters posZ = {2, 0, 0};
+    PIDParameters posZ = {2, 0.5, 0};
     
-    PIDParameters velX = {25, 0, 0};
-    PIDParameters velY = {25, 0, 0};
-    PIDParameters velZ = {25, 0, 0};
+    PIDParameters velX = {25, 1, 0};
+    PIDParameters velY = {25, 1, 0};
+    PIDParameters velZ = {25, 15, 0};
 
-    PIDParameters attX = {6, 0, 0, 20.0/180.0*M_PI};
-    PIDParameters attY = {6, 0, 0, 20.0/180.0*M_PI};
-    PIDParameters attZ = {6, 0, 0, 2*M_PI};
+    PIDParameters attX = {6, 3, 0, 20.0/180.0*M_PI};
+    PIDParameters attY = {6, 3, 0, 20.0/180.0*M_PI};
+    PIDParameters attZ = {6, 1, 0.35, 2*M_PI};
 
-    PIDParameters attRateX = {250.0, 0, 0, 33.3/180.0*M_PI};
-    PIDParameters attRateY = {250.0, 0, 0, 33.3/180.0*M_PI};
-    PIDParameters attRateZ = {120, 0, 0, 166.7/180.0*M_PI};
+    PIDParameters attRateX = {250.0, 500, 2.5, 33.3/180.0*M_PI};
+    PIDParameters attRateY = {250.0, 500, 2.5, 33.3/180.0*M_PI};
+    PIDParameters attRateZ = {120, 16.7, 0, 166.7/180.0*M_PI};
 };
 
 struct DroneParameters 
@@ -158,7 +138,7 @@ class DroneTrajectory
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
             PIDCtrllers ctrlParams = {},
             DroneParameters droneParameters = {},
-            double simTimestep = 1e-3, double finalTime = 5);
+            double simTimestep = 1e-3, double finalTime = 5.7);
         
         SimResults Trajectory(SystemState initialState); 
 };

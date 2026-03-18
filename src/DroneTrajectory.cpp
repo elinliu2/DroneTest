@@ -259,8 +259,11 @@ CtrlOut DroneTrajectory::CascadedPIDController(
 
     // output of vel goes into attitude but has negative signs for pitch and roll
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L236
-    double desAttPhi   = std::clamp(-PIDctrl(m_ctrlParams.velX, newCtrlState(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
-    double desAttTheta = std::clamp(-PIDctrl(m_ctrlParams.velY, newCtrlState(velY)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+    // double desAttPhi   = std::clamp(-PIDctrl(m_ctrlParams.velX, newCtrlState(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
+    // double desAttTheta = std::clamp(-PIDctrl(m_ctrlParams.velY, newCtrlState(velY)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+
+    double desAttPhi   = -PIDctrl(m_ctrlParams.velX, newCtrlState(velX))/180.0*M_PI;
+    double desAttTheta = -PIDctrl(m_ctrlParams.velY, newCtrlState(velY))/180.0*M_PI;
 
     m_logger << "desAttPhi " << desAttPhi << std::endl; 
     m_logger << "desAttTheta " << desAttTheta << std::endl;
@@ -279,16 +282,12 @@ CtrlOut DroneTrajectory::CascadedPIDController(
 
     newCtrlState(attX) = updatePIDstate(m_ctrlParams.attX, ctrlState(attX), plantState(phi), desAttPhi, m_simTimestep, time);
     newCtrlState(attY) = updatePIDstate(m_ctrlParams.attY, ctrlState(attY), plantState(theta), desAttTheta, m_simTimestep, time);
-    m_logger.log(printPIDstate(newCtrlState(attY)));
-    
     // TODO: Can implement ref yaw, for now fixed 
-    newCtrlState(attZ) = updateYawPIDstate(m_ctrlParams.attZ, ctrlState(attZ), plantState(psi), 0, m_simTimestep, time);
-    m_logger << "yaw " << plantState(psi) << std::endl;
-    m_logger.log(printPIDstate(newCtrlState(attZ)));
+    newCtrlState(attZ) = updateYawPIDstate(m_ctrlParams.attZ, ctrlState(attZ), plantState(psi), 0.17, m_simTimestep, time);
 
     double desAttRateX = PIDctrl(m_ctrlParams.attX, newCtrlState(attX));
     double desAttRateY = PIDctrl(m_ctrlParams.attY, newCtrlState(attY));
-    double desAttRateZ = std::clamp(PIDctrl(m_ctrlParams.attZ, newCtrlState(attZ)), -M_PI/6, M_PI/6);
+    double desAttRateZ = PIDctrl(m_ctrlParams.attZ, newCtrlState(attZ));
     m_logger << "desAttRateX " << desAttRateX << std::endl; 
     m_logger << "desAttRateY " << desAttRateY << std::endl; 
     m_logger << "desAttRateZ " << desAttRateZ << std::endl; 
@@ -304,12 +303,15 @@ CtrlOut DroneTrajectory::CascadedPIDController(
 
     double roll  = PIDctrl(m_ctrlParams.attRateX, newCtrlState(attRateX));
     double pitch = PIDctrl(m_ctrlParams.attRateY, newCtrlState(attRateY));
-    m_logger.log(printPIDstate(newCtrlState(attRateY)));
     double yaw = PIDctrl(m_ctrlParams.attRateZ, newCtrlState(attRateZ));
     
     m_logger << "roll " << roll << std::endl; 
     m_logger << "pitch " << pitch << std::endl; 
-    
+    m_logger << "yaw " << yaw << std::endl; 
+    m_logger.log(printPIDstate(newCtrlState(attZ)));
+    m_logger.log(printPIDstate(newCtrlState(attRateZ)));
+    m_logger.log(printPIDstate(newCtrlState(velZ)));
+    m_logger.log(printPIDstate(newCtrlState(posZ)));
 
     // TODO: implement saturation
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/power_distribution_quadrotor.c
@@ -320,8 +322,8 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     double alpha = 0.2685;
     double q = 4070.3;
 
-    r = std::clamp(r, -M_PI/3/alpha, M_PI/3/alpha);
-    p = std::clamp(p, -M_PI/3/alpha, M_PI/3/alpha);
+    // r = std::clamp(r, -M_PI/3/alpha, M_PI/3/alpha);
+    // p = std::clamp(p, -M_PI/3/alpha, M_PI/3/alpha);
 
     double m1 = desThrust - r + p + yaw;
     double m2 = desThrust - r - p - yaw;
@@ -353,12 +355,13 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     ctrlOut.algeStates(ft) = m_droneParams.kf * (w1*w1 + w2*w2 + w3*w3 + w4*w4);
     ctrlOut.algeStates(tx) = m_droneParams.kf * m_droneParams.length * 1/sqrt(2) * (-w1*w1 - w2*w2 + w3*w3 + w4*w4);
     ctrlOut.algeStates(ty) = m_droneParams.kf * m_droneParams.length * 1/sqrt(2) * (-w1*w1 + w2*w2 + w3*w3 - w4*w4);
-    ctrlOut.algeStates(tz) = m_droneParams.km * (-w1*w1 + w2*w2 - w3*w3 + w4*w4);
+    ctrlOut.algeStates(tz) = m_droneParams.km * (w1*w1 - w2*w2 + w3*w3 - w4*w4);
 
     m_logger << "desThrust " << desThrust << std::endl; 
     m_logger << "ft " << ctrlOut.algeStates(ft) << std::endl; 
     m_logger << "tx " << ctrlOut.algeStates(tx) << std::endl; 
     m_logger << "ty " << ctrlOut.algeStates(ty) << std::endl; 
+    m_logger << "tz " << ctrlOut.algeStates(tz) << std::endl; 
 
     // if(desThrust < 1e-3)
     // {
@@ -376,15 +379,18 @@ PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, 
 {
     PIDstate newPIDstate;
     newPIDstate.kp_error = ref - currSig;
+    newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; 
 
-    if (params.integration_limit != 0) {
-        if (currVal.ki_error + newPIDstate.kp_error*timestep > params.integration_limit) { newPIDstate.ki_error = params.integration_limit; }
-        else if (currVal.ki_error + newPIDstate.kp_error*timestep < -1*params.integration_limit) { newPIDstate.ki_error = -1*params.integration_limit; }
-        else { newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; }
-    } 
-    else {
-        newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep;
-    }
+    (void)params;
+
+    // if (params.integration_limit != 0) {
+    //     if (currVal.ki_error + newPIDstate.kp_error*timestep > params.integration_limit) { newPIDstate.ki_error = params.integration_limit; }
+    //     else if (currVal.ki_error + newPIDstate.kp_error*timestep < -1*params.integration_limit) { newPIDstate.ki_error = -1*params.integration_limit; }
+    //     else { newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; }
+    // } 
+    // else {
+    //     newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep;
+    // }
 
     if (time != 0) {
         // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
@@ -401,21 +407,25 @@ PIDstate updateYawPIDstate(PIDParameters params, PIDstate currVal, double currSi
 {
     PIDstate newPIDstate;
     newPIDstate.kp_error = capAngle(ref - currSig);
+    newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep;
 
-    if (params.integration_limit != 0) {
-        if (currVal.ki_error + newPIDstate.kp_error*timestep > params.integration_limit) { newPIDstate.ki_error = params.integration_limit; }
-        else if (currVal.ki_error + newPIDstate.kp_error*timestep < -1*params.integration_limit) { newPIDstate.ki_error = -1*params.integration_limit; }
-        else { newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; }
-    } 
-    else {
-        newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep;
-    }
+    (void)params;
+
+    // if (params.integration_limit != 0) {
+    //     if (currVal.ki_error + newPIDstate.kp_error*timestep > params.integration_limit) { newPIDstate.ki_error = params.integration_limit; }
+    //     else if (currVal.ki_error + newPIDstate.kp_error*timestep < -1*params.integration_limit) { newPIDstate.ki_error = -1*params.integration_limit; }
+    //     else { newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; }
+    // } 
+    // else {
+    //     newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep;
+    // }
 
     if (time != 0) {
         // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
         // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/utils/src/pid.c
         // prevent derivative kick
-        newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
+        // newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
+        newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
     }
 
     newPIDstate.prev_sig = currSig;
