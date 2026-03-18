@@ -39,7 +39,7 @@ double negativeOneRef(double time){
     return -1;
 }
 
-double oneHundredRef(double time){
+double oneHundredthRef(double time){
     (void)time;
     return 0.100;
 }
@@ -78,7 +78,7 @@ int main()
     splotPlantState(simResults, splotz, z);
 
     Logger splotyaw("yaw.txt");
-    splotPlantState(simResults, splotz, psi);
+    splotPlantState(simResults, splotyaw, psi);
 
     std::cout << ":D" << std::endl;
     return 0;
