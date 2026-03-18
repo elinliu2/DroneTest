@@ -104,7 +104,7 @@ struct SimResults{
 };
 
 enum plantIndex{x, y, z, phi, theta, psi, xdot, ydot, zdot, p, q, r};
-enum ctrlIndex {posX, posY, posZ, velX, velY, velZ, attX, attY, attZ, attRateX, attRateY, attRateZ};
+enum ctrlIndex {posX, posY, posZ, velX, velY, velZ, roll, pitch, yaw, rollRate, pitchRate, yawRate};
 enum algeIndex {ft, tx, ty, tz};
 enum distIndex {Fwx, Fwy, Fwz, Twx, Twy, Twz};
 enum refIndex  {refx, refy, refz};
