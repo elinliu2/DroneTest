@@ -43,13 +43,13 @@ struct PIDCtrllers
     PIDParameters velY = {25, 1, 0};
     PIDParameters velZ = {25, 15, 0};
 
-    PIDParameters attX = {6, 3, 0, 20.0/180.0*M_PI};
-    PIDParameters attY = {6, 3, 0, 20.0/180.0*M_PI};
-    PIDParameters attZ = {6, 1, 0.35, 2*M_PI};
+    PIDParameters attX = {6, 3, 0, 20.0};
+    PIDParameters attY = {6, 3, 0, 20.0};
+    PIDParameters attZ = {6, 1, 0, 260.0};
 
-    PIDParameters attRateX = {250.0, 500, 2.5, 33.3/180.0*M_PI};
-    PIDParameters attRateY = {250.0, 500, 2.5, 33.3/180.0*M_PI};
-    PIDParameters attRateZ = {120, 16.7, 0, 166.7/180.0*M_PI};
+    PIDParameters attRateX = {250.0, 500, 0, 33.3};
+    PIDParameters attRateY = {250.0, 500, 0, 33.3};
+    PIDParameters attRateZ = {120, 16.7, 0, 166.7};
 };
 
 struct DroneParameters 
@@ -79,8 +79,8 @@ struct DroneParameters
     // 2 pids * 3 translational directions * 2 states per error
     double numCtrlStates = 12; 
 
-    double pid_vel_roll_max = M_PI*20.0/180.0;
-    double pid_vel_pitch_max = M_PI*20.0/180.0;
+    double pid_vel_roll_max = 20.0;
+    double pid_vel_pitch_max = 20.0;
 };
 
 struct CtrlOut
@@ -138,7 +138,7 @@ class DroneTrajectory
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
             PIDCtrllers ctrlParams = {},
             DroneParameters droneParameters = {},
-            double simTimestep = 1e-3, double finalTime = 5.7);
+            double simTimestep = 2e-3, double finalTime = 10);
         
         SimResults Trajectory(SystemState initialState); 
 };
