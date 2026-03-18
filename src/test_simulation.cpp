@@ -60,7 +60,7 @@ int main()
 {
     Logger log("log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, zeroRef};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, oneRef, zeroRef};
     DroneTrajectory droneTrajectory(log, dist, ref);
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;

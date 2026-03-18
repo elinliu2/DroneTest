@@ -277,14 +277,14 @@ CtrlOut DroneTrajectory::CascadedPIDController(
 
     // output of vel goes into attitude but has negative signs for pitch and roll
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L236
-    double desAttPhi   = std::clamp(-PIDctrl(m_ctrlParams.velX, newCtrlState(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
-    double desAttTheta = std::clamp(-PIDctrl(m_ctrlParams.velY, newCtrlState(velY)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+    double desPitch   = std::clamp(-PIDctrl(m_ctrlParams.velX, newCtrlState(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
+    double desRoll = std::clamp(-PIDctrl(m_ctrlParams.velY, newCtrlState(velY)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
 
     // double desAttPhi   = -PIDctrl(m_ctrlParams.velX, newCtrlState(velX));
     // double desAttTheta = -PIDctrl(m_ctrlParams.velY, newCtrlState(velY));
 
-    m_logger << "desAttPhi " << desAttPhi << std::endl; 
-    m_logger << "desAttTheta " << desAttTheta << std::endl;
+    // m_logger << "desAttPhi " << desAttPhi << std::endl; 
+    // m_logger << "desAttTheta " << desAttTheta << std::endl;
 
     // TODO: Can add constraints later
 
@@ -298,44 +298,32 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     // Also they have minimum thrust as 20000 ?? 
     desThrust = std::clamp(desThrust, 20000.0, (double)UINT16_MAX);
 
-    newCtrlState(attX) = updatePIDstate(m_ctrlParams.attX, ctrlState(attX), rad2Deg(plantState(phi)), desAttPhi, m_simTimestep, time);
-    newCtrlState(attY) = updatePIDstate(m_ctrlParams.attY, ctrlState(attY), rad2Deg(plantState(theta)), desAttTheta, m_simTimestep, time);
+    newCtrlState(roll) = updatePIDstate(m_ctrlParams.attX, ctrlState(roll), rad2Deg(plantState(phi)), desRoll, m_simTimestep, time);
+    newCtrlState(pitch) = updatePIDstate(m_ctrlParams.attY, ctrlState(pitch), rad2Deg(plantState(theta)), desPitch, m_simTimestep, time);
     // TODO: Can implement ref yaw, for now fixed 
-    newCtrlState(attZ) = updateYawPIDstate(m_ctrlParams.attZ, ctrlState(attZ), rad2Deg(plantState(psi)), rad2Deg(0.1), m_simTimestep, time);
+    newCtrlState(yaw) = updateYawPIDstate(m_ctrlParams.attZ, ctrlState(yaw), rad2Deg(plantState(psi)), rad2Deg(0), m_simTimestep, time);
 
-    double desAttRateX = PIDctrl(m_ctrlParams.attX, newCtrlState(attX));
-    double desAttRateY = PIDctrl(m_ctrlParams.attY, newCtrlState(attY));
-    double desAttRateZ = PIDctrl(m_ctrlParams.attZ, newCtrlState(attZ));
-    m_logger << "desAttRateX " << desAttRateX << std::endl; 
-    m_logger << "desAttRateY " << desAttRateY << std::endl; 
-    m_logger << "desAttRateZ " << desAttRateZ << std::endl; 
-    
+    double desRollRate = PIDctrl(m_ctrlParams.attX, newCtrlState(roll));
+    double desPitchRate = PIDctrl(m_ctrlParams.attY, newCtrlState(pitch));
+    double desYawRate = PIDctrl(m_ctrlParams.attZ, newCtrlState(yaw));
 
     // Assume that [phi dot theta dot psi dot] = [p q r]
     // This assumption holds true for small angles of movement
-    newCtrlState(attRateX) = updatePIDstate(m_ctrlParams.attRateX, ctrlState(attRateX), rad2Deg(plantState(p)), desAttRateX, m_simTimestep, time);
-    newCtrlState(attRateY) = updatePIDstate(m_ctrlParams.attRateY, ctrlState(attRateY), rad2Deg(plantState(q)), desAttRateY, m_simTimestep, time);
-    newCtrlState(attRateZ) = updatePIDstate(m_ctrlParams.attRateZ, ctrlState(attRateZ), rad2Deg(plantState(r)), desAttRateZ, m_simTimestep, time);
+    newCtrlState(rollRate) = updatePIDstate(m_ctrlParams.attRateX, ctrlState(rollRate), rad2Deg(plantState(p)), desRollRate, m_simTimestep, time);
+    newCtrlState(pitchRate) = updatePIDstate(m_ctrlParams.attRateY, ctrlState(pitchRate), rad2Deg(plantState(q)), desPitchRate, m_simTimestep, time);
+    newCtrlState(yawRate) = updatePIDstate(m_ctrlParams.attRateZ, ctrlState(yawRate), rad2Deg(plantState(r)), desYawRate, m_simTimestep, time);
     
     ctrlOut.ctrlStates = newCtrlState;
 
-    double roll  = PIDctrl(m_ctrlParams.attRateX, newCtrlState(attRateX));
-    double pitch = PIDctrl(m_ctrlParams.attRateY, newCtrlState(attRateY));
-    double yaw = PIDctrl(m_ctrlParams.attRateZ, newCtrlState(attRateZ));
-    
-    m_logger << "roll " << roll << std::endl; 
-    m_logger << "pitch " << pitch << std::endl; 
-    m_logger << "yaw " << yaw << std::endl; 
-    m_logger.log(printPIDstate(newCtrlState(attZ)));
-    m_logger.log(printPIDstate(newCtrlState(attRateZ)));
-    m_logger.log(printPIDstate(newCtrlState(velZ)));
-    m_logger.log(printPIDstate(newCtrlState(posZ)));
+    double rollOutput  = PIDctrl(m_ctrlParams.attRateX, newCtrlState(rollRate));
+    double pitchOutput = PIDctrl(m_ctrlParams.attRateY, newCtrlState(pitchRate));
+    double yawOutput = PIDctrl(m_ctrlParams.attRateZ, newCtrlState(yawRate));
 
     // TODO: implement saturation
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/power_distribution_quadrotor.c
     // line 86 they divide roll and pitch by 2 
-    double r = roll / 2;
-    double p = pitch / 2;
+    double r = rollOutput / 2;
+    double p = pitchOutput / 2;
 
     // double alpha = 0.2685;
     double alpha = 0.565;
@@ -344,10 +332,10 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     // r = std::clamp(r, -M_PI/3/alpha, M_PI/3/alpha);
     // p = std::clamp(p, -M_PI/3/alpha, M_PI/3/alpha);
 
-    double m1 = desThrust - r + p + yaw;
-    double m2 = desThrust - r - p - yaw;
-    double m3 = desThrust + r - p + yaw;
-    double m4 = desThrust + r + p - yaw;
+    double m1 = desThrust - r + p + yawOutput;
+    double m2 = desThrust - r - p - yawOutput;
+    double m3 = desThrust + r - p + yawOutput;
+    double m4 = desThrust + r + p - yawOutput;
 
     // need to convert motor pwm signal to angular velocity
     // double motorGain = sqrt(m_droneParams.mass*m_droneParams.g/(4*m_droneParams.kf*pow(thrustBase, 2)));
