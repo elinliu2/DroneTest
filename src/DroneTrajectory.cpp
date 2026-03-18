@@ -277,7 +277,7 @@ CtrlOut DroneTrajectory::CascadedPIDController(
 
     // output of vel goes into attitude but has negative signs for pitch and roll
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L236
-    double desPitch   = std::clamp(-PIDctrl(m_ctrlParams.velX, newCtrlState(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
+    double desPitch   = std::clamp(PIDctrl(m_ctrlParams.velX, newCtrlState(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
     double desRoll = std::clamp(-PIDctrl(m_ctrlParams.velY, newCtrlState(velY)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
 
     // double desAttPhi   = -PIDctrl(m_ctrlParams.velX, newCtrlState(velX));
