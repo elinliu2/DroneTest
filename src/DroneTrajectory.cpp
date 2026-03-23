@@ -329,7 +329,7 @@ PIDstate updatePIDstate(PIDstate currVal, double currSig, double ref, double tim
         // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
         // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/utils/src/pid.c
         // prevent derivative kick
-        newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
+        // newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
         // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
     }
 
@@ -347,7 +347,7 @@ PIDstate updateYawPIDstate(PIDstate currVal, double currSig, double ref, double 
         // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
         // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/utils/src/pid.c
         // prevent derivative kick
-        newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
+        // newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
         // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
     }
 
