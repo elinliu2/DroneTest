@@ -20,7 +20,6 @@ struct PIDParameters
     double kp = 0;
     double ki = 0;
     double kd = 0;
-    double integration_limit = 0;
     
 };
 
@@ -43,13 +42,13 @@ struct PIDCtrllers
     PIDParameters velY = {25, 1, 0};
     PIDParameters velZ = {25, 15, 0};
 
-    PIDParameters attX = {6, 3, 0, 20.0};
-    PIDParameters attY = {6, 3, 0, 20.0};
-    PIDParameters attZ = {6, 1, 0, 260.0};
+    PIDParameters roll  = {6, 3, 0};
+    PIDParameters pitch = {6, 3, 0};
+    PIDParameters yaw   = {6, 1, 0.35};
 
-    PIDParameters attRateX = {250.0, 500, 0, 33.3};
-    PIDParameters attRateY = {250.0, 500, 0, 33.3};
-    PIDParameters attRateZ = {120, 16.7, 0, 166.7};
+    PIDParameters rollRate  = {250.0, 500, 2.5};
+    PIDParameters pitchRate = {250.0, 500, 2.5};
+    PIDParameters yawRate   = {120.0, 16.7, 0};
 };
 
 struct DroneParameters 
@@ -67,19 +66,20 @@ struct DroneParameters
     double maxAcc = 25;
     double maxAngAcc = 20;
 
+    // // https://giuseppesilano.net/publications/rosChapter19.pdf
+    // I tried kf and km gains from here but they didn't work
+
     // https://arxiv.org/pdf/2512.14450
     double kf = 3.72e-8;
     double km = 7.73e-11;
-    // https://github.com/IMRCLab/crazyswarm2/blob/bd54392f91d5c3aa29d5c170b11359767ab105d1/crazyflie_sim/crazyflie_sim/backend/data/dynobench/crazyflie2.yaml#L11 
-    // says this ratio should be 0.006
-    // and right now its 0.0021
-
+    
     // x y z psi theta phi xdot ydot zdot p q r 
     double numPlantStates = 12;
     // 2 pids * 3 translational directions * 2 states per error
     double numCtrlStates = 12; 
 
-    double pid_vel_roll_max = 20.0;
+    // these are in degrees
+    double pid_vel_roll_max = 20.0; 
     double pid_vel_pitch_max = 20.0;
 };
 
