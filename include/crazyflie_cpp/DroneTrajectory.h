@@ -8,19 +8,21 @@
 #include <Eigen/Dense>
 
 #include "Logger.h"
+#include "LowPassFilter.h"
 
 #define NUM_PLANT_STATES 12
 #define NUM_CTRL_STATES 12
 #define NUM_ALGE_STATES 4
 #define NUM_DIST_STATES 6
-#define NUM_REF_STATES 3
+#define NUM_REF_STATES 4
 
 struct PIDParameters 
 {
     double kp = 0;
     double ki = 0;
     double kd = 0;
-    
+    double integration_limit = 0;
+    bool lpf_en = false;
 };
 
 struct PIDstate
@@ -29,6 +31,7 @@ struct PIDstate
     double ki_error = 0;
     double kd_error = 0;
     double prev_sig = 0;
+    LowPassFilter lpf;
 };
 
 struct PIDCtrllers
@@ -42,13 +45,13 @@ struct PIDCtrllers
     PIDParameters velY = {25, 1, 0};
     PIDParameters velZ = {25, 15, 0};
 
-    PIDParameters roll  = {6, 3, 0};
-    PIDParameters pitch = {6, 3, 0};
-    PIDParameters yaw   = {6, 1, 0.35};
+    PIDParameters roll  = {6, 3, 0, 20.0};
+    PIDParameters pitch = {6, 3, 0, 20.0};
+    PIDParameters yaw   = {6, 1, 0.35, 360.0};
 
-    PIDParameters rollRate  = {250.0, 500, 2.5};
-    PIDParameters pitchRate = {250.0, 500, 2.5};
-    PIDParameters yawRate   = {120.0, 16.7, 0};
+    PIDParameters rollRate  = {250.0, 500, 2.5, 33.3, true};
+    PIDParameters pitchRate = {250.0, 500, 2.5, 33.3, true};
+    PIDParameters yawRate   = {120.0, 16.7, 0, 166.7};
 };
 
 struct DroneParameters 
@@ -107,7 +110,7 @@ enum plantIndex{x, y, z, phi, theta, psi, xdot, ydot, zdot, p, q, r};
 enum ctrlIndex {posX, posY, posZ, velX, velY, velZ, roll, pitch, yaw, rollRate, pitchRate, yawRate};
 enum algeIndex {ft, tx, ty, tz};
 enum distIndex {Fwx, Fwy, Fwz, Twx, Twy, Twz};
-enum refIndex  {refx, refy, refz};
+enum refIndex  {refx, refy, refz, refyaw};
 
 class DroneTrajectory 
 {

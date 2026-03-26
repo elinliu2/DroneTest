@@ -21,6 +21,7 @@ add_library(crazyflie_cpp
   src/ITransport.cpp
   src/DroneTrajectory.cpp
   src/Splotting.cpp
+  src/LowPassFilter.cpp
 )
 
 target_include_directories(crazyflie_cpp

@@ -44,6 +44,18 @@ double oneHundredthRef(double time){
     return 0.100;
 }
 
+double smoothStep(double time)
+{
+    double scale = 0.1;
+    if (time <= 0 ){
+        return 0;
+    } else if (time < 1){
+        return scale*(3*pow(time, 2) - 2*pow(time, 3));
+    } else {
+        return scale;
+    }
+}
+
 SystemState initializeState()
 {
     SystemState initialState;
@@ -52,6 +64,11 @@ SystemState initializeState()
     for (int i = 0; i < NUM_CTRL_STATES; i++){
         PIDstate empty;
         initialState.ctrl(i) = empty;
+        if (i == rollRate || i == pitchRate)
+        {
+            LowPassFilter lpfRate{500, 30};
+            initialState.ctrl(i).lpf = lpfRate;
+        }
     }
     return initialState;
 }
@@ -60,7 +77,7 @@ int main()
 {
     Logger log("log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
     DroneTrajectory droneTrajectory(log, dist, ref);
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
