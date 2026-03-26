@@ -4,8 +4,8 @@
 #include <Eigen/Dense>
 
 double PIDctrl(PIDParameters params, PIDstate state);
-PIDstate updateYawPIDstate(PIDstate currVal, double currSig, double ref, double timestep, double time);
-PIDstate updatePIDstate(PIDstate currVal, double currSig, double ref, double timestep, double time);
+PIDstate updateYawPIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time);
+PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time);
 std::string printPIDstate(PIDstate state);
 Eigen::Vector<PIDstate, NUM_CTRL_STATES> resetPIDstate();
 double capAngle(double angle);
@@ -30,9 +30,6 @@ DroneTrajectory::DroneTrajectory(
 SimResults DroneTrajectory::Trajectory(SystemState initialState)
 {
     SimResults simResults;
-    // CtrlOut ctrlOut = CascadedPIDController(initialState.plant, initialState.ctrl, 0);
-    // initialState.ctrl = ctrlOut.ctrlStates;
-    // initialState.alge = ctrlOut.algeStates;
     simResults.stateProgression.push_back(initialState);
     double time = 0;
     simResults.time.push_back(time);
@@ -45,38 +42,13 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
         simResults.time.push_back(time);
 
         m_logger << "INFO - timestep: " << time << std::endl;
-        // m_logger << "INFO - CTRL EFFORT: " << state1.alge(ft) << std::endl;
         m_logger << "INFO - PLANT STATE:"   << "x: " << state1.plant(x) << " y: " << state1.plant(y) << " z: " << state1.plant(z) << " phi: "
                                             << state1.plant(phi) << " theta: " << state1.plant(theta) << " psi: " << state1.plant(psi) << " xdot: "
                                             << state1.plant(xdot) << " ydot: " << state1.plant(ydot) << " zdot: " << state1.plant(zdot) << " p: "
                                             << state1.plant(p) << " q: " << state1.plant(q) << " r: " << state1.plant(r) 
                                             << std::endl;
-        //m_logger << "INFO - STABLE:" << state1.stable << std::endl;
-        
-        // SystemState state2 = simulateTimestep(state1, time + m_simTimestep);
-
-        // m_logger << "INFO - timestep: " << time << std::endl;
-        // m_logger << "INFO - CTRL EFFORT: " << state1.alge(ft) << std::endl;
-        // m_logger << "INFO - PLANT STATE:" << state1.plant(x) << " " << state1.plant(y) << " " << state1.plant(z) << std::endl;
-        // m_logger << "INFO - STABLE:" << state1.stable << std::endl;
-
-
-        // // SystemState stateDouble = simulateTimestep(prev, ref, m_dist, m_ctrlParams, time, m_simTimestep, m_droneParameters);
-
-        // simResults.stateProgression.push_back(state2);
-        // simResults.stable = simResults.stable & state2.stable;
-        // time += m_simTimestep;
-        // simResults.time.push_back(time);
-
-        // double diff = (stateDouble.plant - state2.plant).norm();
-        // if( diff < 1e-7 && stateDouble.stable){
-        //     m_simTimestep = m_simTimestep * 2;
-        // } else if (diff > 1e-4 || !state1.stable || !state2.stable){
-        //     if (m_simTimestep > 1e-3) {
-        //         m_simTimestep = m_simTimestep / 2;
-        //     }
-        // }
-        // check convergence for stable and end early or unstable and not converging
+        // TODO: adaptive timestep
+        // TOOD: check convergence for stable and end early or unstable and not converging
     }
     return simResults;
 }
@@ -234,9 +206,9 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     double state_body_x = plantState(x) * cosyaw + plantState(y) * sinyaw;
     double state_body_y = -plantState(x) * sinyaw + plantState(y) * cosyaw;    
 
-    newCtrlState(posX) = updatePIDstate(ctrlState(posX), state_body_x, setp_body_x, m_simTimestep, time);
-    newCtrlState(posY) = updatePIDstate(ctrlState(posY), state_body_y, setp_body_y, m_simTimestep, time);
-    newCtrlState(posZ) = updatePIDstate(ctrlState(posZ), plantState(z), m_ref.at(refz)(time), m_simTimestep, time);
+    newCtrlState(posX) = updatePIDstate(m_ctrlParams.posX, ctrlState(posX), state_body_x, setp_body_x, m_simTimestep, time);
+    newCtrlState(posY) = updatePIDstate(m_ctrlParams.posY, ctrlState(posY), state_body_y, setp_body_y, m_simTimestep, time);
+    newCtrlState(posZ) = updatePIDstate(m_ctrlParams.posZ, ctrlState(posZ), plantState(z), m_ref.at(refz)(time), m_simTimestep, time);
 
     double desVelX = PIDctrl(m_ctrlParams.posX, newCtrlState(posX));
     double desVelY = PIDctrl(m_ctrlParams.posY, newCtrlState(posY));
@@ -245,9 +217,9 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     double state_body_vx = plantState(xdot) * cosyaw + plantState(ydot) * sinyaw;
     double state_body_vy = -plantState(xdot) * sinyaw + plantState(ydot) * cosyaw;
 
-    newCtrlState(velX) = updatePIDstate(ctrlState(velX), state_body_vx, desVelX, m_simTimestep, time);
-    newCtrlState(velY) = updatePIDstate(ctrlState(velY), state_body_vy, desVelY, m_simTimestep, time);
-    newCtrlState(velZ) = updatePIDstate(ctrlState(velZ), plantState(zdot), desVelZ, m_simTimestep, time);
+    newCtrlState(velX) = updatePIDstate(m_ctrlParams.velX, ctrlState(velX), state_body_vx, desVelX, m_simTimestep, time);
+    newCtrlState(velY) = updatePIDstate(m_ctrlParams.velY, ctrlState(velY), state_body_vy, desVelY, m_simTimestep, time);
+    newCtrlState(velZ) = updatePIDstate(m_ctrlParams.velZ, ctrlState(velZ), plantState(zdot), desVelZ, m_simTimestep, time);
 
     // Need a positive pitch to move forward in the x direction
     // Need a negative roll to move forward in the y direction
@@ -260,23 +232,23 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     double thrustScale = 1000;
     double thrustBase = 36000;
     double desThrust = PIDctrl(m_ctrlParams.velZ, newCtrlState(velZ))*thrustScale+thrustBase;
-    m_logger << printPIDstate(newCtrlState(velZ)) << std::endl;
     desThrust = std::clamp(desThrust, 20000.0, (double)UINT16_MAX);
 
-    newCtrlState(roll) = updatePIDstate(ctrlState(roll), rad2Deg(plantState(phi)), desRoll, m_simTimestep, time);
-    newCtrlState(pitch) = updatePIDstate( ctrlState(pitch), rad2Deg(plantState(theta)), desPitch, m_simTimestep, time);
-    // TODO: Can implement ref yaw, for now fixed at zero
-    newCtrlState(yaw) = updateYawPIDstate(ctrlState(yaw), rad2Deg(plantState(psi)), rad2Deg(0), m_simTimestep, time);
-
+    newCtrlState(roll) = updatePIDstate(m_ctrlParams.roll, ctrlState(roll), rad2Deg(plantState(phi)), desRoll, m_simTimestep, time);
+    newCtrlState(pitch) = updatePIDstate(m_ctrlParams.pitch, ctrlState(pitch), rad2Deg(plantState(theta)), desPitch, m_simTimestep, time);
+    newCtrlState(yaw) = updateYawPIDstate(m_ctrlParams.yaw, ctrlState(yaw), rad2Deg(plantState(psi)), rad2Deg(m_ref.at(refyaw)(time)), m_simTimestep, time);
+    m_logger << "ref yaw: " << rad2Deg(m_ref.at(refyaw)(time)) << std::endl;
+    m_logger.log(printPIDstate(newCtrlState(yaw)));
+    
     double desRollRate = PIDctrl(m_ctrlParams.roll, newCtrlState(roll));
     double desPitchRate = PIDctrl(m_ctrlParams.pitch, newCtrlState(pitch));
     double desYawRate = PIDctrl(m_ctrlParams.yaw, newCtrlState(yaw));
-
+    
     // Assume that [phi dot theta dot psi dot] = [p q r]
     // This assumption holds true for small angles of movement
-    newCtrlState(rollRate) = updatePIDstate(ctrlState(rollRate), rad2Deg(plantState(p)), desRollRate, m_simTimestep, time);
-    newCtrlState(pitchRate) = updatePIDstate(ctrlState(pitchRate), rad2Deg(plantState(q)), desPitchRate, m_simTimestep, time);
-    newCtrlState(yawRate) = updatePIDstate(ctrlState(yawRate), rad2Deg(plantState(r)), desYawRate, m_simTimestep, time);
+    newCtrlState(rollRate) = updatePIDstate(m_ctrlParams.rollRate, ctrlState(rollRate), rad2Deg(plantState(p)), desRollRate, m_simTimestep, time);
+    newCtrlState(pitchRate) = updatePIDstate(m_ctrlParams.pitchRate, ctrlState(pitchRate), rad2Deg(plantState(q)), desPitchRate, m_simTimestep, time);
+    newCtrlState(yawRate) = updatePIDstate(m_ctrlParams.yawRate, ctrlState(yawRate), rad2Deg(plantState(r)), desYawRate, m_simTimestep, time);
     
     ctrlOut.ctrlStates = newCtrlState;
 
@@ -319,35 +291,52 @@ CtrlOut DroneTrajectory::CascadedPIDController(
 double PIDctrl(PIDParameters params, PIDstate state)
 { return params.ki * state.ki_error + params.kp * state.kp_error + params.kd * state.kd_error;}
 
-PIDstate updatePIDstate(PIDstate currVal, double currSig, double ref, double timestep, double time)
+PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time)
 {
     PIDstate newPIDstate;
     newPIDstate.kp_error = ref - currSig;
-    newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; 
 
+    double nextIntegral = currVal.ki_error + newPIDstate.kp_error*timestep;
+    if (params.integration_limit !=0 && abs(nextIntegral) > params.integration_limit){
+        newPIDstate.ki_error = params.integration_limit * nextIntegral/abs(nextIntegral);
+    } else {
+        newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; 
+    } 
+   
     if (time != 0) {
-        // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
         // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/utils/src/pid.c
         // prevent derivative kick
-        // newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
-        // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
+        double delta = -1.0/timestep*(currSig - currVal.prev_sig);
+        if (params.lpf_en){
+            newPIDstate.kd_error = currVal.lpf.lpf2pApply(delta);
+        } else {
+            newPIDstate.kd_error = delta;
+        }
+        
+        
     }
-
     newPIDstate.prev_sig = currSig;
+    newPIDstate.lpf = currVal.lpf;
     return newPIDstate;
 }
 
-PIDstate updateYawPIDstate(PIDstate currVal, double currSig, double ref, double timestep, double time)
+PIDstate updateYawPIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time)
 {
     PIDstate newPIDstate;
     newPIDstate.kp_error = capAngle(ref - currSig);
-    newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep;
+    
+    double nextIntegral = currVal.ki_error + newPIDstate.kp_error*timestep;
+    if (params.integration_limit !=0 && abs(nextIntegral) > params.integration_limit){
+        newPIDstate.ki_error = params.integration_limit * nextIntegral/abs(nextIntegral);
+    } else {
+        newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; 
+    } 
 
     if (time != 0) {
         // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
         // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/utils/src/pid.c
         // prevent derivative kick
-        // newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
+        newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
         // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
     }
 
