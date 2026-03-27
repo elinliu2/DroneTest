@@ -220,7 +220,7 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     newCtrlState(velX) = updatePIDstate(m_ctrlParams.velX, ctrlState(velX), state_body_vx, desVelX, m_simTimestep, time);
     newCtrlState(velY) = updatePIDstate(m_ctrlParams.velY, ctrlState(velY), state_body_vy, desVelY, m_simTimestep, time);
     newCtrlState(velZ) = updatePIDstate(m_ctrlParams.velZ, ctrlState(velZ), plantState(zdot), desVelZ, m_simTimestep, time);
-
+ 
     // Need a positive pitch to move forward in the x direction
     // Need a negative roll to move forward in the y direction
     double desPitch   = std::clamp(PIDctrl(m_ctrlParams.velX, newCtrlState(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
@@ -237,9 +237,7 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     newCtrlState(roll) = updatePIDstate(m_ctrlParams.roll, ctrlState(roll), rad2Deg(plantState(phi)), desRoll, m_simTimestep, time);
     newCtrlState(pitch) = updatePIDstate(m_ctrlParams.pitch, ctrlState(pitch), rad2Deg(plantState(theta)), desPitch, m_simTimestep, time);
     newCtrlState(yaw) = updateYawPIDstate(m_ctrlParams.yaw, ctrlState(yaw), rad2Deg(plantState(psi)), rad2Deg(m_ref.at(refyaw)(time)), m_simTimestep, time);
-    m_logger << "ref yaw: " << rad2Deg(m_ref.at(refyaw)(time)) << std::endl;
-    m_logger.log(printPIDstate(newCtrlState(yaw)));
-    
+        
     double desRollRate = PIDctrl(m_ctrlParams.roll, newCtrlState(roll));
     double desPitchRate = PIDctrl(m_ctrlParams.pitch, newCtrlState(pitch));
     double desYawRate = PIDctrl(m_ctrlParams.yaw, newCtrlState(yaw));
