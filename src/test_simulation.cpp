@@ -3,18 +3,10 @@
 #include "Logger.h"
 #include <iostream>
 
-double xDist(double time)
+double windDist(double time)
 {
-    if(time < 0.15){
-        return 10;
-    }
-    return 0;
-}
-
-double yDist(double time)
-{
-    if(time < 0.15){
-        return 10;
+    if(time < 0.04){
+        return -0.05;
     }
     return 0;
 }
