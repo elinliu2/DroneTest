@@ -103,7 +103,7 @@ struct SystemState
 struct SimResults{
     std::vector<double> time;
     std::vector<SystemState> stateProgression;
-    bool stable;
+    bool stable = true;
 };
 
 enum plantIndex{x, y, z, phi, theta, psi, xdot, ydot, zdot, p, q, r};
@@ -127,10 +127,10 @@ class DroneTrajectory
     double m_finalTime; // [s]
     
 
-    CtrlOut CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrlState, double time);
-    SystemState simulateTimestep(SystemState prev, double time);
-    Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time);
-    Eigen::MatrixX<double> DH(SystemState state);
+    CtrlOut CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrlState, double time, double timestep);
+    SystemState simulateTimestep(SystemState prev, double time, double timestep);
+    Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep);
+    Eigen::MatrixX<double> DH(SystemState state, double timestep);
     Eigen::MatrixX<double> dfdx(SystemState state);
     Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, double time);
 
@@ -141,7 +141,7 @@ class DroneTrajectory
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
             PIDCtrllers ctrlParams = {},
             DroneParameters droneParameters = {},
-            double simTimestep = 2e-3, double finalTime = 10);
+            double simTimestep = 1e-3, double finalTime = 10);
         
         SimResults Trajectory(SystemState initialState); 
 };
