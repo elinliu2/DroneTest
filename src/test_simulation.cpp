@@ -6,7 +6,7 @@
 double windDist(double time)
 {
     if(time < 1){
-        return -2.42;
+        return -2.4;
     }
     return 0;
 }
