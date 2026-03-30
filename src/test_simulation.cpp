@@ -5,8 +5,8 @@
 
 double windDist(double time)
 {
-    if(time < 0.04){
-        return -0.05;
+    if(time < 1){
+        return -2.42;
     }
     return 0;
 }
@@ -53,13 +53,11 @@ SystemState initializeState()
     SystemState initialState;
     initialState.plant = Eigen::Vector<double, NUM_PLANT_STATES>::Zero();
     initialState.alge = Eigen::Vector<double, NUM_ALGE_STATES>::Zero();
+
     for (int i = 0; i < NUM_CTRL_STATES; i++){
-        PIDstate empty;
-        initialState.ctrl(i) = empty;
-        if (i == rollRate || i == pitchRate)
-        {
+        if (i == rollRate || i == pitchRate) {
             LowPassFilter lpfRate{500, 30};
-            initialState.ctrl(i).lpf = lpfRate;
+            initialState.ctrl.at(i).lpf = lpfRate;
         }
     }
     return initialState;
@@ -68,7 +66,7 @@ SystemState initializeState()
 int main()
 {
     Logger log("log.txt");
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {windDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
     DroneTrajectory droneTrajectory(log, dist, ref);
     SimResults simResults = droneTrajectory.Trajectory(initializeState());

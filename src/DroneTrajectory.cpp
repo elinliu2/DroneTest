@@ -4,19 +4,20 @@
 #include <Eigen/Dense>
 
 double PIDctrl(PIDParameters params, PIDstate state);
-PIDstate updateYawPIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time);
-PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time);
+PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time, bool isYawAngle = false);
 std::string printPIDstate(PIDstate state);
 Eigen::Vector<PIDstate, NUM_CTRL_STATES> resetPIDstate();
 double capAngle(double angle);
 double rad2Deg(double angle) { return angle / M_PI * 180.0; }
 double deg2Rad(double angle) { return angle / 180.0 * M_PI; }
+// These are different because during the simulation we might not know if its converging or not converging
+// aka we don't know what it's doing yet, in which case both of these functions will return false
 
 DroneTrajectory::DroneTrajectory(
     Logger & logger, 
     std::array<double(*)(double), NUM_DIST_STATES> const& dist,
     std::array<double(*)(double), NUM_REF_STATES> const& ref,
-    PIDCtrllers ctrlParams,
+    std::array<PIDParameters, NUM_CTRL_STATES> ctrlParams,
     DroneParameters droneParameters, 
     double simTimestep, double finalTime) : 
     m_logger(logger), 
@@ -58,15 +59,29 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
             }
         }
         
-        // m_logger << "INFO - timestep: " << time << std::endl;
-        // m_logger << "INFO - PLANT STATE:"   << "x: " << state1.plant(x) << " y: " << state1.plant(y) << " z: " << state1.plant(z) << " phi: "
-        //                                     << state1.plant(phi) << " theta: " << state1.plant(theta) << " psi: " << state1.plant(psi) << " xdot: "
-        //                                     << state1.plant(xdot) << " ydot: " << state1.plant(ydot) << " zdot: " << state1.plant(zdot) << " p: "
-        //                                     << state1.plant(p) << " q: " << state1.plant(q) << " r: " << state1.plant(r) 
-        //                                     << std::endl;
+        m_logger << "INFO - timestep: " << time << std::endl;
+        m_logger << "INFO - PLANT STATE: x: "   << state2.plant(x) << " y: " << state2.plant(y) << " z: " << state2.plant(z) << " phi: "
+                                                << state2.plant(phi) << " theta: " << state2.plant(theta) << " psi: " << state2.plant(psi) << " xdot: "
+                                                << state2.plant(xdot) << " ydot: " << state2.plant(ydot) << " zdot: " << state2.plant(zdot) << " p: "
+                                                << state2.plant(p) << " q: " << state2.plant(q) << " r: " << state2.plant(r) 
+                                                << std::endl;
+        // m_logger << "INFO - CTRL STATE: " << std::endl;
+        // for (int i = 0; i < NUM_CTRL_STATES; i++)
+        // { m_logger.log(printPIDstate(state2.ctrl.at(i))); }
+        m_logger << "INFO - ALGE STATE: ft: "   << state2.alge(ft) << " tx: " << state2.alge(tx) << " ty: " << state2.alge(ty) << " tz: " << state2.alge(tz)
+                                                << std::endl;
         
-        // TOOD: check convergence for stable and end early or unstable and not converging
+        // TOOD: check not converging and end earlier
+        if (isConverging(state2, m_ref, time)){
+            m_logger << "converging :D" << std::endl;
+            simResults.converged = true;
+            return simResults;
+        } else if (isNotConverging(state2, m_ref, time, state2.ctrl)) {
+            m_logger << "not converging D:" << std::endl;
+            return simResults;
+        }
     }
+    m_logger << "convergence status: " << simResults.converged << std::endl;
     return simResults;
 }
 
@@ -206,11 +221,11 @@ Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::f(SystemState state, do
 // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L193
 CtrlOut DroneTrajectory::CascadedPIDController( 
     Eigen::Vector<double, NUM_PLANT_STATES> plantState,
-    Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrlState, 
+    std::array<PIDstate, NUM_CTRL_STATES> ctrlState, 
     double time, double timestep)
 {
     CtrlOut ctrlOut;
-    Eigen::Vector<PIDstate, NUM_CTRL_STATES> newCtrlState;
+    std::array<PIDstate, NUM_CTRL_STATES> newCtrlState;
 
     //https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L202
     double cosyaw = cos(plantState(psi));
@@ -223,53 +238,53 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     double state_body_x = plantState(x) * cosyaw + plantState(y) * sinyaw;
     double state_body_y = -plantState(x) * sinyaw + plantState(y) * cosyaw;    
 
-    newCtrlState(posX) = updatePIDstate(m_ctrlParams.posX, ctrlState(posX), state_body_x, setp_body_x, timestep, time);
-    newCtrlState(posY) = updatePIDstate(m_ctrlParams.posY, ctrlState(posY), state_body_y, setp_body_y, timestep, time);
-    newCtrlState(posZ) = updatePIDstate(m_ctrlParams.posZ, ctrlState(posZ), plantState(z), m_ref.at(refz)(time), timestep, time);
+    newCtrlState.at(posX) = updatePIDstate(m_ctrlParams.at(posX), ctrlState.at(posX), state_body_x, setp_body_x, timestep, time);
+    newCtrlState.at(posY) = updatePIDstate(m_ctrlParams.at(posY), ctrlState.at(posY), state_body_y, setp_body_y, timestep, time);
+    newCtrlState.at(posZ) = updatePIDstate(m_ctrlParams.at(posZ), ctrlState.at(posZ), plantState(z), m_ref.at(refz)(time), timestep, time);
 
-    double desVelX = PIDctrl(m_ctrlParams.posX, newCtrlState(posX));
-    double desVelY = PIDctrl(m_ctrlParams.posY, newCtrlState(posY));
-    double desVelZ = PIDctrl(m_ctrlParams.posZ, newCtrlState(posZ));
+    double desVelX = PIDctrl(m_ctrlParams.at(posX), newCtrlState.at(posX));
+    double desVelY = PIDctrl(m_ctrlParams.at(posY), newCtrlState.at(posY));
+    double desVelZ = PIDctrl(m_ctrlParams.at(posZ), newCtrlState.at(posZ));
 
     double state_body_vx = plantState(xdot) * cosyaw + plantState(ydot) * sinyaw;
     double state_body_vy = -plantState(xdot) * sinyaw + plantState(ydot) * cosyaw;
 
-    newCtrlState(velX) = updatePIDstate(m_ctrlParams.velX, ctrlState(velX), state_body_vx, desVelX, timestep, time);
-    newCtrlState(velY) = updatePIDstate(m_ctrlParams.velY, ctrlState(velY), state_body_vy, desVelY, timestep, time);
-    newCtrlState(velZ) = updatePIDstate(m_ctrlParams.velZ, ctrlState(velZ), plantState(zdot), desVelZ, timestep, time);
+    newCtrlState.at(velX) = updatePIDstate(m_ctrlParams.at(velX), ctrlState.at(velX), state_body_vx, desVelX, timestep, time);
+    newCtrlState.at(velY) = updatePIDstate(m_ctrlParams.at(velY), ctrlState.at(velY), state_body_vy, desVelY, timestep, time);
+    newCtrlState.at(velZ) = updatePIDstate(m_ctrlParams.at(velZ), ctrlState.at(velZ), plantState(zdot), desVelZ, timestep, time);
  
     // Need a positive pitch to move forward in the x direction
     // Need a negative roll to move forward in the y direction
-    double desPitch   = std::clamp(PIDctrl(m_ctrlParams.velX, newCtrlState(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
-    double desRoll = -std::clamp(PIDctrl(m_ctrlParams.velY, newCtrlState(velY)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+    double desPitch = std::clamp(PIDctrl(m_ctrlParams.at(velX), newCtrlState.at(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
+    double desRoll = -std::clamp(PIDctrl(m_ctrlParams.at(velY), newCtrlState.at(velY)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
 
     // TODO: Can add constraints later
 
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L260
     double thrustScale = 1000;
     double thrustBase = 36000;
-    double desThrust = PIDctrl(m_ctrlParams.velZ, newCtrlState(velZ))*thrustScale+thrustBase;
+    double desThrust = PIDctrl(m_ctrlParams.at(velZ), newCtrlState.at(velZ))*thrustScale+thrustBase;
     desThrust = std::clamp(desThrust, 20000.0, (double)UINT16_MAX);
 
-    newCtrlState(roll) = updatePIDstate(m_ctrlParams.roll, ctrlState(roll), rad2Deg(plantState(phi)), desRoll, timestep, time);
-    newCtrlState(pitch) = updatePIDstate(m_ctrlParams.pitch, ctrlState(pitch), rad2Deg(plantState(theta)), desPitch, timestep, time);
-    newCtrlState(yaw) = updateYawPIDstate(m_ctrlParams.yaw, ctrlState(yaw), rad2Deg(plantState(psi)), rad2Deg(m_ref.at(refyaw)(time)), timestep, time);
+    newCtrlState.at(roll) = updatePIDstate(m_ctrlParams.at(roll), ctrlState.at(roll), rad2Deg(plantState(phi)), desRoll, timestep, time);
+    newCtrlState.at(pitch) = updatePIDstate(m_ctrlParams.at(pitch), ctrlState.at(pitch), rad2Deg(plantState(theta)), desPitch, timestep, time);
+    newCtrlState.at(yaw) = updatePIDstate(m_ctrlParams.at(yaw), ctrlState.at(yaw), rad2Deg(plantState(psi)), rad2Deg(m_ref.at(refyaw)(time)), timestep, time, true);
         
-    double desRollRate = PIDctrl(m_ctrlParams.roll, newCtrlState(roll));
-    double desPitchRate = PIDctrl(m_ctrlParams.pitch, newCtrlState(pitch));
-    double desYawRate = PIDctrl(m_ctrlParams.yaw, newCtrlState(yaw));
+    double desRollRate = PIDctrl(m_ctrlParams.at(roll), newCtrlState.at(roll));
+    double desPitchRate = PIDctrl(m_ctrlParams.at(pitch), newCtrlState.at(pitch));
+    double desYawRate = PIDctrl(m_ctrlParams.at(yaw), newCtrlState.at(yaw));
     
     // Assume that [phi dot theta dot psi dot] = [p q r]
     // This assumption holds true for small angles of movement
-    newCtrlState(rollRate) = updatePIDstate(m_ctrlParams.rollRate, ctrlState(rollRate), rad2Deg(plantState(p)), desRollRate, timestep, time);
-    newCtrlState(pitchRate) = updatePIDstate(m_ctrlParams.pitchRate, ctrlState(pitchRate), rad2Deg(plantState(q)), desPitchRate, timestep, time);
-    newCtrlState(yawRate) = updatePIDstate(m_ctrlParams.yawRate, ctrlState(yawRate), rad2Deg(plantState(r)), desYawRate, timestep, time);
+    newCtrlState.at(rollRate) = updatePIDstate(m_ctrlParams.at(rollRate), ctrlState.at(rollRate), rad2Deg(plantState(p)), desRollRate, timestep, time);
+    newCtrlState.at(pitchRate) = updatePIDstate(m_ctrlParams.at(pitchRate), ctrlState.at(pitchRate), rad2Deg(plantState(q)), desPitchRate, timestep, time);
+    newCtrlState.at(yawRate) = updatePIDstate(m_ctrlParams.at(yawRate), ctrlState.at(yawRate), rad2Deg(plantState(r)), desYawRate, timestep, time);
     
     ctrlOut.ctrlStates = newCtrlState;
 
-    double rollOutput  = PIDctrl(m_ctrlParams.rollRate, newCtrlState(rollRate));
-    double pitchOutput = PIDctrl(m_ctrlParams.pitchRate, newCtrlState(pitchRate));
-    double yawOutput = PIDctrl(m_ctrlParams.yawRate, newCtrlState(yawRate));
+    double rollOutput  = PIDctrl(m_ctrlParams.at(rollRate), newCtrlState.at(rollRate));
+    double pitchOutput = PIDctrl(m_ctrlParams.at(pitchRate), newCtrlState.at(pitchRate));
+    double yawOutput = PIDctrl(m_ctrlParams.at(yawRate), newCtrlState.at(yawRate));
 
     // TODO: implement saturation
 
@@ -306,11 +321,15 @@ CtrlOut DroneTrajectory::CascadedPIDController(
 double PIDctrl(PIDParameters params, PIDstate state)
 { return params.ki * state.ki_error + params.kp * state.kp_error + params.kd * state.kd_error;}
 
-PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time)
+PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time, bool isYawAngle)
 {
     PIDstate newPIDstate;
-    newPIDstate.kp_error = ref - currSig;
-
+    if (isYawAngle){
+        newPIDstate.kp_error = capAngle(ref - currSig);
+    } else {
+        newPIDstate.kp_error = ref - currSig;
+    }
+    
     double nextIntegral = currVal.ki_error + newPIDstate.kp_error*timestep;
     if (params.integration_limit !=0 && abs(nextIntegral) > params.integration_limit){
         newPIDstate.ki_error = params.integration_limit * nextIntegral/abs(nextIntegral);
@@ -326,36 +345,10 @@ PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, 
             newPIDstate.kd_error = currVal.lpf.lpf2pApply(delta);
         } else {
             newPIDstate.kd_error = delta;
-        }
-        
-        
+        }        
     }
     newPIDstate.prev_sig = currSig;
     newPIDstate.lpf = currVal.lpf;
-    return newPIDstate;
-}
-
-PIDstate updateYawPIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time)
-{
-    PIDstate newPIDstate;
-    newPIDstate.kp_error = capAngle(ref - currSig);
-    
-    double nextIntegral = currVal.ki_error + newPIDstate.kp_error*timestep;
-    if (params.integration_limit !=0 && abs(nextIntegral) > params.integration_limit){
-        newPIDstate.ki_error = params.integration_limit * nextIntegral/abs(nextIntegral);
-    } else {
-        newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; 
-    } 
-
-    if (time != 0) {
-        // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
-        // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/utils/src/pid.c
-        // prevent derivative kick
-        newPIDstate.kd_error = -1.0/timestep*(currSig - currVal.prev_sig);
-        // newPIDstate.kd_error = 1.0/timestep*(newPIDstate.kp_error - currVal.kp_error);
-    }
-
-    newPIDstate.prev_sig = currSig;
     return newPIDstate;
 }
 
@@ -389,4 +382,46 @@ double capAngle(double angle)
   }
 
   return result;
+}
+
+bool DroneTrajectory::isConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time)
+{
+    double posTol = 5e-1;
+    double angleTol = 1e-3;
+    double velTol = 1e-2;
+
+    double ftTol = 1e-2;
+    double hover = m_droneParams.mass * m_droneParams.g;
+    double torqueTol = 1e-6;
+
+    return  abs(state.plant(x) - ref.at(refx)(time)) < posTol && abs(state.plant(y) - ref.at(refy)(time)) < posTol &&  abs(state.plant(z) - ref.at(refz)(time)) < posTol && 
+            // Assuming the reference is a fixed set point - if it becomes a trajectory, then we need to calculate how much the angle and velocities should be
+            abs(state.plant(phi)) < angleTol && abs(state.plant(pitch)) < angleTol &&  abs(state.plant(yaw) - ref.at(refyaw)(time)) < angleTol && 
+            abs(state.plant(xdot)) < velTol && abs(state.plant(ydot)) < velTol &&  abs(state.plant(zdot)) < velTol && 
+            abs(state.plant(p)) < velTol && abs(state.plant(q)) < velTol &&  abs(state.plant(r)) < velTol &&
+            abs(state.alge(ft) - hover) < ftTol && abs(state.alge(tx)) < torqueTol && abs(state.alge(ty)) < torqueTol && abs(state.alge(tz)) < torqueTol;
+}   
+
+bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time, std::array<PIDstate, NUM_CTRL_STATES> ctrlState)
+{
+    double posDist = 100;
+    double angleDist = 90;
+    double pidStateLimit = 1e7;
+
+    bool notConverging = abs(state.plant(x) - ref.at(refx)(time)) > posDist || abs(state.plant(y) - ref.at(refy)(time)) > posDist ||  abs(state.plant(z) - ref.at(refz)(time)) > posDist ||
+            // Assuming the reference is a fixed set point - if it becomes a trajectory, then we need to calculate how much the angle and velocities should be
+            abs(state.plant(phi)) > deg2Rad(angleDist) || abs(state.plant(theta)) > deg2Rad(angleDist);
+
+    for (int i = 0; i < NUM_CTRL_STATES && !notConverging; i++){
+        if (m_ctrlParams.at(i).kp != 0 ) {
+            notConverging = notConverging || abs(ctrlState.at(i).kp_error) > pidStateLimit;
+        } 
+        if (m_ctrlParams.at(i).ki != 0) {
+            notConverging = notConverging || abs(ctrlState.at(i).ki_error) > pidStateLimit;
+        }
+        if (m_ctrlParams.at(i).kd != 0) {
+            notConverging = notConverging || abs(ctrlState.at(i).kd_error) > pidStateLimit;
+        }
+    }
+    return notConverging;
 }

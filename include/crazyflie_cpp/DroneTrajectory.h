@@ -34,26 +34,6 @@ struct PIDstate
     LowPassFilter lpf;
 };
 
-struct PIDCtrllers
-{
-    // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/platform/interface/platform_defaults_tag.h#L46
-    PIDParameters posX = {2, 0, 0};
-    PIDParameters posY = {2, 0, 0};
-    PIDParameters posZ = {2, 0.5, 0};
-    
-    PIDParameters velX = {25, 1, 0};
-    PIDParameters velY = {25, 1, 0};
-    PIDParameters velZ = {25, 15, 0};
-
-    PIDParameters roll  = {6, 3, 0, 20.0};
-    PIDParameters pitch = {6, 3, 0, 20.0};
-    PIDParameters yaw   = {6, 1, 0.35, 360.0};
-
-    PIDParameters rollRate  = {250.0, 500, 2.5, 33.3, true};
-    PIDParameters pitchRate = {250.0, 500, 2.5, 33.3, true};
-    PIDParameters yawRate   = {120.0, 16.7, 0, 166.7};
-};
-
 struct DroneParameters 
 {
     double length = 0.046; // [m]
@@ -89,13 +69,13 @@ struct DroneParameters
 struct CtrlOut
 {
     Eigen::Vector<double, NUM_ALGE_STATES> algeStates;
-    Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrlStates;
+    std::array<PIDstate, NUM_CTRL_STATES> ctrlStates;
 };
 
 struct SystemState
 {
     Eigen::Vector<double, NUM_PLANT_STATES> plant;
-    Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrl;
+    std::array<PIDstate, NUM_CTRL_STATES> ctrl;
     Eigen::Vector<double, NUM_ALGE_STATES> alge;
     bool stable = true;
 };
@@ -104,7 +84,28 @@ struct SimResults{
     std::vector<double> time;
     std::vector<SystemState> stateProgression;
     bool stable = true;
+    bool converged = false;
 };
+
+std::array<PIDParameters, NUM_CTRL_STATES> inline defaultPIDParameters(){
+    // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/platform/interface/platform_defaults_tag.h#L46
+    PIDParameters posXpid = {2, 0, 0};
+    PIDParameters posYpid = {2, 0, 0};
+    PIDParameters posZpid = {2, 0.5, 0};
+
+    PIDParameters velXpid = {25, 1, 0};
+    PIDParameters velYpid = {25, 1, 0};
+    PIDParameters velZpid = {25, 15, 0};
+
+    PIDParameters rollpid  = {6, 3, 0, 20.0};
+    PIDParameters pitchpid = {6, 3, 0, 20.0};
+    PIDParameters yawpid   = {6, 1, 0.35, 360.0};
+
+    PIDParameters rollRatepid  = {250.0, 500, 2.5, 33.3, true};
+    PIDParameters pitchRatepid = {250.0, 500, 2.5, 33.3, true};
+    PIDParameters yawRatepid   = {120.0, 16.7, 0, 166.7};
+    return {posXpid, posYpid, posZpid, velXpid, velYpid, velZpid, rollpid, pitchpid, yawpid, rollRatepid, pitchRatepid, yawRatepid};
+}
 
 enum plantIndex{x, y, z, phi, theta, psi, xdot, ydot, zdot, p, q, r};
 enum ctrlIndex {posX, posY, posZ, velX, velY, velZ, roll, pitch, yaw, rollRate, pitchRate, yawRate};
@@ -115,9 +116,7 @@ enum refIndex  {refx, refy, refz, refyaw};
 class DroneTrajectory 
 {
     Logger & m_logger;
-    PIDCtrllers m_ctrlParams;
-    // since attitude pid and attitude rate pid run at a 5x frequency
-    // assume their dynamics are fast enough such that they behave "instantly" relative to outer loop controller
+    std::array<PIDParameters, NUM_CTRL_STATES> m_ctrlParams;
     DroneParameters m_droneParams;
     // input is time
     // direction based on distIndex enum
@@ -127,21 +126,23 @@ class DroneTrajectory
     double m_finalTime; // [s]
     
 
-    CtrlOut CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, Eigen::Vector<PIDstate, NUM_CTRL_STATES> ctrlState, double time, double timestep);
+    CtrlOut CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, std::array<PIDstate, NUM_CTRL_STATES> ctrlState, double time, double timestep);
     SystemState simulateTimestep(SystemState prev, double time, double timestep);
     Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep);
     Eigen::MatrixX<double> DH(SystemState state, double timestep);
     Eigen::MatrixX<double> dfdx(SystemState state);
     Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, double time);
+    bool isConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
+    bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time, std::array<PIDstate, NUM_CTRL_STATES> ctrlState);
 
     public:
         DroneTrajectory( 
             Logger & log, 
             std::array<double(*)(double), NUM_DIST_STATES> const& dist,
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
-            PIDCtrllers ctrlParams = {},
+            std::array<PIDParameters, NUM_CTRL_STATES> ctrlParams = defaultPIDParameters(),
             DroneParameters droneParameters = {},
-            double simTimestep = 1e-3, double finalTime = 10);
+            double simTimestep = 1e-3, double finalTime = 250);
         
         SimResults Trajectory(SystemState initialState); 
 };
