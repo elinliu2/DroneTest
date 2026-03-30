@@ -257,6 +257,8 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     // Need a negative roll to move forward in the y direction
     double desPitch = std::clamp(PIDctrl(m_ctrlParams.at(velX), newCtrlState.at(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
     double desRoll = -std::clamp(PIDctrl(m_ctrlParams.at(velY), newCtrlState.at(velY)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+    // double desPitch = PIDctrl(m_ctrlParams.at(velX), newCtrlState.at(velX));
+    // double desRoll = -PIDctrl(m_ctrlParams.at(velY), newCtrlState.at(velY));
 
     // TODO: Can add constraints later
 
@@ -264,11 +266,11 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     double thrustScale = 1000;
     double thrustBase = 36000;
     double desThrust = PIDctrl(m_ctrlParams.at(velZ), newCtrlState.at(velZ))*thrustScale+thrustBase;
-    desThrust = std::clamp(desThrust, 20000.0, (double)UINT16_MAX);
+    // desThrust = std::clamp(desThrust, 20000.0, (double)UINT16_MAX);
 
     newCtrlState.at(roll) = updatePIDstate(m_ctrlParams.at(roll), ctrlState.at(roll), rad2Deg(plantState(phi)), desRoll, timestep, time);
     newCtrlState.at(pitch) = updatePIDstate(m_ctrlParams.at(pitch), ctrlState.at(pitch), rad2Deg(plantState(theta)), desPitch, timestep, time);
-    newCtrlState.at(yaw) = updatePIDstate(m_ctrlParams.at(yaw), ctrlState.at(yaw), rad2Deg(plantState(psi)), rad2Deg(m_ref.at(refyaw)(time)), timestep, time, true);
+    newCtrlState.at(yaw) = updatePIDstate(m_ctrlParams.at(yaw), ctrlState.at(yaw), rad2Deg(plantState(psi)), rad2Deg(m_ref.at(refyaw)(time)), timestep, time);
         
     double desRollRate = PIDctrl(m_ctrlParams.at(roll), newCtrlState.at(roll));
     double desPitchRate = PIDctrl(m_ctrlParams.at(pitch), newCtrlState.at(pitch));
