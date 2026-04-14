@@ -136,6 +136,9 @@ class DroneTrajectory
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx(SystemState state);
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_Z_STATES> dfdz(SystemState state);
     Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> dgdz(SystemState state);
+    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES> dhdx(SystemState state, double timestep);
+    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> dhdz(SystemState state, SystemState prev, double timestep);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> dhdy();
 
     public:
         DroneTrajectory( 
