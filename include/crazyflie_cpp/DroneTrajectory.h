@@ -122,7 +122,16 @@ class DroneTrajectory
     double lpf_b0;
     double lpf_b1;
     double lpf_b2;
+
+    // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L260
+    double m_thrustScale = 1000;
+    double m_thrustBase = 36000;
+    // need to convert motor pwm signal to angular velocity
+    // want thrustBase = 36000 PWM == hover --> ft = mg
+    // des_wi = sqrt(mg/(kf*4)) 
+    double m_alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/m_thrustBase;
     
+
     Eigen::Vector<double, NUM_ALGE_STATES> CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, 
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
     Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates, double time, double timestep);
@@ -137,7 +146,7 @@ class DroneTrajectory
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_Z_STATES> dfdz(SystemState state);
     Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> dgdz(SystemState state);
     Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES> dhdx(SystemState state, double timestep);
-    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> dhdz(SystemState state, SystemState prev, double timestep);
+    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> dhdz(SystemState state, double timestep);
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> dhdy();
 
     public:

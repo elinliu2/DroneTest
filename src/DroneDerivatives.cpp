@@ -132,12 +132,12 @@ Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES> DroneTrajectory::dhdx(Sy
     dhdx(delay_1_pitchRate, NUM_PLANT_STATES+q) = -180/(timestep*M_PI);
 
     dhdx(epp, p) = -180/M_PI;
-    dhdx(edp, p) = 180/(timestep*M_PI);
-    dhdx(edp, NUM_PLANT_STATES + p) = -1/(timestep*M_PI);
+    dhdx(edp, p) = lpf_b0*180/(timestep*M_PI);
+    dhdx(edp, NUM_PLANT_STATES + p) = -lpf_b0*1/(timestep*M_PI);
 
     dhdx(epq, q) = -180/M_PI;
-    dhdx(epq, q) = 180/(timestep*M_PI);
-    dhdx(epq, NUM_PLANT_STATES + q) = -1/(timestep*M_PI);
+    dhdx(epq, q) = lpf_b0*180/(timestep*M_PI);
+    dhdx(epq, NUM_PLANT_STATES + q) = -lpf_b0*1/(timestep*M_PI);
 
     dhdx(epr, r) = -180/M_PI;
     dhdx(edr, r) = 180/(timestep*M_PI);
@@ -146,12 +146,143 @@ Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES> DroneTrajectory::dhdx(Sy
     return dhdx;
 }
 
-Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> DroneTrajectory::dhdz(SystemState state, SystemState prev, double timestep)
+Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> DroneTrajectory::dhdz(SystemState state, double timestep)
 {
     Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> dhdz = Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES>::Zero();
-    (void) state; 
-    (void) prev;
-    (void) timestep;
+    dhdz(epx, setp_body_x) = 1;
+    dhdz(epx, state_body_x) = -1;
+    dhdz(eix, epx) = timestep;
+    dhdz(eix, NUM_Z_STATES+eix) = 1;
+    dhdz(desVelX, epx) = m_ctrlParams.at(posX).kp;
+    dhdz(desVelX, eix) = m_ctrlParams.at(posX).ki;
+    dhdz(desVelX, edx) = m_ctrlParams.at(posX).kd;
+
+    dhdz(epy, setp_body_y) = 1;
+    dhdz(epy, state_body_y) = -1;
+    dhdz(eiy, epy) = timestep;
+    dhdz(eiy, NUM_Z_STATES+eiy) = 1;
+    dhdz(desVelY, epy) = m_ctrlParams.at(posY).kp;
+    dhdz(desVelY, eiy) = m_ctrlParams.at(posY).ki;
+    dhdz(desVelY, edy) = m_ctrlParams.at(posY).kd;
+
+    dhdz(eiz, epz) = timestep;
+    dhdz(eiz, NUM_Z_STATES+eiz) = 1;
+    dhdz(desVelZ, epz) = m_ctrlParams.at(posZ).kp;
+    dhdz(desVelZ, eiz) = m_ctrlParams.at(posZ).ki;
+    dhdz(desVelZ, edz) = m_ctrlParams.at(posZ).kd;
+
+    dhdz(epxdot, desVelX) = 1;
+    dhdz(epxdot, state_body_vx) = -1;
+    dhdz(eixdot, epxdot) = timestep;
+    dhdz(eixdot, NUM_Z_STATES+eixdot) = 1;
+    dhdz(edxdot, state_body_vx) = 1/timestep;
+    dhdz(edxdot, NUM_Z_STATES+state_body_vx) = -1/timestep;
+
+    dhdz(epydot, desVelY) = 1;
+    dhdz(epydot, state_body_vy) = -1;
+    dhdz(eiydot, epydot) = timestep;
+    dhdz(eiydot, NUM_Z_STATES+eiydot) = 1;
+    dhdz(edydot, state_body_vy) = 1/timestep;
+    dhdz(edydot, NUM_Z_STATES+state_body_vy) = -1/timestep;
+
+    dhdz(epzdot, desVelZ) = 1;
+    dhdz(eizdot, epzdot) = timestep;
+    dhdz(eizdot, NUM_Z_STATES+eizdot) = 1;
+    dhdz(desThrust, epzdot) = m_ctrlParams.at(velZ).kp*m_thrustScale;
+    dhdz(desThrust, eizdot) = m_ctrlParams.at(velZ).ki*m_thrustScale;
+    dhdz(desThrust, edzdot) = m_ctrlParams.at(velZ).kd*m_thrustScale;
+
+    dhdz(eiphi, epphi) = timestep;
+    dhdz(eiphi, NUM_Z_STATES+eiphi) = 1;
+    dhdz(desRollRate, epphi) = m_ctrlParams.at(roll).kp;
+    dhdz(desRollRate, eiphi) = m_ctrlParams.at(roll).ki;
+    dhdz(desRollRate, edphi) = m_ctrlParams.at(roll).kd;
+
+    dhdz(eitheta, eptheta) = timestep;
+    dhdz(eitheta, NUM_Z_STATES+eitheta) = 1;
+    dhdz(desPitchRate, eptheta) = m_ctrlParams.at(pitch).kp;
+    dhdz(desPitchRate, eitheta) = m_ctrlParams.at(pitch).ki;
+    dhdz(desPitchRate, edtheta) = m_ctrlParams.at(pitch).kd;
+
+    dhdz(eipsi, eppsi) = timestep;
+    dhdz(eipsi, NUM_Z_STATES+eipsi) = 1;
+    dhdz(desYawRate, eppsi) = m_ctrlParams.at(yaw).kp;
+    dhdz(desYawRate, eipsi) = m_ctrlParams.at(yaw).ki;
+    dhdz(desYawRate, edpsi) = m_ctrlParams.at(yaw).kd;
+
+    dhdz(delay_1_rollRate, NUM_Z_STATES+delay_1_rollRate) = -lpf_a1;
+    dhdz(delay_1_rollRate, NUM_Z_STATES+delay_2_rollRate) = -lpf_a2;
+    dhdz(delay_2_rollRate, NUM_Z_STATES+delay_1_rollRate) = -1;
+    
+    dhdz(delay_1_pitchRate, NUM_Z_STATES+delay_1_pitchRate) = -lpf_a1;
+    dhdz(delay_1_pitchRate, NUM_Z_STATES+delay_2_pitchRate) = -lpf_a2;
+    dhdz(delay_2_pitchRate, NUM_Z_STATES+delay_1_pitchRate) = -1;
+
+    dhdz(epp, desRollRate) = 1;
+    dhdz(eip, epp) = timestep;
+    dhdz(eip, NUM_Z_STATES+eip) = 1;
+    dhdz(edp, NUM_Z_STATES+delay_1_rollRate) = -lpf_b0*lpf_a1+lpf_b1;
+    dhdz(edp, NUM_Z_STATES+delay_2_rollRate) = -lpf_b0*lpf_a2+lpf_b2;
+    dhdz(desRollOutput, epp) = m_ctrlParams.at(rollRate).kp;
+    dhdz(desRollOutput, eip) = m_ctrlParams.at(rollRate).ki;
+    dhdz(desRollOutput, edp) = m_ctrlParams.at(rollRate).kd;
+
+    dhdz(epq, desPitchRate) = 1;
+    dhdz(eiq, epq) = timestep;
+    dhdz(eiq, NUM_Z_STATES+eiq) = 1;
+    dhdz(edq, NUM_Z_STATES+delay_1_pitchRate) = -lpf_b0*lpf_a1+lpf_b1;
+    dhdz(edq, NUM_Z_STATES+delay_2_pitchRate) = -lpf_b0*lpf_a2+lpf_b2;
+    dhdz(desPitchOutput, epq) = m_ctrlParams.at(pitchRate).kp;
+    dhdz(desPitchOutput, eiq) = m_ctrlParams.at(pitchRate).ki;
+    dhdz(desPitchOutput, edq) = m_ctrlParams.at(pitchRate).kd;
+
+    dhdz(epr, desYawRate) = 1;
+    dhdz(eir, epr) = timestep;
+    dhdz(eir, NUM_Z_STATES+eir) = 1;
+    dhdz(desYawOutput, epr) = m_ctrlParams.at(yawRate).kp;
+    dhdz(desYawOutput, eir) = m_ctrlParams.at(yawRate).ki;
+    dhdz(desYawOutput, edr) = m_ctrlParams.at(yawRate).kd;
+
+    dhdz(w1, desThrust)      = m_alpha;
+    dhdz(w1, desRollOutput)  = -m_alpha/2;
+    dhdz(w1, desPitchOutput) = m_alpha/2;
+    dhdz(w1, desYawOutput)   = m_alpha;
+
+    dhdz(w2, desThrust)      = m_alpha;
+    dhdz(w2, desRollOutput)  = -m_alpha/2;
+    dhdz(w2, desPitchOutput) = -m_alpha/2;
+    dhdz(w2, desYawOutput)   = -m_alpha;
+
+    dhdz(w3, desThrust)      = m_alpha;
+    dhdz(w3, desRollOutput)  = m_alpha/2;
+    dhdz(w3, desPitchOutput) = -m_alpha/2;
+    dhdz(w3, desYawOutput)   = m_alpha;
+
+    dhdz(w4, desThrust)      = m_alpha;
+    dhdz(w4, desRollOutput)  = m_alpha/2;
+    dhdz(w4, desPitchOutput) = m_alpha/2;
+    dhdz(w4, desYawOutput)   = -m_alpha;
+    
+    dhdz(ft, w1) = m_droneParams.kf * 2 *state.alge(w1);
+    dhdz(ft, w2) = m_droneParams.kf * 2 *state.alge(w2);
+    dhdz(ft, w3) = m_droneParams.kf * 2 *state.alge(w3);
+    dhdz(ft, w4) = m_droneParams.kf * 2 *state.alge(w4);
+
+    dhdz(tx, w1) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w1);
+    dhdz(tx, w2) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w2);
+    dhdz(tx, w3) = m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w3);
+    dhdz(tx, w4) = m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w4);
+
+    dhdz(ty, w1) = m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w1);
+    dhdz(ty, w2) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w2);
+    dhdz(ty, w3) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w3);
+    dhdz(ty, w4) = m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w4);
+
+    dhdz(tz, w1) = m_droneParams.km * state.alge(w1);
+    dhdz(tz, w2) = - m_droneParams.km * state.alge(w2);
+    dhdz(tz, w3) = m_droneParams.km * state.alge(w3);
+    dhdz(tz, w4) = - m_droneParams.km * state.alge(w4);
+
     return dhdz;
 }
 
