@@ -3,10 +3,9 @@
 #include <cmath>
 #include <Eigen/Dense>
 
-double PIDctrl(PIDParameters params, PIDstate state);
-PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time, bool isYawAngle = false);
-std::string printPIDstate(PIDstate state);
-Eigen::Vector<PIDstate, NUM_CTRL_STATES> resetPIDstate();
+double PIDctrl(PIDParameters params, Eigen::Vector<double, NUM_PID_STATES> state);
+Eigen::Vector<double, NUM_PID_STATES> updatePIDstate(Eigen::Vector<double, NUM_PID_STATES> currVal, double currSig, double prevSig, double ref, double timestep, double time);
+std::string printPIDstate(Eigen::Vector<double, NUM_PID_STATES> state);
 double capAngle(double angle);
 double rad2Deg(double angle) { return angle / M_PI * 180.0; }
 double deg2Rad(double angle) { return angle / 180.0 * M_PI; }
@@ -19,14 +18,25 @@ DroneTrajectory::DroneTrajectory(
     std::array<double(*)(double), NUM_REF_STATES> const& ref,
     std::array<PIDParameters, NUM_CTRL_STATES> ctrlParams,
     DroneParameters droneParameters, 
-    double simTimestep, double finalTime) : 
+    double simTimestep, double finalTime, double sampleRate, double cutoffFreq) : 
     m_logger(logger), 
     m_ctrlParams(ctrlParams),
     m_droneParams(droneParameters), 
     m_dist(dist), 
     m_ref(ref), 
     m_simTimestep(simTimestep),
-    m_finalTime(finalTime) {}
+    m_finalTime(finalTime) {
+
+        double fr = sampleRate/cutoffFreq;
+        double ohm = tan(M_PI/fr);
+        double c = 1.0+2.0*cos(M_PI/4.0)*ohm+ohm*ohm;
+        lpf_b0 = ohm*ohm/c;
+        lpf_b1 = 2.0*lpf_b0;
+        lpf_b2 = lpf_b0;
+        lpf_a1 = 2.0*(ohm*ohm-1.0f)/c;
+        lpf_a2 = (1.0-2.0*cos(M_PI/4.0)*ohm+ohm*ohm)/c;
+       
+    }
 
 SimResults DroneTrajectory::Trajectory(SystemState initialState)
 {
@@ -76,7 +86,7 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
             m_logger << "converging :D" << std::endl;
             simResults.converged = true;
             return simResults;
-        } else if (isNotConverging(state2, m_ref, time, state2.ctrl)) {
+        } else if (isNotConverging(state2, m_ref, time)) {
             m_logger << "not converging D:" << std::endl;
             return simResults;
         }
@@ -107,10 +117,9 @@ SystemState DroneTrajectory::simulateTimestep(SystemState prev, double time, dou
         }
     }
 
-    CtrlOut ctrlOut = CascadedPIDController(guess.plant, guess.ctrl, time, timestep);
-    
-    guess.ctrl = ctrlOut.ctrlStates;
-    guess.alge = ctrlOut.algeStates;
+    Eigen::Vector<double, NUM_ALGE_STATES> algeStates = CascadedPIDController(guess.plant, prev.plant, guess.alge, time, timestep);
+
+    guess.alge = algeStates;
     guess.stable = guess.stable && count < max_iterations;   
     if (count >= max_iterations) {
         m_logger << "WARN: took more than " << max_iterations << " iterations for sim to converge" << std::endl;
@@ -121,7 +130,7 @@ SystemState DroneTrajectory::simulateTimestep(SystemState prev, double time, dou
 Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep)
 {
     Eigen::Vector<double, NUM_PLANT_STATES> fprev = f(prev, time-timestep);
-    Eigen::Vector<double, NUM_PLANT_STATES> fguess = f({guess, prev.ctrl, prev.alge, prev.stable}, time);
+    Eigen::Vector<double, NUM_PLANT_STATES> fguess = f({guess, prev.alge, prev.stable}, time);
     return prev.plant - guess + timestep/2*(fprev + fguess);
 }
 
@@ -131,54 +140,6 @@ Eigen::MatrixX<double> DroneTrajectory::DH(SystemState state, double timestep)
     Eigen::MatrixX<double> dh = -1*Eigen::MatrixX<double>::Identity(n, n);
     Eigen::MatrixX<double> dfdx_plus = dfdx(state);
     return dh + timestep/2*dfdx_plus;
-}
-
-Eigen::MatrixX<double> DroneTrajectory::dfdx(SystemState state)
-{
-    int n = m_droneParams.numPlantStates;
-    Eigen::MatrixX<double> dfdx = Eigen::MatrixX<double>::Zero(n, n);
-    Eigen::Vector<double, NUM_PLANT_STATES> plant = state.plant;
-    Eigen::Vector<double, NUM_ALGE_STATES> alge = state.alge;
-    dfdx(0,6) = 1;
-    dfdx(1,7) = 1;
-    dfdx(2,8) = 1;
-
-    dfdx(3,3) = plant(q)*cos(plant(phi))*tan(plant(theta)) 
-              - plant(r)*sin(plant(phi))*tan(plant(theta));
-    dfdx(3,4) = plant(r)*cos(plant(phi))*(pow(tan(plant(theta)), 2) + 1) 
-              + plant(q)*sin(plant(phi))*(pow(tan(plant(theta)), 2) + 1);
-    dfdx(3,9) = 1;
-    dfdx(3,10) = sin(plant(phi))*tan(plant(theta));
-    dfdx(3,11) = cos(plant(phi))*tan(plant(theta));
-    dfdx(4,3) = - plant(r)*cos(plant(phi)) - plant(q)*sin(plant(phi));
-    dfdx(4,10) = cos(plant(phi));
-    dfdx(4,11) = -sin(plant(phi));
-    dfdx(5,3) = (plant(q)*cos(plant(phi)))/cos(plant(theta)) 
-              - (plant(r)*sin(plant(phi)))/cos(plant(theta));
-    dfdx(5,4) = (plant(r)*cos(plant(phi))*sin(plant(theta)))/pow(cos(plant(theta)), 2) 
-              + (plant(q)*sin(plant(phi))*sin(plant(theta)))/pow(cos(plant(theta)), 2);
-    dfdx(5,10) = sin(plant(phi))/cos(plant(theta));
-    dfdx(5,11) = cos(plant(phi))/cos(plant(theta));
-
-    dfdx(6,3) = (alge(ft)*(cos(plant(phi))*sin(plant(psi)) - cos(plant(psi))*sin(plant(phi))*sin(plant(theta))))/m_droneParams.mass;
-    dfdx(6,4) = (alge(ft)* cos(plant(phi))*cos(plant(psi))*cos(plant(theta)))/m_droneParams.mass;
-    dfdx(6,5) = (alge(ft)*(cos(plant(psi))*sin(plant(phi)) - cos(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
-
-    dfdx(7,3) = -(alge(ft)*(cos(plant(phi))*cos(plant(psi)) + sin(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
-    dfdx(7,4) = (alge(ft)* cos(plant(phi))*cos(plant(theta))*sin(plant(psi)))/m_droneParams.mass;
-    dfdx(7,5) = (alge(ft)*(sin(plant(phi))*sin(plant(psi)) + cos(plant(phi))*cos(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
-
-    dfdx(8,3) = -(alge(ft)*cos(plant(theta))*sin(plant(phi)))/m_droneParams.mass;
-    dfdx(8,4) = -(alge(ft)*cos(plant(phi))*sin(plant(theta)))/m_droneParams.mass;
-
-    dfdx(9,10) = (plant(r)*(m_droneParams.Iy - m_droneParams.Iz))/m_droneParams.Ix;
-    dfdx(9,11) = (plant(q)*(m_droneParams.Iy - m_droneParams.Iz))/m_droneParams.Ix;
-    dfdx(10,9) = -(plant(r)*(m_droneParams.Ix - m_droneParams.Iz))/m_droneParams.Iy;
-    dfdx(10,11) = -(plant(p)*(m_droneParams.Ix - m_droneParams.Iz))/m_droneParams.Iy;
-    dfdx(11,9) = (plant(q)*(m_droneParams.Ix - m_droneParams.Iy))/m_droneParams.Iz;
-    dfdx(11,10) = (plant(p)*(m_droneParams.Ix - m_droneParams.Iy))/m_droneParams.Iz;
-
-    return dfdx;
 }
 
 // dynamics and updated control state
@@ -219,44 +180,43 @@ Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::f(SystemState state, do
 
 
 // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L193
-CtrlOut DroneTrajectory::CascadedPIDController( 
+Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController( 
     Eigen::Vector<double, NUM_PLANT_STATES> plantState,
-    std::array<PIDstate, NUM_CTRL_STATES> ctrlState, 
+    Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
+    Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates,
     double time, double timestep)
 {
-    CtrlOut ctrlOut;
-    std::array<PIDstate, NUM_CTRL_STATES> newCtrlState;
+    Eigen::Vector<double, NUM_ALGE_STATES> algeStates;
 
     //https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L202
     double cosyaw = cos(plantState(psi));
     double sinyaw = sin(plantState(psi));
 
     // Convert global x y z into body x y z assuming CCW yaw = +ve
-    double setp_body_x = m_ref.at(refx)(time) * cosyaw + m_ref.at(refy)(time) * sinyaw;
-    double setp_body_y = -m_ref.at(refx)(time) * sinyaw + m_ref.at(refy)(time) * cosyaw;
+    algeStates(setp_body_x) = m_ref.at(refx)(time) * cosyaw + m_ref.at(refy)(time) * sinyaw;
+    algeStates(setp_body_y) = -m_ref.at(refx)(time) * sinyaw + m_ref.at(refy)(time) * cosyaw;
+    algeStates(state_body_x) = plantState(x) * cosyaw + plantState(y) * sinyaw;
+    algeStates(state_body_y) = -plantState(x) * sinyaw + plantState(y) * cosyaw;    
 
-    double state_body_x = plantState(x) * cosyaw + plantState(y) * sinyaw;
-    double state_body_y = -plantState(x) * sinyaw + plantState(y) * cosyaw;    
+    algeStates.segment(epx, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epx, NUM_PID_STATES), algeStates(state_body_x), currAlgeStates(state_body_x),  algeStates(setp_body_x), timestep, time);
+    algeStates.segment(epy, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epy, NUM_PID_STATES), algeStates(state_body_y), currAlgeStates(state_body_y), algeStates(setp_body_y), timestep, time);
+    algeStates.segment(epz, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epz, NUM_PID_STATES), plantState(z), prevPlantState(z), m_ref.at(refz)(time), timestep, time);
+    
+    algeStates(desVelX) = PIDctrl(m_ctrlParams.at(posX), algeStates.segment(epx, NUM_PID_STATES));
+    algeStates(desVelY) = PIDctrl(m_ctrlParams.at(posY), algeStates.segment(epy, NUM_PID_STATES));
+    algeStates(desVelZ) = PIDctrl(m_ctrlParams.at(posZ), algeStates.segment(epz, NUM_PID_STATES));
+    
+    algeStates(state_body_vx) = plantState(xdot) * cosyaw + plantState(ydot) * sinyaw;
+    algeStates(state_body_vy) = -plantState(xdot) * sinyaw + plantState(ydot) * cosyaw;
 
-    newCtrlState.at(posX) = updatePIDstate(m_ctrlParams.at(posX), ctrlState.at(posX), state_body_x, setp_body_x, timestep, time);
-    newCtrlState.at(posY) = updatePIDstate(m_ctrlParams.at(posY), ctrlState.at(posY), state_body_y, setp_body_y, timestep, time);
-    newCtrlState.at(posZ) = updatePIDstate(m_ctrlParams.at(posZ), ctrlState.at(posZ), plantState(z), m_ref.at(refz)(time), timestep, time);
-
-    double desVelX = PIDctrl(m_ctrlParams.at(posX), newCtrlState.at(posX));
-    double desVelY = PIDctrl(m_ctrlParams.at(posY), newCtrlState.at(posY));
-    double desVelZ = PIDctrl(m_ctrlParams.at(posZ), newCtrlState.at(posZ));
-
-    double state_body_vx = plantState(xdot) * cosyaw + plantState(ydot) * sinyaw;
-    double state_body_vy = -plantState(xdot) * sinyaw + plantState(ydot) * cosyaw;
-
-    newCtrlState.at(velX) = updatePIDstate(m_ctrlParams.at(velX), ctrlState.at(velX), state_body_vx, desVelX, timestep, time);
-    newCtrlState.at(velY) = updatePIDstate(m_ctrlParams.at(velY), ctrlState.at(velY), state_body_vy, desVelY, timestep, time);
-    newCtrlState.at(velZ) = updatePIDstate(m_ctrlParams.at(velZ), ctrlState.at(velZ), plantState(zdot), desVelZ, timestep, time);
+    algeStates.segment(epxdot, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epxdot, NUM_PID_STATES), algeStates(state_body_vx), currAlgeStates(state_body_vx), algeStates(desVelX), timestep, time);
+    algeStates.segment(epydot, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epydot, NUM_PID_STATES), algeStates(state_body_vy), currAlgeStates(state_body_vy), algeStates(desVelY), timestep, time);
+    algeStates.segment(epzdot, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epzdot, NUM_PID_STATES), plantState(zdot), prevPlantState(zdot), algeStates(desVelZ), timestep, time);
  
     // Need a positive pitch to move forward in the x direction
     // Need a negative roll to move forward in the y direction
-    double desPitch = std::clamp(PIDctrl(m_ctrlParams.at(velX), newCtrlState.at(velX)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
-    double desRoll = -std::clamp(PIDctrl(m_ctrlParams.at(velY), newCtrlState.at(velY)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+    algeStates(desRoll) = -std::clamp(PIDctrl(m_ctrlParams.at(velY), algeStates.segment(epydot, NUM_PID_STATES)), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+    algeStates(desPitch) = std::clamp(PIDctrl(m_ctrlParams.at(velX), algeStates.segment(epxdot, NUM_PID_STATES)), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
     // double desPitch = PIDctrl(m_ctrlParams.at(velX), newCtrlState.at(velX));
     // double desRoll = -PIDctrl(m_ctrlParams.at(velY), newCtrlState.at(velY));
 
@@ -265,110 +225,89 @@ CtrlOut DroneTrajectory::CascadedPIDController(
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L260
     double thrustScale = 1000;
     double thrustBase = 36000;
-    double desThrust = PIDctrl(m_ctrlParams.at(velZ), newCtrlState.at(velZ))*thrustScale+thrustBase;
+    algeStates(desThrust) = PIDctrl(m_ctrlParams.at(velZ), algeStates.segment(epzdot, NUM_PID_STATES))*thrustScale+thrustBase;
     // desThrust = std::clamp(desThrust, 20000.0, (double)UINT16_MAX);
 
-    newCtrlState.at(roll) = updatePIDstate(m_ctrlParams.at(roll), ctrlState.at(roll), rad2Deg(plantState(phi)), desRoll, timestep, time);
-    newCtrlState.at(pitch) = updatePIDstate(m_ctrlParams.at(pitch), ctrlState.at(pitch), rad2Deg(plantState(theta)), desPitch, timestep, time);
-    newCtrlState.at(yaw) = updatePIDstate(m_ctrlParams.at(yaw), ctrlState.at(yaw), rad2Deg(plantState(psi)), rad2Deg(m_ref.at(refyaw)(time)), timestep, time);
+    algeStates.segment(epphi, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epphi, NUM_PID_STATES), rad2Deg(plantState(phi)), rad2Deg(prevPlantState(phi)), algeStates(desRoll), timestep, time);
+    algeStates.segment(eptheta, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(eptheta, NUM_PID_STATES), rad2Deg(plantState(theta)), rad2Deg(prevPlantState(theta)), algeStates(desPitch), timestep, time);
+    algeStates.segment(eppsi, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(eppsi, NUM_PID_STATES), rad2Deg(plantState(psi)), rad2Deg(prevPlantState(psi)), rad2Deg(m_ref.at(refyaw)(time)), timestep, time);
         
-    double desRollRate = PIDctrl(m_ctrlParams.at(roll), newCtrlState.at(roll));
-    double desPitchRate = PIDctrl(m_ctrlParams.at(pitch), newCtrlState.at(pitch));
-    double desYawRate = PIDctrl(m_ctrlParams.at(yaw), newCtrlState.at(yaw));
+    algeStates(desRollRate) = PIDctrl(m_ctrlParams.at(roll), algeStates.segment(epphi, NUM_PID_STATES));
+    algeStates(desPitchRate) = PIDctrl(m_ctrlParams.at(pitch), algeStates.segment(eptheta, NUM_PID_STATES));
+    algeStates(desYawRate) = PIDctrl(m_ctrlParams.at(yaw), algeStates.segment(eppsi, NUM_PID_STATES));
     
     // Assume that [phi dot theta dot psi dot] = [p q r]
     // This assumption holds true for small angles of movement
-    newCtrlState.at(rollRate) = updatePIDstate(m_ctrlParams.at(rollRate), ctrlState.at(rollRate), rad2Deg(plantState(p)), desRollRate, timestep, time);
-    newCtrlState.at(pitchRate) = updatePIDstate(m_ctrlParams.at(pitchRate), ctrlState.at(pitchRate), rad2Deg(plantState(q)), desPitchRate, timestep, time);
-    newCtrlState.at(yawRate) = updatePIDstate(m_ctrlParams.at(yawRate), ctrlState.at(yawRate), rad2Deg(plantState(r)), desYawRate, timestep, time);
-    
-    ctrlOut.ctrlStates = newCtrlState;
+    algeStates.segment(epp, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epp, NUM_PID_STATES), rad2Deg(plantState(p)), rad2Deg(prevPlantState(p)), algeStates(desRollRate), timestep, time);
+    algeStates.segment(epq, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epq, NUM_PID_STATES), rad2Deg(plantState(q)), rad2Deg(prevPlantState(q)), algeStates(desPitchRate), timestep, time);
+    algeStates.segment(epr, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epr, NUM_PID_STATES), rad2Deg(plantState(r)), rad2Deg(prevPlantState(r)), algeStates(desYawRate), timestep, time);
 
-    double rollOutput  = PIDctrl(m_ctrlParams.at(rollRate), newCtrlState.at(rollRate));
-    double pitchOutput = PIDctrl(m_ctrlParams.at(pitchRate), newCtrlState.at(pitchRate));
-    double yawOutput = PIDctrl(m_ctrlParams.at(yawRate), newCtrlState.at(yawRate));
+    // LPF for rollRate and pitchRate
+    algeStates(delay_1_rollRate) = -rad2Deg(plantState(p)-prevPlantState(p))/timestep - currAlgeStates(delay_1_rollRate)*lpf_a1 - currAlgeStates(delay_2_rollRate)*lpf_a2;
+    algeStates(delay_1_pitchRate) = -rad2Deg(plantState(q)-prevPlantState(q))/timestep - currAlgeStates(delay_1_pitchRate)*lpf_a1 - currAlgeStates(delay_2_pitchRate)*lpf_a2;
+    algeStates(delay_2_rollRate) = currAlgeStates(delay_1_rollRate);
+    algeStates(delay_2_pitchRate) = currAlgeStates(delay_1_pitchRate);
+
+    algeStates(edp) = lpf_b0 * algeStates(delay_1_rollRate) + currAlgeStates(delay_1_rollRate) * lpf_b1 + currAlgeStates(delay_2_rollRate) * lpf_b2;
+    algeStates(edq) = lpf_b0 * algeStates(delay_1_pitchRate) + currAlgeStates(delay_1_pitchRate) * lpf_b1 + currAlgeStates(delay_2_pitchRate) * lpf_b2;
+
+    algeStates(desRollOutput)  = PIDctrl(m_ctrlParams.at(rollRate), algeStates.segment(epp, NUM_PID_STATES));
+    algeStates(desPitchOutput) = PIDctrl(m_ctrlParams.at(pitchRate), algeStates.segment(epq, NUM_PID_STATES));
+    algeStates(desYawOutput) = PIDctrl(m_ctrlParams.at(yawRate), algeStates.segment(epr, NUM_PID_STATES));
 
     // TODO: implement saturation
 
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/power_distribution_quadrotor.c
     // line 86 they divide roll and pitch by 2 
-    double r = rollOutput / 2;
-    double p = pitchOutput / 2;
 
-    double m1 = desThrust - r + p + yawOutput;
-    double m2 = desThrust - r - p - yawOutput;
-    double m3 = desThrust + r - p + yawOutput;
-    double m4 = desThrust + r + p - yawOutput;
+    double m1 = algeStates(desThrust) - 0.5*algeStates(desRollOutput) + 0.5*algeStates(desPitchOutput) + algeStates(desYawOutput);
+    double m2 = algeStates(desThrust) - 0.5*algeStates(desRollOutput) - 0.5*algeStates(desPitchOutput) - algeStates(desYawOutput);
+    double m3 = algeStates(desThrust) + 0.5*algeStates(desRollOutput) - 0.5*algeStates(desPitchOutput) + algeStates(desYawOutput);
+    double m4 = algeStates(desThrust) + 0.5*algeStates(desRollOutput) + 0.5*algeStates(desPitchOutput) - algeStates(desYawOutput);
 
     // need to convert motor pwm signal to angular velocity
     // want thrustBase = 36000 PWM == hover --> ft = mg
     // des_wi = sqrt(mg/(kf*4)) 
     double alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/thrustBase;
     
-    double w1 = alpha * m1;
-    double w2 = alpha * m2;
-    double w3 = alpha * m3;
-    double w4 = alpha * m4;
+    algeStates(w1) = alpha * m1;
+    algeStates(w2) = alpha * m2;
+    algeStates(w3) = alpha * m3;
+    algeStates(w4) = alpha * m4;
 
     // https://giuseppesilano.net/publications/rosChapter19.pdf
     // the crazyflie firmware using x wing configuration 
-    ctrlOut.algeStates(ft) = m_droneParams.kf * (w1*w1 + w2*w2 + w3*w3 + w4*w4);
-    ctrlOut.algeStates(tx) = m_droneParams.kf * m_droneParams.length * 1/sqrt(2) * (- w1*w1 - w2*w2 + w3*w3 + w4*w4);
-    ctrlOut.algeStates(ty) = m_droneParams.kf * m_droneParams.length * 1/sqrt(2) * (+ w1*w1 - w2*w2 - w3*w3 + w4*w4);
-    ctrlOut.algeStates(tz) = m_droneParams.km * (w1*w1 - w2*w2 + w3*w3 - w4*w4);
+    algeStates(ft) = m_droneParams.kf * (algeStates(w1)*algeStates(w1) + algeStates(w2)*algeStates(w2) + algeStates(w3)*algeStates(w3) + algeStates(w4)*algeStates(w4));
+    algeStates(tx) = m_droneParams.kf * m_droneParams.length * 1/sqrt(2) * (- algeStates(w1)*algeStates(w1) - algeStates(w2)*algeStates(w2) + algeStates(w3)*algeStates(w3) + algeStates(w4)*algeStates(w4));
+    algeStates(ty) = m_droneParams.kf * m_droneParams.length * 1/sqrt(2) * (+ algeStates(w1)*algeStates(w1) - algeStates(w2)*algeStates(w2) - algeStates(w3)*algeStates(w3) + algeStates(w4)*algeStates(w4));
+    algeStates(tz) = m_droneParams.km * (algeStates(w1)*algeStates(w1) - algeStates(w2)*algeStates(w2) + algeStates(w3)*algeStates(w3) - algeStates(w4)*algeStates(w4));
 
-    return ctrlOut;
+    return algeStates;
 }
 
-double PIDctrl(PIDParameters params, PIDstate state)
-{ return params.ki * state.ki_error + params.kp * state.kp_error + params.kd * state.kd_error;}
+double PIDctrl(PIDParameters params, Eigen::Vector<double, NUM_PID_STATES> state)
+{ return params.ki * state(ki_error) + params.kp * state(kp_error) + params.kd * state(kd_error); }
 
-PIDstate updatePIDstate(PIDParameters params, PIDstate currVal, double currSig, double ref, double timestep, double time, bool isYawAngle)
+Eigen::Vector<double, NUM_PID_STATES> updatePIDstate(Eigen::Vector<double, NUM_PID_STATES> currVal, double currSig, double prevSig, double ref, double timestep, double time)
 {
-    PIDstate newPIDstate;
-    if (isYawAngle){
-        newPIDstate.kp_error = capAngle(ref - currSig);
-    } else {
-        newPIDstate.kp_error = ref - currSig;
-    }
-    
-    double nextIntegral = currVal.ki_error + newPIDstate.kp_error*timestep;
-    if (params.integration_limit !=0 && abs(nextIntegral) > params.integration_limit){
-        newPIDstate.ki_error = params.integration_limit * nextIntegral/abs(nextIntegral);
-    } else {
-        newPIDstate.ki_error = currVal.ki_error + newPIDstate.kp_error*timestep; 
-    } 
+    Eigen::Vector<double, NUM_PID_STATES> newPIDstate = Eigen::Vector<double, NUM_PID_STATES>::Zero();;
+    newPIDstate(kp_error) = ref - currSig;
+    newPIDstate(ki_error) = currVal(ki_error) + newPIDstate(kp_error)*timestep; 
    
     if (time != 0) {
         // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/utils/src/pid.c
         // prevent derivative kick
-        double delta = -1.0/timestep*(currSig - currVal.prev_sig);
-        if (params.lpf_en){
-            newPIDstate.kd_error = currVal.lpf.lpf2pApply(delta);
-        } else {
-            newPIDstate.kd_error = delta;
-        }        
+        newPIDstate(kd_error) = -1.0/timestep*(currSig - prevSig);     
     }
-    newPIDstate.prev_sig = currSig;
-    newPIDstate.lpf = currVal.lpf;
+   
     return newPIDstate;
 }
 
-std::string printPIDstate(PIDstate state)
+std::string printPIDstate(Eigen::Vector<double, NUM_PID_STATES> state)
 {
-    return  std::string("kp: ") + std::to_string(state.kp_error) + 
-            std::string(" ki: ") + std::to_string(state.ki_error) +
-            std::string(" kd: ") + std::to_string(state.kd_error);
-}
-
-Eigen::Vector<PIDstate, NUM_CTRL_STATES> resetPIDstate()
-{
-    Eigen::Vector<PIDstate, NUM_CTRL_STATES> resetState;
-    for (int i = 0; i < NUM_CTRL_STATES; i++){
-        PIDstate empty;
-        resetState(i) = empty;
-    }
-    return resetState;
+    return  std::string("kp: ") + std::to_string(state(kp_error)) + 
+            std::string(" ki: ") + std::to_string(state(ki_error)) +
+            std::string(" kd: ") + std::to_string(state(kd_error));
 }
 
 double capAngle(double angle)
@@ -398,13 +337,13 @@ bool DroneTrajectory::isConverging(SystemState state, std::array<double(*)(doubl
 
     return  abs(state.plant(x) - ref.at(refx)(time)) < posTol && abs(state.plant(y) - ref.at(refy)(time)) < posTol &&  abs(state.plant(z) - ref.at(refz)(time)) < posTol && 
             // Assuming the reference is a fixed set point - if it becomes a trajectory, then we need to calculate how much the angle and velocities should be
-            abs(state.plant(phi)) < angleTol && abs(state.plant(pitch)) < angleTol &&  abs(state.plant(yaw) - ref.at(refyaw)(time)) < angleTol && 
+            abs(state.plant(phi)) < angleTol && abs(state.plant(theta)) < angleTol &&  abs(state.plant(psi) - ref.at(refyaw)(time)) < angleTol && 
             abs(state.plant(xdot)) < velTol && abs(state.plant(ydot)) < velTol &&  abs(state.plant(zdot)) < velTol && 
             abs(state.plant(p)) < velTol && abs(state.plant(q)) < velTol &&  abs(state.plant(r)) < velTol &&
             abs(state.alge(ft) - hover) < ftTol && abs(state.alge(tx)) < torqueTol && abs(state.alge(ty)) < torqueTol && abs(state.alge(tz)) < torqueTol;
 }   
 
-bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time, std::array<PIDstate, NUM_CTRL_STATES> ctrlState)
+bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time)
 {
     double posDist = 100;
     double angleDist = 90;
@@ -414,16 +353,53 @@ bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(do
             // Assuming the reference is a fixed set point - if it becomes a trajectory, then we need to calculate how much the angle and velocities should be
             abs(state.plant(phi)) > deg2Rad(angleDist) || abs(state.plant(theta)) > deg2Rad(angleDist);
 
-    for (int i = 0; i < NUM_CTRL_STATES && !notConverging; i++){
-        if (m_ctrlParams.at(i).kp != 0 ) {
-            notConverging = notConverging || abs(ctrlState.at(i).kp_error) > pidStateLimit;
-        } 
-        if (m_ctrlParams.at(i).ki != 0) {
-            notConverging = notConverging || abs(ctrlState.at(i).ki_error) > pidStateLimit;
-        }
-        if (m_ctrlParams.at(i).kd != 0) {
-            notConverging = notConverging || abs(ctrlState.at(i).kd_error) > pidStateLimit;
-        }
-    }
+    notConverging = notConverging || abs(m_ctrlParams.at(posX).kp*state.alge(epx)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(posX).ki*state.alge(eix)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(posX).kd*state.alge(edx)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(posY).kp*state.alge(epy)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(posY).ki*state.alge(eiy)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(posY).kd*state.alge(edy)) > pidStateLimit;
+    
+    notConverging = notConverging || abs(m_ctrlParams.at(posZ).kp*state.alge(epz)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(posZ).ki*state.alge(eiz)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(posZ).kd*state.alge(edz)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(velX).kp*state.alge(epxdot)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(velX).ki*state.alge(eixdot)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(velX).kd*state.alge(edxdot)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(velY).kp*state.alge(epydot)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(velY).ki*state.alge(eiydot)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(velY).kd*state.alge(edydot)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(velZ).kp*state.alge(epzdot)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(velZ).ki*state.alge(eizdot)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(velZ).kd*state.alge(edzdot)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(roll).kp*state.alge(epphi)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(roll).ki*state.alge(eiphi)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(roll).kd*state.alge(edphi)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(pitch).kp*state.alge(eptheta)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(pitch).ki*state.alge(eitheta)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(pitch).kd*state.alge(edtheta)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(yaw).kp*state.alge(eppsi)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(yaw).ki*state.alge(eipsi)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(yaw).kd*state.alge(edpsi)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(rollRate).kp*state.alge(epp)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(rollRate).ki*state.alge(eip)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(rollRate).kd*state.alge(edp)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(pitchRate).kp*state.alge(epq)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(pitchRate).ki*state.alge(eiq)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(pitchRate).kd*state.alge(edq)) > pidStateLimit;
+
+    notConverging = notConverging || abs(m_ctrlParams.at(yawRate).kp*state.alge(epr)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(yawRate).ki*state.alge(eir)) > pidStateLimit;
+    notConverging = notConverging || abs(m_ctrlParams.at(yawRate).kd*state.alge(edr)) > pidStateLimit;
+    
     return notConverging;
 }
