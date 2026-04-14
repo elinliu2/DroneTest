@@ -222,10 +222,7 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
 
     // TODO: Can add constraints later
 
-    // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L260
-    double thrustScale = 1000;
-    double thrustBase = 36000;
-    algeStates(desThrust) = PIDctrl(m_ctrlParams.at(velZ), algeStates.segment(epzdot, NUM_PID_STATES))*thrustScale+thrustBase;
+    algeStates(desThrust) = PIDctrl(m_ctrlParams.at(velZ), algeStates.segment(epzdot, NUM_PID_STATES))*m_thrustScale+m_thrustBase;
     // desThrust = std::clamp(desThrust, 20000.0, (double)UINT16_MAX);
 
     algeStates.segment(epphi, NUM_PID_STATES) = updatePIDstate(currAlgeStates.segment(epphi, NUM_PID_STATES), rad2Deg(plantState(phi)), rad2Deg(prevPlantState(phi)), algeStates(desRoll), timestep, time);
@@ -265,15 +262,11 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     double m3 = algeStates(desThrust) + 0.5*algeStates(desRollOutput) - 0.5*algeStates(desPitchOutput) + algeStates(desYawOutput);
     double m4 = algeStates(desThrust) + 0.5*algeStates(desRollOutput) + 0.5*algeStates(desPitchOutput) - algeStates(desYawOutput);
 
-    // need to convert motor pwm signal to angular velocity
-    // want thrustBase = 36000 PWM == hover --> ft = mg
-    // des_wi = sqrt(mg/(kf*4)) 
-    double alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/thrustBase;
     
-    algeStates(w1) = alpha * m1;
-    algeStates(w2) = alpha * m2;
-    algeStates(w3) = alpha * m3;
-    algeStates(w4) = alpha * m4;
+    algeStates(w1) = m_alpha * m1;
+    algeStates(w2) = m_alpha * m2;
+    algeStates(w3) = m_alpha * m3;
+    algeStates(w4) = m_alpha * m4;
 
     // https://giuseppesilano.net/publications/rosChapter19.pdf
     // the crazyflie firmware using x wing configuration 
