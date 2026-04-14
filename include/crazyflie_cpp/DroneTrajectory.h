@@ -8,13 +8,15 @@
 #include <Eigen/Dense>
 
 #include "Logger.h"
-#include "LowPassFilter.h"
 
 #define NUM_PLANT_STATES 12
 #define NUM_CTRL_STATES 12
-#define NUM_ALGE_STATES 4
+#define NUM_Z_STATES 64
+#define NUM_Y_STATES 2
+#define NUM_ALGE_STATES 66
 #define NUM_DIST_STATES 6
 #define NUM_REF_STATES 4
+#define NUM_PID_STATES 3
 
 struct PIDParameters 
 {
@@ -23,15 +25,6 @@ struct PIDParameters
     double kd = 0;
     double integration_limit = 0;
     bool lpf_en = false;
-};
-
-struct PIDstate
-{
-    double kp_error = 0;
-    double ki_error = 0;
-    double kd_error = 0;
-    double prev_sig = 0;
-    LowPassFilter lpf;
 };
 
 struct DroneParameters 
@@ -66,16 +59,9 @@ struct DroneParameters
     double pid_vel_pitch_max = 20.0;
 };
 
-struct CtrlOut
-{
-    Eigen::Vector<double, NUM_ALGE_STATES> algeStates;
-    std::array<PIDstate, NUM_CTRL_STATES> ctrlStates;
-};
-
 struct SystemState
 {
     Eigen::Vector<double, NUM_PLANT_STATES> plant;
-    std::array<PIDstate, NUM_CTRL_STATES> ctrl;
     Eigen::Vector<double, NUM_ALGE_STATES> alge;
     bool stable = true;
 };
@@ -107,11 +93,17 @@ std::array<PIDParameters, NUM_CTRL_STATES> inline defaultPIDParameters(){
     return {posXpid, posYpid, posZpid, velXpid, velYpid, velZpid, rollpid, pitchpid, yawpid, rollRatepid, pitchRatepid, yawRatepid};
 }
 
-enum plantIndex{x, y, z, phi, theta, psi, xdot, ydot, zdot, p, q, r};
-enum ctrlIndex {posX, posY, posZ, velX, velY, velZ, roll, pitch, yaw, rollRate, pitchRate, yawRate};
-enum algeIndex {ft, tx, ty, tz};
-enum distIndex {Fwx, Fwy, Fwz, Twx, Twy, Twz};
-enum refIndex  {refx, refy, refz, refyaw};
+enum plantIndex {x, y, z, phi, theta, psi, xdot, ydot, zdot, p, q, r};
+enum ctrlIndex  {posX, posY, posZ, velX, velY, velZ, roll, pitch, yaw, rollRate, pitchRate, yawRate};
+enum algeIndex  {ft, tx, ty, tz, setp_body_x, setp_body_y, state_body_x, state_body_y, w1, w2, w3, w4, 
+                epx, eix, edx, desVelX, epy, eiy, edy, desVelY, epz, eiz, edz, desVelZ, 
+                state_body_vx, epxdot, eixdot, edxdot, state_body_vy, epydot, eiydot, edydot, epzdot, eizdot, edzdot, desThrust, 
+                epphi, eiphi, edphi, desRollRate, eptheta, eitheta, edtheta, desPitchRate, eppsi, eipsi, edpsi, desYawRate, 
+                epp, eip, edp, desRollOutput, epq, eiq, edq, desPitchOutput, epr, eir, edr, desYawOutput, 
+                delay_1_rollRate, delay_2_rollRate, delay_1_pitchRate, delay_2_pitchRate, desRoll, desPitch};
+enum pidIndex   {kp_error, ki_error, kd_error};
+enum distIndex  {Fwx, Fwy, Fwz, Twx, Twy, Twz};
+enum refIndex   {refx, refy, refz, refyaw};
 
 class DroneTrajectory 
 {
@@ -124,16 +116,26 @@ class DroneTrajectory
     std::array<double(*)(double), NUM_REF_STATES> m_ref; 
     double m_simTimestep; // [s]
     double m_finalTime; // [s]
-    
 
-    CtrlOut CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, std::array<PIDstate, NUM_CTRL_STATES> ctrlState, double time, double timestep);
+    double lpf_a1;
+    double lpf_a2;
+    double lpf_b0;
+    double lpf_b1;
+    double lpf_b2;
+    
+    Eigen::Vector<double, NUM_ALGE_STATES> CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, 
+    Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
+    Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates, double time, double timestep);
     SystemState simulateTimestep(SystemState prev, double time, double timestep);
     Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep);
     Eigen::MatrixX<double> DH(SystemState state, double timestep);
-    Eigen::MatrixX<double> dfdx(SystemState state);
     Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, double time);
     bool isConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
-    bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time, std::array<PIDstate, NUM_CTRL_STATES> ctrlState);
+    bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
+
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx(SystemState state);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_Z_STATES> dfdz(SystemState state);
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> dgdz(SystemState state);
 
     public:
         DroneTrajectory( 
@@ -142,7 +144,7 @@ class DroneTrajectory
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
             std::array<PIDParameters, NUM_CTRL_STATES> ctrlParams = defaultPIDParameters(),
             DroneParameters droneParameters = {},
-            double simTimestep = 1e-3, double finalTime = 250);
+            double simTimestep = 1e-3, double finalTime = 250, double sampleRate = 500, double cutoffFreq = 30);
         
         SimResults Trajectory(SystemState initialState); 
 };

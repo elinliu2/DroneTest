@@ -6,7 +6,7 @@
 double windDist(double time)
 {
     if(time < 1){
-        return -2.4;
+        return 1;
     }
     return 0;
 }
@@ -53,13 +53,6 @@ SystemState initializeState()
     SystemState initialState;
     initialState.plant = Eigen::Vector<double, NUM_PLANT_STATES>::Zero();
     initialState.alge = Eigen::Vector<double, NUM_ALGE_STATES>::Zero();
-
-    for (int i = 0; i < NUM_CTRL_STATES; i++){
-        if (i == rollRate || i == pitchRate) {
-            LowPassFilter lpfRate{500, 30};
-            initialState.ctrl.at(i).lpf = lpfRate;
-        }
-    }
     return initialState;
 }
 
