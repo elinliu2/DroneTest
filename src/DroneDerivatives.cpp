@@ -71,7 +71,95 @@ Eigen::Matrix<double, NUM_PLANT_STATES, NUM_Z_STATES> DroneTrajectory::dfdz(Syst
 Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> DroneTrajectory::dgdz(SystemState state)
 {
     Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> dgdz = Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES>::Zero();
-    (void) state;
+    if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
+        dgdz(1, epydot) = m_ctrlParams.at(velY).kp;
+        dgdz(1, eiydot) = m_ctrlParams.at(velY).ki;
+        dgdz(1, edydot) = m_ctrlParams.at(velY).kd;
+    }
+    if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
+        dgdz(1, epxdot) = m_ctrlParams.at(velX).kp;
+        dgdz(1, eixdot) = m_ctrlParams.at(velX).ki;
+        dgdz(1, edxdot) = m_ctrlParams.at(velX).kd;
+    }
     return dgdz;
+}
+
+Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES> DroneTrajectory::dhdx(SystemState state, double timestep)
+{
+    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES> dhdx = Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES>::Zero();
+    // TODO: what if ref is not constant?
+
+    dhdx(state_body_x, x) = cos(state.plant(psi));
+    dhdx(state_body_x, y) = sin(state.plant(psi));
+    dhdx(state_body_x, phi) = -state.plant(x)*sin(state.plant(psi)) + state.plant(y)*cos(state.plant(psi));
+
+    dhdx(state_body_y, x) = -sin(state.plant(psi));
+    dhdx(state_body_y, y) = cos(state.plant(psi));
+    dhdx(state_body_y, phi) = -state.plant(x)*cos(state.plant(psi)) - state.plant(y)*sin(state.plant(psi));
+
+    dhdx(epz, z) = -1;
+    dhdx(edz, z) = 1/timestep;
+    dhdx(edz, NUM_PLANT_STATES + z) = -1/timestep;
+
+    dhdx(state_body_vx, xdot) = cos(state.plant(psi));
+    dhdx(state_body_vx, ydot) = sin(state.plant(psi));
+    dhdx(state_body_vx, phi) = -state.plant(xdot)*sin(state.plant(psi)) + state.plant(ydot)*cos(state.plant(psi));
+
+    dhdx(state_body_vy, xdot) = -sin(state.plant(psi));
+    dhdx(state_body_vy, ydot) = cos(state.plant(psi));
+    dhdx(state_body_vy, phi) = -state.plant(xdot)*cos(state.plant(psi)) - state.plant(ydot)*sin(state.plant(psi));
+
+    dhdx(epzdot, zdot) = -1;
+    dhdx(edzdot, zdot) = 1/timestep;
+    dhdx(edzdot, NUM_PLANT_STATES + zdot) = -1/timestep;
+
+    dhdx(epphi, phi) = -180/M_PI;
+    dhdx(edphi, phi) = 180/(timestep*M_PI);
+    dhdx(edphi, NUM_PLANT_STATES + phi) = -1/(timestep*M_PI);
+
+    dhdx(eptheta, theta) = -180/M_PI;
+    dhdx(edtheta, theta) = 180/(timestep*M_PI);
+    dhdx(edtheta, NUM_PLANT_STATES + theta) = -1/(timestep*M_PI);
+
+    dhdx(eppsi, psi) = -180/M_PI;
+    dhdx(edpsi, psi) = 180/(timestep*M_PI);
+    dhdx(edpsi, NUM_PLANT_STATES + psi) = -1/(timestep*M_PI);
+
+    dhdx(delay_1_rollRate, p) = 180/(timestep*M_PI);
+    dhdx(delay_1_rollRate, NUM_PLANT_STATES+p) = -180/(timestep*M_PI);
+
+    dhdx(delay_1_pitchRate, q) = 180/(timestep*M_PI);
+    dhdx(delay_1_pitchRate, NUM_PLANT_STATES+q) = -180/(timestep*M_PI);
+
+    dhdx(epp, p) = -180/M_PI;
+    dhdx(edp, p) = 180/(timestep*M_PI);
+    dhdx(edp, NUM_PLANT_STATES + p) = -1/(timestep*M_PI);
+
+    dhdx(epq, q) = -180/M_PI;
+    dhdx(epq, q) = 180/(timestep*M_PI);
+    dhdx(epq, NUM_PLANT_STATES + q) = -1/(timestep*M_PI);
+
+    dhdx(epr, r) = -180/M_PI;
+    dhdx(edr, r) = 180/(timestep*M_PI);
+    dhdx(edr, NUM_PLANT_STATES + r) = -1/(timestep*M_PI);
+
+    return dhdx;
+}
+
+Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> DroneTrajectory::dhdz(SystemState state, SystemState prev, double timestep)
+{
+    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> dhdz = Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES>::Zero();
+    (void) state; 
+    (void) prev;
+    (void) timestep;
+    return dhdz;
+}
+
+Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> DroneTrajectory::dhdy()
+{
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> dhdy = Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES>::Zero();
+    dhdy(epphi, 1) = 1;
+    dhdy(eptheta, 2) = 1;
+    return dhdy;
 }
 
