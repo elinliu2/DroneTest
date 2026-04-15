@@ -16,7 +16,7 @@ DroneTrajectory::DroneTrajectory(
     Logger & logger, 
     std::array<double(*)(double), NUM_DIST_STATES> const& dist,
     std::array<double(*)(double), NUM_REF_STATES> const& ref,
-    std::array<PIDParameters, NUM_CTRL_STATES> ctrlParams,
+    std::array<PIDParameters, NUM_PIDS> ctrlParams,
     DroneParameters droneParameters, 
     double simTimestep, double finalTime, double sampleRate, double cutoffFreq) : 
     m_logger(logger), 

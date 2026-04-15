@@ -289,8 +289,8 @@ Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> DroneTrajectory::dhdz(System
 Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> DroneTrajectory::dhdy()
 {
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> dhdy = Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES>::Zero();
-    dhdy(epphi, 1) = 1;
-    dhdy(eptheta, 2) = 1;
+    dhdy(epphi, 0) = 1;
+    dhdy(eptheta, 1) = 1;
     return dhdy;
 }
 
