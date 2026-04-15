@@ -65,21 +65,12 @@ int main()
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
     
-    Logger splot("splot.txt");
-    splotTrajectory(simResults, splot);
+    // Logger splot("splot.txt");
+    // splotTrajectory(simResults, splot);
 
-    Logger splotx("x.txt");
-    splotPlantState(simResults, splotx, x);
-
-    Logger sploty("y.txt");
-    splotPlantState(simResults, sploty, y);
-
-    Logger splotz("z.txt");
-    splotPlantState(simResults, splotz, z);
-
-    Logger splotyaw("yaw.txt");
-    splotPlantState(simResults, splotyaw, psi);
-
+    std::vector<Eigen::Matrix<double, NUM_STATES, NUM_STATES>>  ts = droneTrajectory.trajSens(simResults);
+    log << "INFO - trajSens size: " << ts.size() << std::endl;
+    
     std::cout << ":D" << std::endl;
     return 0;
 }

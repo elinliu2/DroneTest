@@ -10,10 +10,11 @@
 #include "Logger.h"
 
 #define NUM_PLANT_STATES 12
-#define NUM_CTRL_STATES 12
+#define NUM_PIDS 12
 #define NUM_Z_STATES 64
 #define NUM_Y_STATES 2
-#define NUM_ALGE_STATES 66
+#define NUM_ALGE_STATES (NUM_Y_STATES+NUM_Z_STATES)
+#define NUM_STATES (NUM_PLANT_STATES+NUM_ALGE_STATES)
 #define NUM_DIST_STATES 6
 #define NUM_REF_STATES 4
 #define NUM_PID_STATES 3
@@ -73,7 +74,7 @@ struct SimResults{
     bool converged = false;
 };
 
-std::array<PIDParameters, NUM_CTRL_STATES> inline defaultPIDParameters(){
+std::array<PIDParameters, NUM_PIDS> inline defaultPIDParameters(){
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/platform/interface/platform_defaults_tag.h#L46
     PIDParameters posXpid = {2, 0, 0};
     PIDParameters posYpid = {2, 0, 0};
@@ -108,7 +109,7 @@ enum refIndex   {refx, refy, refz, refyaw};
 class DroneTrajectory 
 {
     Logger & m_logger;
-    std::array<PIDParameters, NUM_CTRL_STATES> m_ctrlParams;
+    std::array<PIDParameters, NUM_PIDS> m_ctrlParams;
     DroneParameters m_droneParams;
     // input is time
     // direction based on distIndex enum
@@ -154,11 +155,13 @@ class DroneTrajectory
             Logger & log, 
             std::array<double(*)(double), NUM_DIST_STATES> const& dist,
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
-            std::array<PIDParameters, NUM_CTRL_STATES> ctrlParams = defaultPIDParameters(),
+            std::array<PIDParameters, NUM_PIDS> ctrlParams = defaultPIDParameters(),
             DroneParameters droneParameters = {},
             double simTimestep = 1e-3, double finalTime = 250, double sampleRate = 500, double cutoffFreq = 30);
         
         SimResults Trajectory(SystemState initialState); 
+        std::vector<Eigen::Matrix<double, NUM_STATES, NUM_STATES>> trajSens(SimResults simResults);
+    
 };
 
 #endif
