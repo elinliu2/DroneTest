@@ -69,17 +69,17 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
             }
         }
         
-        m_logger << "INFO - timestep: " << time << std::endl;
-        m_logger << "INFO - PLANT STATE: x: "   << state2.plant(x) << " y: " << state2.plant(y) << " z: " << state2.plant(z) << " phi: "
-                                                << state2.plant(phi) << " theta: " << state2.plant(theta) << " psi: " << state2.plant(psi) << " xdot: "
-                                                << state2.plant(xdot) << " ydot: " << state2.plant(ydot) << " zdot: " << state2.plant(zdot) << " p: "
-                                                << state2.plant(p) << " q: " << state2.plant(q) << " r: " << state2.plant(r) 
-                                                << std::endl;
+        // m_logger << "INFO - timestep: " << time << std::endl;
+        // m_logger << "INFO - PLANT STATE: x: "   << state2.plant(x) << " y: " << state2.plant(y) << " z: " << state2.plant(z) << " phi: "
+        //                                         << state2.plant(phi) << " theta: " << state2.plant(theta) << " psi: " << state2.plant(psi) << " xdot: "
+        //                                         << state2.plant(xdot) << " ydot: " << state2.plant(ydot) << " zdot: " << state2.plant(zdot) << " p: "
+        //                                         << state2.plant(p) << " q: " << state2.plant(q) << " r: " << state2.plant(r) 
+        //                                         << std::endl;
         // m_logger << "INFO - CTRL STATE: " << std::endl;
         // for (int i = 0; i < NUM_CTRL_STATES; i++)
         // { m_logger.log(printPIDstate(state2.ctrl.at(i))); }
-        m_logger << "INFO - ALGE STATE: ft: "   << state2.alge(ft) << " tx: " << state2.alge(tx) << " ty: " << state2.alge(ty) << " tz: " << state2.alge(tz)
-                                                << std::endl;
+        // m_logger << "INFO - ALGE STATE: ft: "   << state2.alge(ft) << " tx: " << state2.alge(tx) << " ty: " << state2.alge(ty) << " tz: " << state2.alge(tz)
+        //                                         << std::endl;
         
         // TOOD: check not converging and end earlier
         if (isConverging(state2, m_ref, time)){
