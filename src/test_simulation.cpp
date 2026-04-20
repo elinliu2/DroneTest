@@ -64,6 +64,7 @@ int main()
     DroneTrajectory droneTrajectory(log, dist, ref);
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
+    log << "INFO - time size: " << simResults.time.size() << std::endl;
     
     // Logger splot("splot.txt");
     // splotTrajectory(simResults, splot);

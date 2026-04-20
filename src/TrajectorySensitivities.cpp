@@ -11,7 +11,7 @@ std::vector<Eigen::Matrix<double, NUM_STATES, NUM_STATES>>  DroneTrajectory::tra
     Eigen::MatrixXd I = Eigen::MatrixXd::Identity(NUM_PLANT_STATES, NUM_PLANT_STATES);
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> initial_ts;
     initial_ts << I , Eigen::Matrix<double, NUM_PLANT_STATES, NUM_ALGE_STATES>::Zero(), Eigen::Matrix<double, NUM_ALGE_STATES, NUM_STATES>::Zero();
-    ts.push_back(initial_ts);
+    ts[0] = initial_ts;
 
     // Initialization outside loop to save time
     // dwdwo
@@ -55,8 +55,8 @@ std::vector<Eigen::Matrix<double, NUM_STATES, NUM_STATES>>  DroneTrajectory::tra
         dfdx_curr = dfdx(simResults.stateProgression.at(i-1));
         dfdz_curr = dfdz(simResults.stateProgression.at(i-1));        
         dxdwo_plus = (I-timestep/2*dfdx_plus).inverse()*(dxdwo + timestep/2*(dfdx_curr * dxdwo + 2*dfdz_curr*dzdwo));
+        // dxdwo_plus = (I-timestep/2*dfdx_plus).partialPivLu().solve(dxdwo + timestep/2*(dfdx_curr * dxdwo + 2*dfdz_curr*dzdwo));
         dxdwo_plus_curr << dxdwo_plus, dxdwo;
-        
         
         // dzdwo for 1 to n
         dhdx_plus_curr = dhdx(simResults.stateProgression.at(i), timestep);
@@ -82,7 +82,7 @@ std::vector<Eigen::Matrix<double, NUM_STATES, NUM_STATES>>  DroneTrajectory::tra
         dzdwo_plus = dzdwo_plus_curr.topRows(NUM_Z_STATES);
         
         dwdwo_plus << dxdwo_plus, dzdwo_plus_curr.topRows(NUM_Z_STATES), dydwo;
-        ts.push_back(dwdwo_plus);
+        ts[i] = dwdwo_plus;
     }
 
     std::chrono::time_point end = std::chrono::steady_clock::now();
