@@ -110,6 +110,14 @@ struct dwdwo {
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo;
     Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo;
     Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> dydwo;
+
+    dwdwo(
+        const Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES>& dx,
+        const Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES>& dz,
+        const Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES>& dy
+    )
+        : dxdwo(dx), dzdwo(dz), dydwo(dy)
+    {}
 };
 
 class DroneTrajectory 
