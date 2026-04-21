@@ -75,9 +75,6 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
         //                                         << state2.plant(xdot) << " ydot: " << state2.plant(ydot) << " zdot: " << state2.plant(zdot) << " p: "
         //                                         << state2.plant(p) << " q: " << state2.plant(q) << " r: " << state2.plant(r) 
         //                                         << std::endl;
-        // m_logger << "INFO - CTRL STATE: " << std::endl;
-        // for (int i = 0; i < NUM_CTRL_STATES; i++)
-        // { m_logger.log(printPIDstate(state2.ctrl.at(i))); }
         // m_logger << "INFO - ALGE STATE: ft: "   << state2.alge(ft) << " tx: " << state2.alge(tx) << " ty: " << state2.alge(ty) << " tz: " << state2.alge(tz)
         //                                         << std::endl;
         
@@ -327,13 +324,12 @@ bool DroneTrajectory::isConverging(SystemState state, std::array<double(*)(doubl
     double ftTol = 1e-2;
     double hover = m_droneParams.mass * m_droneParams.g;
     double torqueTol = 1e-6;
-
-    return  abs(state.plant(x) - ref.at(refx)(time)) < posTol && abs(state.plant(y) - ref.at(refy)(time)) < posTol &&  abs(state.plant(z) - ref.at(refz)(time)) < posTol && 
+    return  std::abs(state.plant(x) - ref.at(refx)(time)) < posTol && std::abs(state.plant(y) - ref.at(refy)(time)) < posTol &&  std::abs(state.plant(z) - ref.at(refz)(time)) < posTol && 
             // Assuming the reference is a fixed set point - if it becomes a trajectory, then we need to calculate how much the angle and velocities should be
-            abs(state.plant(phi)) < angleTol && abs(state.plant(theta)) < angleTol &&  abs(state.plant(psi) - ref.at(refyaw)(time)) < angleTol && 
-            abs(state.plant(xdot)) < velTol && abs(state.plant(ydot)) < velTol &&  abs(state.plant(zdot)) < velTol && 
-            abs(state.plant(p)) < velTol && abs(state.plant(q)) < velTol &&  abs(state.plant(r)) < velTol &&
-            abs(state.alge(ft) - hover) < ftTol && abs(state.alge(tx)) < torqueTol && abs(state.alge(ty)) < torqueTol && abs(state.alge(tz)) < torqueTol;
+            std::abs(state.plant(phi)) < angleTol && std::abs(state.plant(theta)) < angleTol &&  std::abs(state.plant(psi) - ref.at(refyaw)(time)) < angleTol && 
+            std::abs(state.plant(xdot)) < velTol && std::abs(state.plant(ydot)) < velTol &&  std::abs(state.plant(zdot)) < velTol && 
+            std::abs(state.plant(p)) < velTol && std::abs(state.plant(q)) < velTol &&  std::abs(state.plant(r)) < velTol &&
+            std::abs(state.alge(ft) - hover) < ftTol && std::abs(state.alge(tx)) < torqueTol && std::abs(state.alge(ty)) < torqueTol && std::abs(state.alge(tz)) < torqueTol;
 }   
 
 bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time)
@@ -342,57 +338,57 @@ bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(do
     double angleDist = 90;
     double pidStateLimit = 1e7;
 
-    bool notConverging = abs(state.plant(x) - ref.at(refx)(time)) > posDist || abs(state.plant(y) - ref.at(refy)(time)) > posDist ||  abs(state.plant(z) - ref.at(refz)(time)) > posDist ||
+    bool notConverging =std::abs(state.plant(x) - ref.at(refx)(time)) > posDist ||std::abs(state.plant(y) - ref.at(refy)(time)) > posDist || std::abs(state.plant(z) - ref.at(refz)(time)) > posDist ||
             // Assuming the reference is a fixed set point - if it becomes a trajectory, then we need to calculate how much the angle and velocities should be
-            abs(state.plant(phi)) > deg2Rad(angleDist) || abs(state.plant(theta)) > deg2Rad(angleDist);
+           std::abs(state.plant(phi)) > deg2Rad(angleDist) ||std::abs(state.plant(theta)) > deg2Rad(angleDist);
 
-    notConverging = notConverging || abs(m_ctrlParams.at(posX).kp*state.alge(epx)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(posX).ki*state.alge(eix)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(posX).kd*state.alge(edx)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(posX).kp*state.alge(epx)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(posX).ki*state.alge(eix)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(posX).kd*state.alge(edx)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(posY).kp*state.alge(epy)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(posY).ki*state.alge(eiy)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(posY).kd*state.alge(edy)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(posY).kp*state.alge(epy)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(posY).ki*state.alge(eiy)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(posY).kd*state.alge(edy)) > pidStateLimit;
     
-    notConverging = notConverging || abs(m_ctrlParams.at(posZ).kp*state.alge(epz)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(posZ).ki*state.alge(eiz)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(posZ).kd*state.alge(edz)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(posZ).kp*state.alge(epz)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(posZ).ki*state.alge(eiz)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(posZ).kd*state.alge(edz)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(velX).kp*state.alge(epxdot)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(velX).ki*state.alge(eixdot)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(velX).kd*state.alge(edxdot)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(velX).kp*state.alge(epxdot)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(velX).ki*state.alge(eixdot)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(velX).kd*state.alge(edxdot)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(velY).kp*state.alge(epydot)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(velY).ki*state.alge(eiydot)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(velY).kd*state.alge(edydot)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(velY).kp*state.alge(epydot)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(velY).ki*state.alge(eiydot)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(velY).kd*state.alge(edydot)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(velZ).kp*state.alge(epzdot)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(velZ).ki*state.alge(eizdot)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(velZ).kd*state.alge(edzdot)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(velZ).kp*state.alge(epzdot)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(velZ).ki*state.alge(eizdot)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(velZ).kd*state.alge(edzdot)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(roll).kp*state.alge(epphi)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(roll).ki*state.alge(eiphi)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(roll).kd*state.alge(edphi)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(roll).kp*state.alge(epphi)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(roll).ki*state.alge(eiphi)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(roll).kd*state.alge(edphi)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(pitch).kp*state.alge(eptheta)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(pitch).ki*state.alge(eitheta)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(pitch).kd*state.alge(edtheta)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(pitch).kp*state.alge(eptheta)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(pitch).ki*state.alge(eitheta)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(pitch).kd*state.alge(edtheta)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(yaw).kp*state.alge(eppsi)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(yaw).ki*state.alge(eipsi)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(yaw).kd*state.alge(edpsi)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(yaw).kp*state.alge(eppsi)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(yaw).ki*state.alge(eipsi)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(yaw).kd*state.alge(edpsi)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(rollRate).kp*state.alge(epp)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(rollRate).ki*state.alge(eip)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(rollRate).kd*state.alge(edp)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(rollRate).kp*state.alge(epp)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(rollRate).ki*state.alge(eip)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(rollRate).kd*state.alge(edp)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(pitchRate).kp*state.alge(epq)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(pitchRate).ki*state.alge(eiq)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(pitchRate).kd*state.alge(edq)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(pitchRate).kp*state.alge(epq)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(pitchRate).ki*state.alge(eiq)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(pitchRate).kd*state.alge(edq)) > pidStateLimit;
 
-    notConverging = notConverging || abs(m_ctrlParams.at(yawRate).kp*state.alge(epr)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(yawRate).ki*state.alge(eir)) > pidStateLimit;
-    notConverging = notConverging || abs(m_ctrlParams.at(yawRate).kd*state.alge(edr)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(yawRate).kp*state.alge(epr)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(yawRate).ki*state.alge(eir)) > pidStateLimit;
+    notConverging = notConverging ||std::abs(m_ctrlParams.at(yawRate).kd*state.alge(edr)) > pidStateLimit;
     
     return notConverging;
 }
