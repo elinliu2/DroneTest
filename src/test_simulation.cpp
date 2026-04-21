@@ -69,7 +69,7 @@ int main()
     // Logger splot("splot.txt");
     // splotTrajectory(simResults, splot);
 
-    std::vector<Eigen::Matrix<double, NUM_STATES, NUM_STATES>>  ts = droneTrajectory.trajSens(simResults);
+    std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
     log << "INFO - trajSens size: " << ts.size() << std::endl;
     
     std::cout << ":D" << std::endl;

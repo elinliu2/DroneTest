@@ -138,7 +138,7 @@ Eigen::MatrixX<double> DroneTrajectory::DH(SystemState state, double timestep)
 {
     int n = m_droneParams.numPlantStates;
     Eigen::MatrixX<double> dh = -1*Eigen::MatrixX<double>::Identity(n, n);
-    Eigen::MatrixX<double> dfdx_plus = dfdx(state);
+    Eigen::SparseMatrix<double> dfdx_plus = dfdx(state);
     return dh + timestep/2*dfdx_plus;
 }
 
