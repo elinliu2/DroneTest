@@ -106,6 +106,12 @@ enum pidIndex   {kp_error, ki_error, kd_error};
 enum distIndex  {Fwx, Fwy, Fwz, Twx, Twy, Twz};
 enum refIndex   {refx, refy, refz, refyaw};
 
+struct dwdwo {
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo;
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo;
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> dydwo;
+};
+
 class DroneTrajectory 
 {
     Logger & m_logger;
@@ -143,12 +149,14 @@ class DroneTrajectory
     bool isConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
     bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
 
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx(SystemState state);
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_Z_STATES> dfdz(SystemState state);
-    Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> dgdz(SystemState state);
-    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES> dhdx(SystemState state, double timestep);
-    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> dhdz(SystemState state, double timestep);
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> dhdy();
+    Eigen::SparseMatrix<double> dfdx(SystemState state);
+    Eigen::SparseMatrix<double> dfdz( SystemState state);
+    Eigen::SparseMatrix<double> dgdz(SystemState state);
+    Eigen::SparseMatrix<double> dhdxPlus(SystemState state, double timestep);
+    Eigen::SparseMatrix<double> dhdxCurr(double timestep);
+    Eigen::SparseMatrix<double> dhdzPlus(SystemState state, double timestep);
+    Eigen::SparseMatrix<double> dhdzCurr(double timestep);
+    Eigen::SparseMatrix<double> dhdy();
 
     public:
         DroneTrajectory( 
@@ -160,7 +168,7 @@ class DroneTrajectory
             double simTimestep = 1e-3, double finalTime = 250, double sampleRate = 500, double cutoffFreq = 30);
         
         SimResults Trajectory(SystemState initialState); 
-        std::vector<Eigen::Matrix<double, NUM_STATES, NUM_STATES>> trajSens(SimResults simResults);
+        std::vector<dwdwo> trajSens(SimResults const & simResults);
     
 };
 

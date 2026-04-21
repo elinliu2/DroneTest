@@ -1,88 +1,112 @@
 #include "DroneTrajectory.h"
 #include <chrono>
 
-std::vector<Eigen::Matrix<double, NUM_STATES, NUM_STATES>>  DroneTrajectory::trajSens(SimResults simResults)
+std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
 {
     std::chrono::time_point start = std::chrono::steady_clock::now();
 
     const int iterations = simResults.time.size();
-    std::vector<Eigen::Matrix<double, NUM_STATES, NUM_STATES>> ts(iterations);
+    std::vector<dwdwo> ts(iterations);
 
-    Eigen::MatrixXd I = Eigen::MatrixXd::Identity(NUM_PLANT_STATES, NUM_PLANT_STATES);
-    Eigen::Matrix<double, NUM_STATES, NUM_STATES> initial_ts;
-    initial_ts << I , Eigen::Matrix<double, NUM_PLANT_STATES, NUM_ALGE_STATES>::Zero(), Eigen::Matrix<double, NUM_ALGE_STATES, NUM_STATES>::Zero();
-    ts[0] = initial_ts;
+    Eigen::SparseMatrix<double> initial_dxdwo(NUM_PLANT_STATES, NUM_STATES);
+    for(int i = 0; i < NUM_PLANT_STATES; i++){
+        initial_dxdwo.insert(i, i) = 1;
+    }
+    Eigen::SparseMatrix<double> initial_dzdwo(NUM_Z_STATES, NUM_STATES);
+    Eigen::SparseMatrix<double> initial_dydwo(NUM_Y_STATES, NUM_STATES);
 
-    // Initialization outside loop to save time
-    // dwdwo
-    Eigen::Matrix<double, NUM_STATES, NUM_STATES> dwdwo = Eigen::Matrix<double, NUM_STATES, NUM_STATES>::Zero();
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo = Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES>::Zero();
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo = Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES>::Zero();
-    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> dydwo = Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES>::Zero();
+    ts[0] = {initial_dxdwo, initial_dzdwo, initial_dydwo};
 
-    // dxdwo_plus
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx_plus = Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES>::Zero();
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx_curr = Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES>::Zero();
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_Z_STATES> dfdz_curr = Eigen::Matrix<double, NUM_PLANT_STATES, NUM_Z_STATES>::Zero();
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo_plus = Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES>::Zero();
-    Eigen::Matrix<double, 2*NUM_PLANT_STATES, NUM_STATES> dxdwo_plus_curr = Eigen::Matrix<double, 2*NUM_PLANT_STATES, NUM_STATES>::Zero();
+    Eigen::SparseMatrix<double> I(NUM_PLANT_STATES, NUM_PLANT_STATES);
+    I.setIdentity();
 
-    // dzdwo
-    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES> dhdx_plus_curr = Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_PLANT_STATES>::Zero();
-    Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES> dhdz_plus_curr = Eigen::Matrix<double, NUM_Z_STATES, 2*NUM_Z_STATES>::Zero();
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> dhdy_plus = Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES>::Zero();
-    Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> dgdz_plus = Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES>::Zero();
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo_plus = Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES>::Zero();
-    Eigen::Matrix<double, 2*NUM_Z_STATES, NUM_STATES> dzdwo_plus_curr = Eigen::Matrix<double, 2*NUM_Z_STATES, NUM_STATES>::Zero();
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo;
+        Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo;
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo_plus;
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo_plus;
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> dydwo_plus;
 
-    // dydwo
-    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> dydwo_plus = Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES>::Zero();
 
-    Eigen::Matrix<double, NUM_STATES, NUM_STATES> dwdwo_plus = Eigen::Matrix<double, NUM_STATES, NUM_STATES>::Zero();
+    // std::chrono::time_point elapsed0 = std::chrono::steady_clock::now();
+    // m_logger << "Elapsed Time 0: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed0 - start).count() << " us" << std::endl;
+    // m_logger << "test0" << std::endl; 
+
     // iterating trajectory sensitivity
     for(int i = 1; i < iterations; i++)
     {
-        double timestep = simResults.time.at(i) - simResults.time.at(i-1);
-
+        double timestep = simResults.time[i] - simResults.time[i-1];
         // dwdwo
-        dwdwo = ts.at(i-1);
-        dxdwo = dwdwo.topRows(NUM_PLANT_STATES);
-        dzdwo = dwdwo.middleRows(NUM_PLANT_STATES, NUM_Z_STATES);
-        dydwo = dwdwo.bottomRows(NUM_Y_STATES);
+        dwdwo curr = ts[i-1];
+        dxdwo = curr.dxdwo;
+        dzdwo = curr.dzdwo;
+        // std::chrono::time_point elapsed1 = std::chrono::steady_clock::now();
+        // m_logger << "test1" << std::endl;
 
         // dxdwo_plus
-        dfdx_plus = dfdx(simResults.stateProgression.at(i));
-        dfdx_curr = dfdx(simResults.stateProgression.at(i-1));
-        dfdz_curr = dfdz(simResults.stateProgression.at(i-1));        
-        dxdwo_plus = (I-timestep/2*dfdx_plus).inverse()*(dxdwo + timestep/2*(dfdx_curr * dxdwo + 2*dfdz_curr*dzdwo));
-        // dxdwo_plus = (I-timestep/2*dfdx_plus).partialPivLu().solve(dxdwo + timestep/2*(dfdx_curr * dxdwo + 2*dfdz_curr*dzdwo));
-        dxdwo_plus_curr << dxdwo_plus, dxdwo;
-        
+        Eigen::SparseMatrix<double> dfdx_plus = dfdx(simResults.stateProgression[i]);
+        Eigen::SparseMatrix<double> dfdx_curr = dfdx(simResults.stateProgression[i-1]);
+        Eigen::SparseMatrix<double> dfdz_curr = dfdz(simResults.stateProgression[i-1]);        
+        dxdwo_plus = (I-timestep/2*dfdx_plus).toDense().partialPivLu().solve(dxdwo + timestep/2*(dfdx_curr * dxdwo + 2*dfdz_curr*dzdwo));
+        // Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> dxdwo_plus = (I-timestep/2*dfdx_plus).solve(dxdwo + timestep/2*(dfdx_curr * dxdwo + 2*dfdz_curr*dzdwo));
+        // solver.compute(I-timestep/2*dfdx_plus);
+        // Eigen::SparseMatrix<double> dxdwo_plus = solver.solve(dxdwo + timestep/2*(dfdx_curr * dxdwo + 2*dfdz_curr*dzdwo));    
+        // std::chrono::time_point elapsed2 = std::chrono::steady_clock::now();
+        // m_logger << "test2" << std::endl;
+
         // dzdwo for 1 to n
-        dhdx_plus_curr = dhdx(simResults.stateProgression.at(i), timestep);
-        dhdz_plus_curr = dhdz(simResults.stateProgression.at(i), timestep); 
-        dhdy_plus = dhdy();
-        dgdz_plus = dgdz(simResults.stateProgression.at(i));
-        dzdwo_plus = dhdx_plus_curr * dxdwo_plus_curr;
-        dzdwo_plus_curr << dzdwo_plus, dzdwo;
+        Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], timestep);
+        Eigen::SparseMatrix<double> dhdx_curr = dhdxCurr(timestep);
+        Eigen::SparseMatrix<double> dhdz_plus = dhdzPlus(simResults.stateProgression[i], timestep); 
+        Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(timestep); 
+        Eigen::SparseMatrix<double> dhdy_plus = dhdy();
+        Eigen::SparseMatrix<double> dgdz_plus = dgdz(simResults.stateProgression[i]);
+        dzdwo_plus = dhdx_plus * dxdwo_plus + dhdx_curr * dxdwo + dhdz_curr * dzdwo;
+        // std::chrono::time_point elapsed3 = std::chrono::steady_clock::now();
+        // m_logger << "test3" << std::endl;
 
         for(int i = 0; i < desThrust; i ++){
-            dzdwo_plus_curr.row(i) += dhdz_plus_curr.row(i) * dzdwo_plus_curr;
+            // Eigen::SparseVector<double> temp = (dhdz_plus.block(i, 0, 1, i) * dzdwo_plus.topRows(i)).sparseView();
+            // for (Eigen::SparseVector<double>::InnerIterator it(temp); it; ++it) {
+            //     dzdwo_plus.coeffRef(i, it.col()) += it.value();
+            // }
+            // dzdwo_plus.row(i) += dhdz_plus.block(i, 0, 1, i) * dzdwo_plus.topRows(i);
+            // dzdwo_plus.row(i) += dhdz_plus.row(i) * dzdwo_plus;
+            dzdwo_plus.row(i) += (dhdz_plus * dzdwo_plus).row(i);
         }
-        dzdwo_plus = dzdwo_plus_curr.topRows(NUM_Z_STATES);
-        
+        // std::chrono::time_point elapsed4 = std::chrono::steady_clock::now();
+        // m_logger << "test4" << std::endl;
+
         // dydwo
         dydwo_plus = dgdz_plus * dzdwo_plus;
+        // std::chrono::time_point elapsed5 = std::chrono::steady_clock::now();
+        // m_logger << "test5" << std::endl;
 
         // dzdwo 
-        dzdwo_plus_curr.topRows(NUM_Z_STATES) += dhdy_plus * dydwo_plus;
+        dzdwo_plus += dhdy_plus * dydwo_plus;
         for(int i = epphi; i < NUM_Z_STATES; i ++){
-            dzdwo_plus_curr.row(i) += dhdz_plus_curr.row(i) * dzdwo_plus_curr;
+            // Eigen::SparseVector<double> temp = (dhdz_plus.block(i, 0, 1, i) * dzdwo_plus.topRows(i)).sparseView();
+            // for (Eigen::SparseVector<double>::InnerIterator it(temp); it; ++it) {
+            //     dzdwo_plus.coeffRef(i, it.col()) += it.value();
+            // }
+            // dzdwo_plus.row(i) += dhdz_plus.block(i, 0, 1, i) * dzdwo_plus.topRows(i);
+            // dzdwo_plus.row(i) += dhdz_plus.row(i) * dzdwo_plus;
+            dzdwo_plus.row(i) += (dhdz_plus * dzdwo_plus).row(i);
         }
-        dzdwo_plus = dzdwo_plus_curr.topRows(NUM_Z_STATES);
-        
-        dwdwo_plus << dxdwo_plus, dzdwo_plus_curr.topRows(NUM_Z_STATES), dydwo;
-        ts[i] = dwdwo_plus;
+        // std::chrono::time_point elapsed6 = std::chrono::steady_clock::now();
+        // m_logger << "test6" << std::endl;
+
+        dwdwo plus{dxdwo_plus, dzdwo_plus, dydwo_plus};
+        ts[i] = plus;
+        // std::chrono::time_point elapsed7 = std::chrono::steady_clock::now();
+        // m_logger << "test7" << std::endl;
+
+        // m_logger << "Elapsed Time 1: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed1 - elapsed0).count() << " us" << std::endl;
+        // m_logger << "Elapsed Time 2: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed2 - elapsed1).count() << " us" << std::endl;
+        // m_logger << "Elapsed Time 3: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed3 - elapsed2).count() << " us" << std::endl;
+        // m_logger << "Elapsed Time 4: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed4 - elapsed3).count() << " us" << std::endl;
+        // m_logger << "Elapsed Time 5: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed5 - elapsed4).count() << " us" << std::endl;
+        // m_logger << "Elapsed Time 6: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed6 - elapsed5).count() << " us" << std::endl;
+        // m_logger << "Elapsed Time 7: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed7 - elapsed6).count() << " us" << std::endl;
     }
 
     std::chrono::time_point end = std::chrono::steady_clock::now();
