@@ -149,7 +149,7 @@ class DroneTrajectory
     bool isConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
     bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
 
-    Eigen::SparseMatrix<double> dfdx(SystemState state);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx(SystemState state);
     Eigen::SparseMatrix<double> dfdz( SystemState state);
     Eigen::SparseMatrix<double> dgdz(SystemState state);
     Eigen::SparseMatrix<double> dhdxPlus(SystemState state, double timestep);

@@ -28,13 +28,13 @@ DroneTrajectory::DroneTrajectory(
     m_finalTime(finalTime) {
 
         double fr = sampleRate/cutoffFreq;
-        double ohm = tan(M_PI/fr);
-        double c = 1.0+2.0*cos(M_PI/4.0)*ohm+ohm*ohm;
+        double ohm = std::tan(M_PI/fr);
+        double c = 1.0+2.0*std::cos(M_PI/4.0)*ohm+ohm*ohm;
         lpf_b0 = ohm*ohm/c;
         lpf_b1 = 2.0*lpf_b0;
         lpf_b2 = lpf_b0;
         lpf_a1 = 2.0*(ohm*ohm-1.0f)/c;
-        lpf_a2 = (1.0-2.0*cos(M_PI/4.0)*ohm+ohm*ohm)/c;
+        lpf_a2 = (1.0-2.0*std::cos(M_PI/4.0)*ohm+ohm*ohm)/c;
        
     }
 
@@ -135,7 +135,7 @@ Eigen::MatrixX<double> DroneTrajectory::DH(SystemState state, double timestep)
 {
     int n = m_droneParams.numPlantStates;
     Eigen::MatrixX<double> dh = -1*Eigen::MatrixX<double>::Identity(n, n);
-    Eigen::SparseMatrix<double> dfdx_plus = dfdx(state);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx_plus = dfdx(state);
     return dh + timestep/2*dfdx_plus;
 }
 
@@ -148,23 +148,23 @@ Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::f(SystemState state, do
     dot(z) = state.plant(zdot);
 
     dot(phi) = state.plant(p) 
-                + state.plant(r) * cos(state.plant(phi)) * tan(state.plant(theta))
-                + state.plant(q) * sin(state.plant(phi)) * tan(state.plant(theta));
-    dot(theta) = state.plant(q) * cos(state.plant(phi)) 
-                - state.plant(r) * sin(state.plant(phi));
-    dot(psi) = state.plant(r) * cos(state.plant(phi)) / cos(state.plant(theta)) 
-                + state.plant(q) * sin(state.plant(phi)) / cos(state.plant(theta));
+                + state.plant(r) * std::cos(state.plant(phi)) * std::tan(state.plant(theta))
+                + state.plant(q) * std::sin(state.plant(phi)) * std::tan(state.plant(theta));
+    dot(theta) = state.plant(q) * std::cos(state.plant(phi)) 
+                - state.plant(r) * std::sin(state.plant(phi));
+    dot(psi) = state.plant(r) * std::cos(state.plant(phi)) / std::cos(state.plant(theta)) 
+                + state.plant(q) * std::sin(state.plant(phi)) / std::cos(state.plant(theta));
 
     dot(xdot) = (state.alge(ft) + m_dist.at(Fwx)(time)) / m_droneParams.mass * 
-                (sin(state.plant(phi)) * sin(state.plant(psi)) 
-               + cos(state.plant(phi))*cos(state.plant(psi))*sin(state.plant(theta)));
+                (std::sin(state.plant(phi)) * std::sin(state.plant(psi)) 
+               + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)));
 
     dot(ydot) = (state.alge(ft) + m_dist.at(Fwy)(time)) / m_droneParams.mass * 
-                (cos(state.plant(phi))*sin(state.plant(psi))*sin(state.plant(theta)) 
-               - cos(state.plant(psi))*sin(state.plant(phi)));
+                (std::cos(state.plant(phi))*std::sin(state.plant(psi))*std::sin(state.plant(theta)) 
+               - std::cos(state.plant(psi))*std::sin(state.plant(phi)));
 
     dot(zdot) = - m_droneParams.g + (state.alge(ft) + m_dist.at(Fwz)(time))/m_droneParams.mass * 
-                (cos(state.plant(phi)) * cos(state.plant(theta)));
+                (std::cos(state.plant(phi)) * std::cos(state.plant(theta)));
 
     dot(p) = (m_droneParams.Iy-m_droneParams.Iz)/m_droneParams.Ix*state.plant(r)*state.plant(q) 
             + (state.alge(tx) + m_dist.at(Twx)(time))/m_droneParams.Ix;
@@ -186,8 +186,8 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     Eigen::Vector<double, NUM_ALGE_STATES> algeStates;
 
     //https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L202
-    double cosyaw = cos(plantState(psi));
-    double sinyaw = sin(plantState(psi));
+    double cosyaw = std::cos(plantState(psi));
+    double sinyaw = std::sin(plantState(psi));
 
     // Convert global x y z into body x y z assuming CCW yaw = +ve
     algeStates(setp_body_x) = m_ref.at(refx)(time) * cosyaw + m_ref.at(refy)(time) * sinyaw;
