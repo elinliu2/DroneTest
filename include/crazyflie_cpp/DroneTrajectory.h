@@ -64,6 +64,11 @@ struct SystemState
 {
     Eigen::Vector<double, NUM_PLANT_STATES> plant;
     Eigen::Vector<double, NUM_ALGE_STATES> alge;
+};
+
+struct Timestep
+{
+    SystemState state;
     bool stable = true;
 };
 
@@ -118,6 +123,8 @@ struct dwdwo {
     )
         : dxdwo(dx), dzdwo(dz), dydwo(dy)
     {}
+
+    dwdwo() : dxdwo(), dzdwo(),  dydwo() {}
 };
 
 class DroneTrajectory 
@@ -131,6 +138,7 @@ class DroneTrajectory
     std::array<double(*)(double), NUM_REF_STATES> m_ref; 
     double m_simTimestep; // [s]
     double m_finalTime; // [s]
+    bool m_fixedNumIterations; 
 
     double lpf_a1;
     double lpf_a2;
@@ -144,13 +152,12 @@ class DroneTrajectory
     // need to convert motor pwm signal to angular velocity
     // want thrustBase = 36000 PWM == hover --> ft = mg
     // des_wi = sqrt(mg/(kf*4)) 
-    double m_alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/m_thrustBase;
-    
+    double m_alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/m_thrustBase;    
 
     Eigen::Vector<double, NUM_ALGE_STATES> CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, 
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
     Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates, double time, double timestep);
-    SystemState simulateTimestep(SystemState prev, double time, double timestep);
+    Timestep simulateTimestep(SystemState prev, double time, double timestep);
     Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep);
     Eigen::MatrixX<double> DH(SystemState state, double timestep);
     Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, double time);
@@ -173,11 +180,11 @@ class DroneTrajectory
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
             std::array<PIDParameters, NUM_PIDS> ctrlParams = defaultPIDParameters(),
             DroneParameters droneParameters = {},
-            double simTimestep = 1e-3, double finalTime = 250, double sampleRate = 500, double cutoffFreq = 30);
+            double simTimestep = 1e-3, double finalTime = 250, double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = false);
         
         SimResults Trajectory(SystemState initialState); 
         std::vector<dwdwo> trajSens(SimResults const & simResults);
-    
+        std::vector<dwdwo> trajSensTest(SystemState initialState);
 };
 
 #endif

@@ -25,6 +25,7 @@ add_library(crazyflie_cpp
   src/LowPassFilter.cpp
   src/DroneDerivatives.cpp
   src/TrajectorySensitivities.cpp
+  src/TrajectorySimulationTest.cpp
 )
 
 target_include_directories(crazyflie_cpp

@@ -8,18 +8,17 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
     const int iterations = simResults.time.size();
     std::vector<dwdwo> ts;
     ts.reserve(iterations);
-
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> initial_dxdwo;
-    initial_dxdwo.setIdentity();
+    initial_dxdwo.setZero();
+    initial_dxdwo.block(0, 0, NUM_PLANT_STATES, NUM_PLANT_STATES).setIdentity();
     Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> initial_dzdwo;
     initial_dzdwo.setZero();
+    initial_dzdwo.block(0, NUM_PLANT_STATES, NUM_Z_STATES, NUM_Z_STATES).setIdentity();
     Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> initial_dydwo;
     initial_dydwo.setZero();
-
+    initial_dydwo.block(0, NUM_PLANT_STATES+NUM_Z_STATES, NUM_Y_STATES, NUM_Y_STATES).setIdentity();
     ts.emplace_back(initial_dxdwo, initial_dzdwo, initial_dydwo);
 
-    // Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> I(NUM_PLANT_STATES, NUM_PLANT_STATES);
-    // I.setIdentity();
     Eigen::SparseMatrix<double> I(NUM_PLANT_STATES, NUM_PLANT_STATES);
     I.setIdentity();
 
@@ -57,14 +56,7 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         A = I - (timestep / 2.0) * dfdx_plus;
         B = dxdwo + (timestep / 2.0)*(dfdx_curr*dxdwo + 2*dfdz_curr*dzdwo);
         solver.compute(A);
-        dxdwo_plus = solver.solve(B);
-        // dxdwo_plus = (I-timestep/2*dfdx_plus).partialPivLu().solve(dxdwo + timestep/2*(dfdx_curr*dxdwo + 2*dfdz_curr*dzdwo));
-        // dxdwo_plus = (I-timestep/2*dfdx_plus).toDense()partialPivLu().solve(dxdwo + timestep/2*(dfdx_curr*dxdwo + 2*dfdz_curr*dzdwo));
-        // Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> dxdwo_plus = (I-timestep/2*dfdx_plus).solve(dxdwo + timestep/2*(dfdx_curr * dxdwo + 2*dfdz_curr*dzdwo));
-        // solver.compute(I-timestep/2*dfdx_plus);
-        // Eigen::SparseMatrix<double> dxdwo_plus = solver.solve(dxdwo + timestep/2*(dfdx_curr * dxdwo + 2*dfdz_curr*dzdwo));    
-        // std::chrono::time_point elapsed2 = std::chrono::steady_clock::now();
-        // m_logger << "test2" << std::endl;
+        dxdwo_plus.noalias() = solver.solve(B);
 
         // dzdwo for 1 to n
         Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], timestep);
@@ -78,13 +70,6 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         // m_logger << "test3" << std::endl;
 
         for(int i = 0; i < desThrust; i ++){
-            // Eigen::SparseVector<double> temp = (dhdz_plus.block(i, 0, 1, i) * dzdwo_plus.topRows(i)).sparseView();
-            // for (Eigen::SparseVector<double>::InnerIterator it(temp); it; ++it) {
-            //     dzdwo_plus.coeffRef(i, it.col()) += it.value();
-            // }
-            // dzdwo_plus.row(i) += dhdz_plus.block(i, 0, 1, i) * dzdwo_plus.topRows(i);
-            // dzdwo_plus.row(i) += dhdz_plus.row(i) * dzdwo_plus;
-            // dzdwo_plus.row(i) += (dhdz_plus * dzdwo_plus).row(i);
             Eigen::Matrix<double, 1, NUM_STATES> tmp;
             tmp.noalias() = dhdz_plus.block(i, 0, NUM_STATES, i) * dzdwo_plus.topRows(i);
             dzdwo_plus.row(i) += tmp;
@@ -100,13 +85,6 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         // dzdwo 
         dzdwo_plus += dhdy_plus * dydwo_plus;
         for(int i = epphi; i < NUM_Z_STATES; i ++){
-            // Eigen::SparseVector<double> temp = (dhdz_plus.block(i, 0, 1, i) * dzdwo_plus.topRows(i)).sparseView();
-            // for (Eigen::SparseVector<double>::InnerIterator it(temp); it; ++it) {
-            //     dzdwo_plus.coeffRef(i, it.col()) += it.value();
-            // }
-            // dzdwo_plus.row(i) += dhdz_plus.block(i, 0, 1, i) * dzdwo_plus.topRows(i);
-            // dzdwo_plus.row(i) += dhdz_plus.row(i) * dzdwo_plus;
-            // dzdwo_plus.row(i) += (dhdz_plus * dzdwo_plus).row(i);
             Eigen::Matrix<double, 1, NUM_STATES> tmp;
             tmp.noalias() = dhdz_plus.block(i, 0, NUM_STATES, i) * dzdwo_plus.topRows(i);
             dzdwo_plus.row(i) += tmp;
@@ -114,8 +92,6 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         // std::chrono::time_point elapsed6 = std::chrono::steady_clock::now();
         // m_logger << "test6" << std::endl;
 
-        // dwdwo plus{dxdwo_plus, dzdwo_plus, dydwo_plus};
-        // ts[i] = plus;
         ts.emplace_back(dxdwo_plus, dzdwo_plus, dydwo_plus);
         // std::chrono::time_point elapsed7 = std::chrono::steady_clock::now();
         // m_logger << "test7" << std::endl;
