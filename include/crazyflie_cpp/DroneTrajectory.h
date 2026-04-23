@@ -180,11 +180,13 @@ class DroneTrajectory
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
             std::array<PIDParameters, NUM_PIDS> ctrlParams = defaultPIDParameters(),
             DroneParameters droneParameters = {},
-            double simTimestep = 1e-3, double finalTime = 250, double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = false);
+            double simTimestep = 1e-3, double finalTime = 10, double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);
         
         SimResults Trajectory(SystemState initialState); 
         std::vector<dwdwo> trajSens(SimResults const & simResults);
         std::vector<dwdwo> trajSensTest(SystemState initialState);
+        void dfdx_test(SystemState initialState);
+        void dfdz_test(SystemState initialState);
 };
 
 #endif

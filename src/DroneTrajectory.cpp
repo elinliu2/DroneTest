@@ -74,16 +74,16 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
             
             // TOOD: check not converging and end earlier
             if (isConverging(state2.state, m_ref, time)){
-                m_logger << "converging :D" << std::endl;
+                // m_logger << "converging :D" << std::endl;
                 simResults.converged = true;
                 return simResults;
             } else if (isNotConverging(state2.state, m_ref, time)) {
-                m_logger << "not converging D:" << std::endl;
+                // m_logger << "not converging D:" << std::endl;
                 return simResults;
             }
         }
     }
-    m_logger << "convergence status: " << simResults.converged << std::endl;
+    // m_logger << "convergence status: " << simResults.converged << std::endl;
     return simResults;
 }
 
@@ -128,8 +128,7 @@ Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::H(SystemState prev, Eig
 
 Eigen::MatrixX<double> DroneTrajectory::DH(SystemState state, double timestep)
 {
-    int n = m_droneParams.numPlantStates;
-    Eigen::MatrixX<double> dh = -1*Eigen::MatrixX<double>::Identity(n, n);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dh = -1*Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES>::Identity();
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx_plus = dfdx(state);
     return dh + timestep/2*dfdx_plus;
 }
