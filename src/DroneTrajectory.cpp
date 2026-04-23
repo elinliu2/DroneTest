@@ -18,14 +18,15 @@ DroneTrajectory::DroneTrajectory(
     std::array<double(*)(double), NUM_REF_STATES> const& ref,
     std::array<PIDParameters, NUM_PIDS> ctrlParams,
     DroneParameters droneParameters, 
-    double simTimestep, double finalTime, double sampleRate, double cutoffFreq) : 
+    double simTimestep, double finalTime, double sampleRate, double cutoffFreq, bool fixedNumIterations) : 
     m_logger(logger), 
     m_ctrlParams(ctrlParams),
     m_droneParams(droneParameters), 
     m_dist(dist), 
     m_ref(ref), 
     m_simTimestep(simTimestep),
-    m_finalTime(finalTime) {
+    m_finalTime(finalTime),
+    m_fixedNumIterations(fixedNumIterations) {
 
         double fr = sampleRate/cutoffFreq;
         double ohm = std::tan(M_PI/fr);
@@ -46,60 +47,54 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
     simResults.time.push_back(time);
     while(time <= m_finalTime && simResults.stable){
         SystemState prev = simResults.stateProgression.back();
-        SystemState state1 = simulateTimestep(prev, time, m_simTimestep);
-        simResults.stateProgression.push_back(state1);
+        Timestep state1 = simulateTimestep(prev, time, m_simTimestep);
+        simResults.stateProgression.push_back(state1.state);
         simResults.stable &= state1.stable;
 
         time += m_simTimestep;        
         simResults.time.push_back(time);
 
-        SystemState state2 = simulateTimestep(state1, time, m_simTimestep);
-        SystemState stateDouble = simulateTimestep(prev, time, 2*m_simTimestep);
-        simResults.stateProgression.push_back(state2);
-        simResults.stable &= state2.stable;
+        if (!m_fixedNumIterations)
+        {
+            Timestep state2 = simulateTimestep(state1.state, time, m_simTimestep);
+            Timestep stateDouble = simulateTimestep(prev, time, 2*m_simTimestep);
+            simResults.stateProgression.push_back(state2.state);
+            simResults.stable &= state2.stable;
 
-        time += m_simTimestep;        
-        simResults.time.push_back(time);
+            time += m_simTimestep;        
+            simResults.time.push_back(time);
 
-        if ((stateDouble.plant - state2.plant).norm() < 1e-7 && stateDouble.stable) {
-            m_simTimestep *= 2;
-        } else if ((stateDouble.plant - state2.plant).norm() > 1e-4) {
-            if (m_simTimestep > 1e-3){
-                m_simTimestep /= 2;
+            if ((stateDouble.state.plant - state2.state.plant).norm() < 1e-7 && stateDouble.stable) {
+                m_simTimestep *= 2;
+            } else if ((stateDouble.state.plant - state2.state.plant).norm() > 1e-4) {
+                if (m_simTimestep > 1e-3){
+                    m_simTimestep /= 2;
+                }
             }
-        }
-        
-        // m_logger << "INFO - timestep: " << time << std::endl;
-        // m_logger << "INFO - PLANT STATE: x: "   << state2.plant(x) << " y: " << state2.plant(y) << " z: " << state2.plant(z) << " phi: "
-        //                                         << state2.plant(phi) << " theta: " << state2.plant(theta) << " psi: " << state2.plant(psi) << " xdot: "
-        //                                         << state2.plant(xdot) << " ydot: " << state2.plant(ydot) << " zdot: " << state2.plant(zdot) << " p: "
-        //                                         << state2.plant(p) << " q: " << state2.plant(q) << " r: " << state2.plant(r) 
-        //                                         << std::endl;
-        // m_logger << "INFO - ALGE STATE: ft: "   << state2.alge(ft) << " tx: " << state2.alge(tx) << " ty: " << state2.alge(ty) << " tz: " << state2.alge(tz)
-        //                                         << std::endl;
-        
-        // TOOD: check not converging and end earlier
-        if (isConverging(state2, m_ref, time)){
-            m_logger << "converging :D" << std::endl;
-            simResults.converged = true;
-            return simResults;
-        } else if (isNotConverging(state2, m_ref, time)) {
-            m_logger << "not converging D:" << std::endl;
-            return simResults;
+            
+            // TOOD: check not converging and end earlier
+            if (isConverging(state2.state, m_ref, time)){
+                m_logger << "converging :D" << std::endl;
+                simResults.converged = true;
+                return simResults;
+            } else if (isNotConverging(state2.state, m_ref, time)) {
+                m_logger << "not converging D:" << std::endl;
+                return simResults;
+            }
         }
     }
     m_logger << "convergence status: " << simResults.converged << std::endl;
     return simResults;
 }
 
-SystemState DroneTrajectory::simulateTimestep(SystemState prev, double time, double timestep)
+Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double timestep)
 {
     double tol = 1e-12;
     SystemState guess = prev;
     guess.plant += timestep*f(prev, time-timestep);
     int count = 0;
     int max_iterations = 100;
-
+    bool stable = true;
     for(; count < max_iterations; count++ ){
         Eigen::Vector<double, NUM_PLANT_STATES> h = H(prev, guess.plant, time, timestep);
         if (h.norm() < tol) {
@@ -109,7 +104,7 @@ SystemState DroneTrajectory::simulateTimestep(SystemState prev, double time, dou
         if (dh.determinant() != 0) {
             guess.plant = guess.plant - dh.inverse()*h;
         } else {
-            guess.stable = false;
+            stable = false;
             m_logger.warn(std::string("determinant is zero")); 
         }
     }
@@ -117,17 +112,17 @@ SystemState DroneTrajectory::simulateTimestep(SystemState prev, double time, dou
     Eigen::Vector<double, NUM_ALGE_STATES> algeStates = CascadedPIDController(guess.plant, prev.plant, guess.alge, time, timestep);
 
     guess.alge = algeStates;
-    guess.stable = guess.stable && count < max_iterations;   
+    stable = stable && count < max_iterations;   
     if (count >= max_iterations) {
         m_logger << "WARN: took more than " << max_iterations << " iterations for sim to converge" << std::endl;
     }
-    return guess;
+    return {guess, stable};
 }
 
 Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep)
 {
     Eigen::Vector<double, NUM_PLANT_STATES> fprev = f(prev, time-timestep);
-    Eigen::Vector<double, NUM_PLANT_STATES> fguess = f({guess, prev.alge, prev.stable}, time);
+    Eigen::Vector<double, NUM_PLANT_STATES> fguess = f({guess, prev.alge}, time);
     return prev.plant - guess + timestep/2*(fprev + fguess);
 }
 
