@@ -28,22 +28,65 @@ std::vector<dwdwo> DroneTrajectory::trajSensTest(SystemState initialState)
         SimResults plusSimResults = Trajectory(testPlusState);
         SimResults minusSimResults = Trajectory(testMinusState);
         
-        for(int t = 0; t < 1; t++)
+        for(int t = 0; t < numIterations; t++)
         {
             plus << plusSimResults.stateProgression.at(t).plant, plusSimResults.stateProgression.at(t).alge;
             minus << minusSimResults.stateProgression.at(t).plant, minusSimResults.stateProgression.at(t).alge;
-            // m_logger << "index: " << i << std::endl;
-            // m_logger << plus << std::endl;
-            // m_logger << minus << std::endl;
-            if (i < NUM_PLANT_STATES){
-               ts.at(t).dxdwo.row(i) = 1/(2*delta)*(plus-minus).transpose();
-            } else if ( i < NUM_PLANT_STATES + NUM_Z_STATES) {
-                ts.at(t).dzdwo.row(i-NUM_PLANT_STATES) = 1/(2*delta)*(plus-minus).transpose();
-            } else {
-                ts.at(t).dydwo.row(i-NUM_PLANT_STATES-NUM_Z_STATES) = 1/(2*delta)*(plus-minus).transpose();
-            }
+            Eigen::Vector<double, NUM_STATES> delta_Trajsens = 1/(2*delta)*(plus-minus);
+            ts.at(t).dxdwo.col(i) = delta_Trajsens.segment(0, NUM_PLANT_STATES);
+            ts.at(t).dzdwo.col(i) = delta_Trajsens.segment(NUM_PLANT_STATES, NUM_Z_STATES);
+            ts.at(t).dydwo.col(i) = delta_Trajsens.segment(NUM_PLANT_STATES+NUM_Z_STATES, NUM_Y_STATES);
         }
     }
     return ts;
 }
 
+void DroneTrajectory::dfdx_test(SystemState initialState)
+{
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> exact_dfdx = dfdx(initialState);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> delta_dfdx;
+
+    SystemState plus; 
+    SystemState minus; 
+    double delta = 1e-5;
+    for(int i = 0; i < NUM_PLANT_STATES; i++) 
+    {
+        plus = initialState;
+        plus.plant(i) += delta;
+        minus = initialState;
+        minus.plant(i) -= delta;
+
+        Eigen::Vector<double, NUM_PLANT_STATES> plus_f = f(plus, 0);
+        Eigen::Vector<double, NUM_PLANT_STATES> minus_f = f(minus, 0);
+        delta_dfdx.col(i) =  1/(2*delta)*(plus_f-minus_f);
+    }
+    m_logger << "dfdx max diff: " << std::max((exact_dfdx - delta_dfdx).maxCoeff(), (delta_dfdx - exact_dfdx).maxCoeff()) << std::endl;
+}
+
+void DroneTrajectory::dfdz_test(SystemState initialState)
+{
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_Z_STATES> exact_dfdz = dfdz(initialState);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_Z_STATES> delta_dfdz;
+
+    SystemState plus; 
+    SystemState minus; 
+    double delta = 1e-5;
+    for(int i = 0; i < NUM_Z_STATES; i++) 
+    {
+        plus = initialState;
+        plus.alge(i) += delta;
+        minus = initialState;
+        minus.alge(i) -= delta;
+
+        Eigen::Vector<double, NUM_PLANT_STATES> plus_f = f(plus, 0);
+        Eigen::Vector<double, NUM_PLANT_STATES> minus_f = f(minus, 0);
+        delta_dfdz.col(i) =  1/(2*delta)*(plus_f-minus_f);
+    }
+    // m_logger << "exact dfdz" << std::endl;
+    // m_logger << exact_dfdz << std::endl;
+    // m_logger << "delta dfdz" << std::endl;
+    // m_logger << delta_dfdz << std::endl;
+
+    m_logger << "dfdx max diff: " << std::max((exact_dfdz - delta_dfdz).maxCoeff(), (delta_dfdz - exact_dfdz).maxCoeff()) << std::endl;
+
+}

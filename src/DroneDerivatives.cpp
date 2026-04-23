@@ -53,20 +53,20 @@ Eigen::SparseMatrix<double> DroneTrajectory::dfdz(SystemState state)
     std::vector<T> dfdz;
     dfdz.reserve(6);
 
-    dfdz.push_back(T(7, 1, 1.0/m_droneParams.mass * 
+    dfdz.push_back(T(xdot, ft, 1.0/m_droneParams.mass * 
                 (std::sin(state.plant(phi)) * std::sin(state.plant(psi)) 
                + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)))));
 
-    dfdz.push_back(T(8, 1, 1.0/m_droneParams.mass * 
+    dfdz.push_back(T(ydot, ft, 1.0/m_droneParams.mass * 
                 (std::cos(state.plant(phi))*std::sin(state.plant(psi))*std::sin(state.plant(theta)) 
                - std::cos(state.plant(psi))*std::sin(state.plant(phi)))));
 
-    dfdz.push_back(T(9, 1, 1.0/m_droneParams.mass * 
+    dfdz.push_back(T(zdot, ft, 1.0/m_droneParams.mass * 
                 (std::cos(state.plant(phi)) * std::cos(state.plant(theta)))));
 
-    dfdz.push_back(T(10, 2, m_droneParams.Ix));
-    dfdz.push_back(T(10, 3, m_droneParams.Iy));
-    dfdz.push_back(T(10, 4, m_droneParams.Iz));
+    dfdz.push_back(T(p, tx, 1.0/m_droneParams.Ix));
+    dfdz.push_back(T(q, ty, 1.0/m_droneParams.Iy));
+    dfdz.push_back(T(r, tz, 1.0/m_droneParams.Iz));
 
     Eigen::SparseMatrix<double> dfdz_mat(NUM_PLANT_STATES, NUM_Z_STATES);
     dfdz_mat.setFromTriplets(dfdz.begin(), dfdz.end());

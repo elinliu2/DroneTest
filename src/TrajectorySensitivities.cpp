@@ -30,9 +30,9 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
 
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx_plus;
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx_curr;
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> A;
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> B;
-    Eigen::PartialPivLU<Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES>> solver;
+    // Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> A;
+    // Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> B;
+    // Eigen::PartialPivLU<Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES>> solver;
     
     // std::chrono::time_point elapsed0 = std::chrono::steady_clock::now();
     // m_logger << "Elapsed Time 0: " << std::chrono::duration_cast<std::chrono::microseconds>(elapsed0 - start).count() << " us" << std::endl;
@@ -50,13 +50,20 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         // m_logger << "test1" << std::endl;
 
         // dxdwo_plus
-        dfdx_plus = dfdx(simResults.stateProgression[i]);
+        dfdx_plus = dfdx({simResults.stateProgression[i].plant, simResults.stateProgression[i-1].alge});
         dfdx_curr = dfdx(simResults.stateProgression[i-1]);
+        Eigen::SparseMatrix<double> dfdz_plus = dfdz({simResults.stateProgression[i].plant, simResults.stateProgression[i-1].alge}); 
         Eigen::SparseMatrix<double> dfdz_curr = dfdz(simResults.stateProgression[i-1]);   
-        A = I - (timestep / 2.0) * dfdx_plus;
-        B = dxdwo + (timestep / 2.0)*(dfdx_curr*dxdwo + 2*dfdz_curr*dzdwo);
-        solver.compute(A);
-        dxdwo_plus.noalias() = solver.solve(B);
+        // Eigen::SparseMatrix<double> dfdz_plus; 
+        // Eigen::SparseMatrix<double> dfdz_curr;   
+        // dfdz_plus.setZero();
+        // dfdz_curr.setZero();
+        
+        // A = I - (timestep / 2.0) * dfdx_plus;
+        // B = dxdwo + (timestep / 2.0)*(dfdx_curr*dxdwo + 2*dfdz_curr*dzdwo);
+        // solver.compute(A);
+        // dxdwo_plus.noalias() = solver.solve(B);
+        dxdwo_plus = (I - (timestep / 2.0) * dfdx_plus).toDense().inverse() * (dxdwo + (timestep / 2.0)*(dfdx_curr*dxdwo + (dfdz_plus+dfdz_curr)*dzdwo));
 
         // dzdwo for 1 to n
         Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], timestep);
