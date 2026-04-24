@@ -173,6 +173,12 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> dhdzCurr(double timestep);
     Eigen::SparseMatrix<double> dhdy();
 
+    Eigen::Vector<double, NUM_ALGE_STATES> ImTooTiredToCareThatItsUglyAndDumb_h( 
+    Eigen::Vector<double, NUM_PLANT_STATES> plantState,
+    Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
+    Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates,
+    double time, double timestep, int index);
+
     public:
         DroneTrajectory( 
             Logger & log, 
@@ -187,6 +193,8 @@ class DroneTrajectory
         std::vector<dwdwo> trajSensTest(SystemState initialState);
         void dfdx_test(SystemState initialState);
         void dfdz_test(SystemState initialState);
+        void dhdx_test(SystemState currState, SystemState prevState, double time, double timestep);
+        void dhdz_test(SystemState currState, SystemState prevState, double time, double timestep);
 };
 
 #endif
