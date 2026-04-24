@@ -76,18 +76,18 @@ Eigen::SparseMatrix<double> DroneTrajectory::dfdz(SystemState state)
 Eigen::SparseMatrix<double> DroneTrajectory::dgdz(SystemState state)
 {
     std::vector<T> dgdz;
-    if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
-        dgdz.reserve(3);
-        dgdz.push_back(T(1, epydot, m_ctrlParams.at(velY).kp));
-        dgdz.push_back(T(1, eiydot, m_ctrlParams.at(velY).ki));
-        dgdz.push_back(T(1, edydot, m_ctrlParams.at(velY).kd));
-    }
-    if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
-        dgdz.reserve(3);
-        dgdz.push_back(T(1, epxdot, m_ctrlParams.at(velX).kp));
-        dgdz.push_back(T(1, eixdot, m_ctrlParams.at(velX).ki));
-        dgdz.push_back(T(1, edxdot, m_ctrlParams.at(velX).kd));
-    }
+    // if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
+    //     dgdz.reserve(3);
+    //     dgdz.push_back(T(1, epydot, m_ctrlParams.at(velY).kp));
+         dgdz.push_back(T(1, eiydot, m_ctrlParams.at(velY).ki*state.alge(desRoll)));
+    //     dgdz.push_back(T(1, edydot, m_ctrlParams.at(velY).kd));
+    // }
+    // if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
+    //     dgdz.reserve(3);
+    //     dgdz.push_back(T(1, epxdot, m_ctrlParams.at(velX).kp));
+    //     dgdz.push_back(T(1, eixdot, m_ctrlParams.at(velX).ki));
+    //     dgdz.push_back(T(1, edxdot, m_ctrlParams.at(velX).kd));
+    // }
     Eigen::SparseMatrix<double> dgdz_mat(NUM_Y_STATES, NUM_Z_STATES);
     dgdz_mat.setFromTriplets(dgdz.begin(), dgdz.end());
     return dgdz_mat;
@@ -99,48 +99,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdxPlus(SystemState state, double 
     dhdx.reserve(30);
 
     // TODO: what if ref is not constant?
-    dhdx.push_back(T(state_body_x, x, std::cos(state.plant(psi))));
-    dhdx.push_back(T(state_body_x, y, std::sin(state.plant(psi))));
-    dhdx.push_back(T(state_body_x, phi, -state.plant(x)*std::sin(state.plant(psi)) + state.plant(y)*std::cos(state.plant(psi))));
-
-    dhdx.push_back(T(state_body_y, x, -std::sin(state.plant(psi))));
-    dhdx.push_back(T(state_body_y, y, std::cos(state.plant(psi))));
-    dhdx.push_back(T(state_body_y, phi, -state.plant(x)*std::cos(state.plant(psi)) - state.plant(y)*std::sin(state.plant(psi))));
-
-    dhdx.push_back(T(epz, z, -1));
-    dhdx.push_back(T(edz, z, 1/timestep));
-
-    dhdx.push_back(T(state_body_vx, xdot, std::cos(state.plant(psi))));
-    dhdx.push_back(T(state_body_vx, ydot, std::sin(state.plant(psi))));
-    dhdx.push_back(T(state_body_vx, phi, -state.plant(xdot)*std::sin(state.plant(psi)) + state.plant(ydot)*std::cos(state.plant(psi))));
-
-    dhdx.push_back(T(state_body_vy, xdot, -std::sin(state.plant(psi))));
-    dhdx.push_back(T(state_body_vy, ydot, std::cos(state.plant(psi))));
-    dhdx.push_back(T(state_body_vy, phi, -state.plant(xdot)*std::cos(state.plant(psi)) - state.plant(ydot)*std::sin(state.plant(psi))));
-
-    dhdx.push_back(T(epzdot, zdot, -1));
-    dhdx.push_back(T(edzdot, zdot, 1/timestep));
-
-    dhdx.push_back(T(epphi, phi, -180/M_PI));
-    dhdx.push_back(T(edphi, phi, 180/(timestep*M_PI)));
-
-    dhdx.push_back(T(eptheta, theta, -180/M_PI));
-    dhdx.push_back(T(edtheta, theta, 180/(timestep*M_PI)));
-
-    dhdx.push_back(T(eppsi, psi, -180/M_PI));
-    dhdx.push_back(T(edpsi, psi, 180/(timestep*M_PI)));
-
-    dhdx.push_back(T(delay_1_rollRate, p, 180/(timestep*M_PI)));
-    dhdx.push_back(T(delay_1_pitchRate, q, 180/(timestep*M_PI)));
-
-    dhdx.push_back(T(epp, p, -180/M_PI));
-    dhdx.push_back(T(edp, p, lpf_b0*180/(timestep*M_PI)));
-
-    dhdx.push_back(T(epq, q, -180/M_PI));
-    dhdx.push_back(T(edq, q, lpf_b0*180/(timestep*M_PI)));
-
-    dhdx.push_back(T(epr, r, -180/M_PI));
-    dhdx.push_back(T(edr, r, 180/(timestep*M_PI)));
+    dhdx.push_back(T(edz, z, 1/timestep*state.plant(z)));
 
     Eigen::SparseMatrix<double> dhdx_mat(NUM_Z_STATES, NUM_PLANT_STATES);
     dhdx_mat.setFromTriplets(dhdx.begin(), dhdx.end());
@@ -154,15 +113,6 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdxCurr(double timestep)
     dhdx.reserve(10);
     
     dhdx.push_back(T(edz, z, -1/timestep));
-    dhdx.push_back(T(edzdot, zdot, -1/timestep));
-    dhdx.push_back(T(edphi, phi, -1/(timestep*M_PI)));
-    dhdx.push_back(T(edtheta, theta, -1/(timestep*M_PI)));
-    dhdx.push_back(T(edpsi, psi, -1/(timestep*M_PI)));
-    dhdx.push_back(T(delay_1_rollRate, p, -180/(timestep*M_PI)));
-    dhdx.push_back(T(delay_1_pitchRate, q, -180/(timestep*M_PI)));
-    dhdx.push_back(T(edp, p, -lpf_b0*1/(timestep*M_PI)));
-    dhdx.push_back(T(epq, q, -lpf_b0*1/(timestep*M_PI)));
-    dhdx.push_back(T(edr, r, -1/(timestep*M_PI)));
 
     Eigen::SparseMatrix<double> dhdx_mat(NUM_Z_STATES, NUM_PLANT_STATES);
     dhdx_mat.setFromTriplets(dhdx.begin(), dhdx.end());
@@ -173,114 +123,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double 
 {
     std::vector<T> dhdz;
     dhdz.reserve(89);
-    
-    dhdz.push_back(T(epx, setp_body_x, 1));
-    dhdz.push_back(T(epx, state_body_x, -1));
-    dhdz.push_back(T(eix, epx, timestep));
-    dhdz.push_back(T(desVelX, epx, m_ctrlParams.at(posX).kp));
-    dhdz.push_back(T(desVelX, eix, m_ctrlParams.at(posX).ki));
-    dhdz.push_back(T(desVelX, edx, m_ctrlParams.at(posX).kd));
-
-    dhdz.push_back(T(epy, setp_body_y, 1));
-    dhdz.push_back(T(epy, state_body_y, -1));
-    dhdz.push_back(T(eiy, epy, timestep));
-    dhdz.push_back(T(desVelY, epy, m_ctrlParams.at(posY).kp));
-    dhdz.push_back(T(desVelY, eiy, m_ctrlParams.at(posY).ki));
-    dhdz.push_back(T(desVelY, edy, m_ctrlParams.at(posY).kd));
-
-    dhdz.push_back(T(eiz, epz, timestep));
-    dhdz.push_back(T(desVelZ, epz, m_ctrlParams.at(posZ).kp));
-    dhdz.push_back(T(desVelZ, eiz, m_ctrlParams.at(posZ).ki));
-    dhdz.push_back(T(desVelZ, edz, m_ctrlParams.at(posZ).kd));
-
-    dhdz.push_back(T(epxdot, desVelX, 1));
-    dhdz.push_back(T(epxdot, state_body_vx, -1));
-    dhdz.push_back(T(eixdot, epxdot, timestep));
-    dhdz.push_back(T(edxdot, state_body_vx, 1/timestep));
-
-    dhdz.push_back(T(epydot, desVelY, 1));
-    dhdz.push_back(T(epydot, state_body_vy, -1));
-    dhdz.push_back(T(eiydot, epydot, timestep));
-    dhdz.push_back(T(edydot, state_body_vy, 1/timestep));
-
-    dhdz.push_back(T(epzdot, desVelZ, 1));
-    dhdz.push_back(T(eizdot, epzdot, timestep));
-    dhdz.push_back(T(desThrust, epzdot, m_ctrlParams.at(velZ).kp*m_thrustScale));
-    dhdz.push_back(T(desThrust, eizdot, m_ctrlParams.at(velZ).ki*m_thrustScale));
-    dhdz.push_back(T(desThrust, edzdot, m_ctrlParams.at(velZ).kd*m_thrustScale));
-
-    dhdz.push_back(T(eiphi, epphi, timestep));
-    dhdz.push_back(T(desRollRate, epphi, m_ctrlParams.at(roll).kp));
-    dhdz.push_back(T(desRollRate, eiphi, m_ctrlParams.at(roll).ki));
-    dhdz.push_back(T(desRollRate, edphi, m_ctrlParams.at(roll).kd));
-
-    dhdz.push_back(T(eitheta, eptheta, timestep));
-    dhdz.push_back(T(desPitchRate, eptheta, m_ctrlParams.at(pitch).kp));
-    dhdz.push_back(T(desPitchRate, eitheta, m_ctrlParams.at(pitch).ki));
-    dhdz.push_back(T(desPitchRate, edtheta, m_ctrlParams.at(pitch).kd));
-
-    dhdz.push_back(T(eipsi, eppsi, timestep));
-    dhdz.push_back(T(desYawRate, eppsi, m_ctrlParams.at(yaw).kp));
-    dhdz.push_back(T(desYawRate, eipsi, m_ctrlParams.at(yaw).ki));
-    dhdz.push_back(T(desYawRate, edpsi, m_ctrlParams.at(yaw).kd));
-
-    dhdz.push_back(T(epp, desRollRate, 1));
-    dhdz.push_back(T(eip, epp, timestep));
-    dhdz.push_back(T(desRollOutput, epp, m_ctrlParams.at(rollRate).kp));
-    dhdz.push_back(T(desRollOutput, eip, m_ctrlParams.at(rollRate).ki));
-    dhdz.push_back(T(desRollOutput, edp, m_ctrlParams.at(rollRate).kd));
-
-    dhdz.push_back(T(epq, desPitchRate, 1));
-    dhdz.push_back(T(eiq, epq, timestep));
-    dhdz.push_back(T(desPitchOutput, epq, m_ctrlParams.at(pitchRate).kp));
-    dhdz.push_back(T(desPitchOutput, eiq, m_ctrlParams.at(pitchRate).ki));
-    dhdz.push_back(T(desPitchOutput, edq, m_ctrlParams.at(pitchRate).kd));
-
-    dhdz.push_back(T(epr, desYawRate, 1));
-    dhdz.push_back(T(eir, epr, timestep));
-    dhdz.push_back(T(desYawOutput, epr, m_ctrlParams.at(yawRate).kp));
-    dhdz.push_back(T(desYawOutput, eir, m_ctrlParams.at(yawRate).ki));
-    dhdz.push_back(T(desYawOutput, edr, m_ctrlParams.at(yawRate).kd));
-
-    dhdz.push_back(T(w1, desThrust, m_alpha));
-    dhdz.push_back(T(w1, desRollOutput, -m_alpha/2));
-    dhdz.push_back(T(w1, desPitchOutput, m_alpha/2));
-    dhdz.push_back(T(w1, desYawOutput, m_alpha));
-
-    dhdz.push_back(T(w2, desThrust, m_alpha));
-    dhdz.push_back(T(w2, desRollOutput, -m_alpha/2));
-    dhdz.push_back(T(w2, desPitchOutput, -m_alpha/2));
-    dhdz.push_back(T(w2, desYawOutput, -m_alpha));
-
-    dhdz.push_back(T(w3, desThrust, m_alpha));
-    dhdz.push_back(T(w3, desRollOutput, m_alpha/2));
-    dhdz.push_back(T(w3, desPitchOutput, -m_alpha/2));
-    dhdz.push_back(T(w3, desYawOutput, m_alpha));
-
-    dhdz.push_back(T(w4, desThrust, m_alpha));
-    dhdz.push_back(T(w4, desRollOutput, m_alpha/2));
-    dhdz.push_back(T(w4, desPitchOutput, m_alpha/2));
-    dhdz.push_back(T(w4, desYawOutput, -m_alpha));
-    
-    dhdz.push_back(T(ft, w1, m_droneParams.kf * 2 *state.alge(w1)));
-    dhdz.push_back(T(ft, w2, m_droneParams.kf * 2 *state.alge(w2)));
-    dhdz.push_back(T(ft, w3, m_droneParams.kf * 2 *state.alge(w3)));
-    dhdz.push_back(T(ft, w4, m_droneParams.kf * 2 *state.alge(w4)));
-
-    dhdz.push_back(T(tx, w1, - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w1)));
-    dhdz.push_back(T(tx, w2, - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w2)));
-    dhdz.push_back(T(tx, w3, m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w3)));
-    dhdz.push_back(T(tx, w4, m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w4)));
-
-    dhdz.push_back(T(ty, w1, m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w1)));
-    dhdz.push_back(T(ty, w2, - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w2)));
-    dhdz.push_back(T(ty, w3, - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w3)));
-    dhdz.push_back(T(ty, w4, m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w4)));
-
-    dhdz.push_back(T(tz, w1, m_droneParams.km * state.alge(w1)));
-    dhdz.push_back(T(tz, w2, - m_droneParams.km * state.alge(w2)));
-    dhdz.push_back(T(tz, w3, m_droneParams.km * state.alge(w3)));
-    dhdz.push_back(T(tz, w4, - m_droneParams.km * state.alge(w4)));
+    dhdz.push_back(T(eix, eix, timestep*state.plant(eix)));
 
     Eigen::SparseMatrix<double> dhdz_mat(NUM_Z_STATES, NUM_Z_STATES);
     dhdz_mat.setFromTriplets(dhdz.begin(), dhdz.end());
@@ -291,35 +134,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr(double timestep)
 {
     std::vector<T> dhdz;
     dhdz.reserve(23);
-    dhdz.push_back(T(eix, eix, 1));
-    dhdz.push_back(T(eiy, eiy, 1));
-    dhdz.push_back(T(eiz, eiz, 1));
-    dhdz.push_back(T(eixdot, eixdot, 1));
-    dhdz.push_back(T(edxdot, state_body_vx, -1/timestep));
-
-    dhdz.push_back(T(eiydot, eiydot, 1));
-    dhdz.push_back(T(edydot, state_body_vy, -1/timestep));
-
-    dhdz.push_back(T(eizdot, eizdot, 1));
-    dhdz.push_back(T(eiphi, eiphi, 1));
-    dhdz.push_back(T(eitheta, eitheta, 1));
-    dhdz.push_back(T(eipsi, eipsi, 1));
-    
-    dhdz.push_back(T(delay_1_rollRate, delay_1_rollRate, -lpf_a1));
-    dhdz.push_back(T(delay_1_rollRate, delay_2_rollRate, -lpf_a2));
-    dhdz.push_back(T(delay_2_rollRate, delay_1_rollRate, -1));
-    
-    dhdz.push_back(T(delay_1_pitchRate, delay_1_pitchRate, -lpf_a1));
-    dhdz.push_back(T(delay_1_pitchRate, delay_2_pitchRate, -lpf_a2));
-    dhdz.push_back(T(delay_2_pitchRate, delay_1_pitchRate, -1));
-
-    dhdz.push_back(T(eip, eip, 1));
-    dhdz.push_back(T(edp, delay_1_rollRate, -lpf_b0*lpf_a1+lpf_b1));
-    dhdz.push_back(T(edp, delay_2_rollRate, -lpf_b0*lpf_a2+lpf_b2));
-    dhdz.push_back(T(eiq, eiq, 1));
-    dhdz.push_back(T(edq, delay_1_pitchRate, -lpf_b0*lpf_a1+lpf_b1));
-    dhdz.push_back(T(edq, delay_2_pitchRate, -lpf_b0*lpf_a2+lpf_b2));
-    dhdz.push_back(T(eir, eir, 1));
+    dhdz.push_back(T(eix, eix, timestep));
 
     Eigen::SparseMatrix<double> dhdz_mat(NUM_Z_STATES, NUM_Z_STATES);
     dhdz_mat.setFromTriplets(dhdz.begin(), dhdz.end());
@@ -329,8 +144,6 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr(double timestep)
 Eigen::SparseMatrix<double> DroneTrajectory::dhdy()
 {
     Eigen::SparseMatrix<double> dhdy(NUM_Z_STATES, NUM_Y_STATES);
-    dhdy.insert(epphi, 0) = 1;
-    dhdy.insert(eptheta, 1) = 1;
     return dhdy; 
 }
 

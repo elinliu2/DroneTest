@@ -91,7 +91,7 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
 
         // dzdwo 
         dzdwo_plus += dhdy_plus * dydwo_plus;
-        for(int i = epphi; i < NUM_Z_STATES; i ++){
+        for(int i = eiphi; i < NUM_Z_STATES; i ++){
             Eigen::Matrix<double, 1, NUM_STATES> tmp;
             tmp.noalias() = dhdz_plus.block(i, 0, NUM_STATES, i) * dzdwo_plus.topRows(i);
             dzdwo_plus.row(i) += tmp;

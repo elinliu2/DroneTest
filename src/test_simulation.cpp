@@ -121,15 +121,15 @@ int main()
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
     log << "INFO - time size: " << simResults.time.size() << std::endl;
     
-    // Logger splot("splot.txt");
-    // splotTrajectory(simResults, splot);
+    Logger splot("splot.txt");
+    splotTrajectory(simResults, splot);
 
-    std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
-    log << "INFO - trajSens size: " << ts.size() << std::endl;
+    // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
+    // log << "INFO - trajSens size: " << ts.size() << std::endl;
 
-    std::vector<dwdwo> tsTest = droneTrajectory.trajSensTest(initializeState());
-    std::pair<double, int> diff = diffTrajSens({ts.at(1)}, {tsTest.at(1)});
-    log << "max diff: " << diff.first << " index: " << diff.second << std::endl;
+    // std::vector<dwdwo> tsTest = droneTrajectory.trajSensTest(initializeState());
+    // std::pair<double, int> diff = diffTrajSens({ts.at(1)}, {tsTest.at(1)});
+    // log << "max diff: " << diff.first << " index: " << diff.second << std::endl;
 
     // diffDwdwo(log, ts.at(1), tsTest.at(1));
     // log << "INFO - ts" << std::endl;

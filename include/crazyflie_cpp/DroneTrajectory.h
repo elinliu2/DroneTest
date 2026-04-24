@@ -101,12 +101,17 @@ std::array<PIDParameters, NUM_PIDS> inline defaultPIDParameters(){
 
 enum plantIndex {x, y, z, phi, theta, psi, xdot, ydot, zdot, p, q, r};
 enum ctrlIndex  {posX, posY, posZ, velX, velY, velZ, roll, pitch, yaw, rollRate, pitchRate, yawRate};
-enum algeIndex  {ft, tx, ty, tz, setp_body_x, setp_body_y, state_body_x, state_body_y, w1, w2, w3, w4, 
-                epx, eix, edx, desVelX, epy, eiy, edy, desVelY, epz, eiz, edz, desVelZ, 
-                state_body_vx, epxdot, eixdot, edxdot, state_body_vy, epydot, eiydot, edydot, epzdot, eizdot, edzdot, desThrust, 
-                epphi, eiphi, edphi, desRollRate, eptheta, eitheta, edtheta, desPitchRate, eppsi, eipsi, edpsi, desYawRate, 
-                epp, eip, edp, desRollOutput, epq, eiq, edq, desPitchOutput, epr, eir, edr, desYawOutput, 
-                delay_1_rollRate, delay_2_rollRate, delay_1_pitchRate, delay_2_pitchRate, desRoll, desPitch};
+// enum algeIndex  {ft, tx, ty, tz, setp_body_x, setp_body_y, state_body_x, state_body_y, w1, w2, w3, w4, 
+//                 epx, eix, edx, desVelX, epy, eiy, edy, desVelY, epz, eiz, edz, desVelZ, 
+//                 state_body_vx, epxdot, eixdot, edxdot, state_body_vy, epydot, eiydot, edydot, epzdot, eizdot, edzdot, desThrust, 
+//                 epphi, eiphi, edphi, desRollRate, eptheta, eitheta, edtheta, desPitchRate, eppsi, eipsi, edpsi, desYawRate, 
+//                 epp, eip, edp, desRollOutput, epq, eiq, edq, desPitchOutput, epr, eir, edr, desYawOutput, 
+//                 delay_1_rollRate, delay_2_rollRate, delay_1_pitchRate, delay_2_pitchRate, desRoll, desPitch};
+enum algeIndex  {eix, edx, desVelX, eiy, edy, desVelY, eiz, edz, desVelZ, 
+                eixdot, edxdot, eiydot, edydot, eizdot, edzdot, desThrust, 
+                eiphi, edphi, desRollRate, eitheta, edtheta, desPitchRate, eipsi, edpsi, desYawRate, 
+                eip, edp, desRollOutput, eiq, edq, desPitchOutput, eir, edr, desYawOutput, 
+                delay_1_rollRate, delay_2_rollRate, delay_1_pitchRate, delay_2_pitchRate, ft, tx, ty, tz, w1, w2, w3, w4, desRoll, desPitch};
 enum pidIndex   {kp_error, ki_error, kd_error};
 enum distIndex  {Fwx, Fwy, Fwz, Twx, Twy, Twz};
 enum refIndex   {refx, refy, refz, refyaw};
