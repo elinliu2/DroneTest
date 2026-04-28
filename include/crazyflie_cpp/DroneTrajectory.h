@@ -173,7 +173,7 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> dfdz(SystemState state);
     Eigen::SparseMatrix<double> dgdz(SystemState state, double timestep);
     Eigen::SparseMatrix<double> dhdxPlus(SystemState state, double time, double timestep);
-    Eigen::SparseMatrix<double> dhdxCurr(double timestep);
+    Eigen::SparseMatrix<double> dhdxCurr(SystemState curr, SystemState prev, double timestep);
     Eigen::SparseMatrix<double> dhdzPlus(SystemState state, double timestep);
     Eigen::SparseMatrix<double> dhdzCurr(SystemState state, double timestep);
     Eigen::SparseMatrix<double> dhdy();
