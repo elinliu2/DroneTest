@@ -121,10 +121,10 @@ int main()
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
     log << "INFO - time size: " << simResults.time.size() << std::endl;
     
-    Logger splot("splot.txt");
-    splotTrajectory(simResults, splot);
+    // Logger splot("splot.txt");
+    // splotTrajectory(simResults, splot);
 
-    // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
+    std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
     // log << "INFO - trajSens size: " << ts.size() << std::endl;
 
     // std::vector<dwdwo> tsTest = droneTrajectory.trajSensTest(initializeState());

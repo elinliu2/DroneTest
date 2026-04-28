@@ -73,21 +73,22 @@ Eigen::SparseMatrix<double> DroneTrajectory::dfdz(SystemState state)
     return dfdz_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dgdz(SystemState state)
+Eigen::SparseMatrix<double> DroneTrajectory::dgdz(SystemState state, double timestep)
 {
     std::vector<T> dgdz;
-    // if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
-    //     dgdz.reserve(3);
-    //     dgdz.push_back(T(1, epydot, m_ctrlParams.at(velY).kp));
-         dgdz.push_back(T(1, eiydot, m_ctrlParams.at(velY).ki*state.alge(desRoll)));
-    //     dgdz.push_back(T(1, edydot, m_ctrlParams.at(velY).kd));
-    // }
-    // if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
-    //     dgdz.reserve(3);
-    //     dgdz.push_back(T(1, epxdot, m_ctrlParams.at(velX).kp));
-    //     dgdz.push_back(T(1, eixdot, m_ctrlParams.at(velX).ki));
-    //     dgdz.push_back(T(1, edxdot, m_ctrlParams.at(velX).kd));
-    // }
+    dgdz.reserve(8);
+    if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
+        dgdz.push_back(T(0, eiydot, m_ctrlParams.at(velY).ki));
+        dgdz.push_back(T(0, desVelY, m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep));
+        dgdz.push_back(T(0, eiy, m_ctrlParams.at(posY).ki*(m_ctrlParams.at(velY).kp + timestep*m_ctrlParams.at(velY).ki)));
+        dgdz.push_back(T(0, edy, m_ctrlParams.at(posY).kd*(m_ctrlParams.at(velY).kp + timestep*m_ctrlParams.at(velY).ki)));
+    }
+    if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
+        dgdz.push_back(T(1, eixdot, m_ctrlParams.at(velX).ki));
+        dgdz.push_back(T(1, desVelX, m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep));
+        dgdz.push_back(T(1, eix, m_ctrlParams.at(posX).ki*(m_ctrlParams.at(velX).kp + timestep*m_ctrlParams.at(velX).ki)));
+        dgdz.push_back(T(1, edx, m_ctrlParams.at(posX).kd*(m_ctrlParams.at(velX).kp + timestep*m_ctrlParams.at(velX).ki)));
+    }
     Eigen::SparseMatrix<double> dgdz_mat(NUM_Y_STATES, NUM_Z_STATES);
     dgdz_mat.setFromTriplets(dgdz.begin(), dgdz.end());
     return dgdz_mat;
@@ -122,10 +123,359 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdxCurr(double timestep)
 Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double timestep)
 {
     std::vector<T> dhdz;
-    dhdz.reserve(89);
-    dhdz.push_back(T(eix, eix, timestep*state.plant(eix)));
+    
+    // derivatives wrt eix
+    dhdz.push_back(T(desVelX,  eix, m_ctrlParams.at(posX).ki));
+    dhdz.push_back(T(eixdot, eix, m_ctrlParams.at(posX).ki*timestep));
+    // derivatives wrt edx
+    dhdz.push_back(T(desVelX, edx, m_ctrlParams.at(posX).kd));
+    dhdz.push_back(T(eixdot, edx, m_ctrlParams.at(posX).kd*timestep));
+    // derivatives wrt desVelX
+    dhdz.push_back(T(eixdot, desVelX, timestep));
+    // derivatives wrt eitheta
+    dhdz.push_back(T(desPitchRate, eitheta, m_ctrlParams.at(pitch).ki));
+    dhdz.push_back(T(eiq, eitheta, m_ctrlParams.at(pitch).ki*timestep));
+    dhdz.push_back(T(desPitchOutput, eitheta, m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp + m_ctrlParams.at(pitchRate).ki*m_ctrlParams.at(pitch).ki*timestep));
+    dhdz.push_back(T(w1, eitheta, m_alpha*((m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitchRate).ki*m_ctrlParams.at(pitch).ki*timestep)/2)));
+    dhdz.push_back(T(w2, eitheta, -m_alpha*((m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitchRate).ki*m_ctrlParams.at(pitch).ki*timestep)/2)));
+    dhdz.push_back(T(w3, eitheta, -m_alpha*((m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitchRate).ki*m_ctrlParams.at(pitch).ki*timestep)/2)));
+    dhdz.push_back(T(w4, eitheta, m_alpha*((m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitchRate).ki*m_ctrlParams.at(pitch).ki*timestep)/2)));
+    // derivatives wrt edtheta
+    dhdz.push_back(T(desPitchRate, edtheta, m_ctrlParams.at(pitch).kd));
+    dhdz.push_back(T(eiq, edtheta, m_ctrlParams.at(pitch).kd*timestep));
+    dhdz.push_back(T(desPitchOutput, edtheta, m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).kp + m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).ki*timestep));
+    dhdz.push_back(T(w1, edtheta, m_alpha*((m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w2, edtheta, -m_alpha*((m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w3, edtheta, -m_alpha*((m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w4, edtheta, m_alpha*((m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitch).kd*m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    // derivatives wrt desPitchRate
+    dhdz.push_back(T(eiq, desPitchRate, timestep));
+    dhdz.push_back(T(desPitchOutput, desPitchRate, m_ctrlParams.at(pitchRate).kp + m_ctrlParams.at(pitchRate).ki*timestep));
+    dhdz.push_back(T(w1, desPitchRate, m_alpha*(m_ctrlParams.at(pitchRate).kp/2 + (m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w2, desPitchRate, -m_alpha*(m_ctrlParams.at(pitchRate).kp/2 + (m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w3, desPitchRate, -m_alpha*(m_ctrlParams.at(pitchRate).kp/2 + (m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w4, desPitchRate, m_alpha*(m_ctrlParams.at(pitchRate).kp/2 + (m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    // derivatives wrt delay_1_pitchRate
+    dhdz.push_back(T(edq, delay_1_pitchRate, lpf_b0));
+    dhdz.push_back(T(desPitchOutput, delay_1_pitchRate, m_ctrlParams.at(pitchRate).kd*lpf_b0));
+    dhdz.push_back(T(w1, delay_1_pitchRate, (m_ctrlParams.at(pitchRate).kd*lpf_b0*m_alpha)/2));
+    dhdz.push_back(T(w2, delay_1_pitchRate, -(m_ctrlParams.at(pitchRate).kd*lpf_b0*m_alpha)/2));
+    dhdz.push_back(T(w3, delay_1_pitchRate, -(m_ctrlParams.at(pitchRate).kd*lpf_b0*m_alpha)/2));
+    dhdz.push_back(T(w4, delay_1_pitchRate, (m_ctrlParams.at(pitchRate).kd*lpf_b0*m_alpha)/2));
+    // derivatives wrt delay_2_pitchRate
+    // derivatives wrt eiq
+    dhdz.push_back(T(desPitchOutput, eiq, m_ctrlParams.at(pitchRate).ki));
+    dhdz.push_back(T(w1, eiq, (m_ctrlParams.at(pitchRate).ki*m_alpha)/2));
+    dhdz.push_back(T(w2, eiq, -(m_ctrlParams.at(pitchRate).ki*m_alpha)/2));
+    dhdz.push_back(T(w3, eiq, -(m_ctrlParams.at(pitchRate).ki*m_alpha)/2));
+    dhdz.push_back(T(w4, eiq, (m_ctrlParams.at(pitchRate).ki*m_alpha)/2));
+    // derivatives wrt edq
+    dhdz.push_back(T(desPitchOutput, edq, m_ctrlParams.at(pitchRate).kd));
+    dhdz.push_back(T(w1, edq, (m_ctrlParams.at(pitchRate).kd*m_alpha)/2));
+    dhdz.push_back(T(w2, edq, -(m_ctrlParams.at(pitchRate).kd*m_alpha)/2));
+    dhdz.push_back(T(w3, edq, -(m_ctrlParams.at(pitchRate).kd*m_alpha)/2));
+    dhdz.push_back(T(w4, edq, (m_ctrlParams.at(pitchRate).kd*m_alpha)/2));
+    // derivatives wrt desPitchOutput
+    dhdz.push_back(T(w1, desPitchOutput, m_alpha/2));
+    dhdz.push_back(T(w2, desPitchOutput, -m_alpha/2));
+    dhdz.push_back(T(w3, desPitchOutput, -m_alpha/2));
+    dhdz.push_back(T(w4, desPitchOutput, m_alpha/2));
+    
+    // derivatives wrt eiy
+    dhdz.push_back(T(desVelY, eiy, m_ctrlParams.at(posY).ki));
+    dhdz.push_back(T(eiydot, eiy, m_ctrlParams.at(posY).ki*timestep));
+    // derivatives wrt edy
+    dhdz.push_back(T(desVelY, edy, m_ctrlParams.at(posY).kd));
+    dhdz.push_back(T(eiydot, edy, m_ctrlParams.at(posY).kd*timestep));
+    // derivatives wrt desVelY
+    dhdz.push_back(T(eiydot, desVelY, timestep));
+    // derivatives wrt eiphi
+    dhdz.push_back(T(desRollRate, eiphi, m_ctrlParams.at(roll).ki));
+    dhdz.push_back(T(eip, eiphi, m_ctrlParams.at(roll).ki*timestep));
+    dhdz.push_back(T(desRollOutput, eiphi, m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp + m_ctrlParams.at(rollRate).ki*m_ctrlParams.at(roll).ki*timestep));
+    dhdz.push_back(T(w1, eiphi, -m_alpha*((m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(rollRate).ki*m_ctrlParams.at(roll).ki*timestep)/2)));
+    dhdz.push_back(T(w2, eiphi, -m_alpha*((m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(rollRate).ki*m_ctrlParams.at(roll).ki*timestep)/2)));
+    dhdz.push_back(T(w3, eiphi, m_alpha*((m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(rollRate).ki*m_ctrlParams.at(roll).ki*timestep)/2)));
+    dhdz.push_back(T(w4, eiphi, m_alpha*((m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(rollRate).ki*m_ctrlParams.at(roll).ki*timestep)/2)));
+    // derivatives wrt edphi
+    dhdz.push_back(T(desRollRate, edphi, m_ctrlParams.at(roll).kd));
+    dhdz.push_back(T(eip, edphi, m_ctrlParams.at(roll).kd*timestep));
+    dhdz.push_back(T(desRollOutput, edphi, m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).kp + m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).ki*timestep));
+    dhdz.push_back(T(w1, edphi, -m_alpha*((m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w2, edphi, -m_alpha*((m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w3, edphi, m_alpha*((m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w4, edphi, m_alpha*((m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(roll).kd*m_ctrlParams.at(rollRate).ki*timestep)/2))); 
+    // derivatives wrt desRollRate
+    dhdz.push_back(T(eip, desRollRate, timestep));
+    dhdz.push_back(T(desRollOutput, desRollRate, m_ctrlParams.at(rollRate).kp + m_ctrlParams.at(rollRate).ki*timestep));
+    dhdz.push_back(T(w1, desRollRate, -m_alpha*(m_ctrlParams.at(rollRate).kp/2 + (m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w2, desRollRate, -m_alpha*(m_ctrlParams.at(rollRate).kp/2 + (m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w3, desRollRate, m_alpha*(m_ctrlParams.at(rollRate).kp/2 + (m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w4, desRollRate, m_alpha*(m_ctrlParams.at(rollRate).kp/2 + (m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    // derivatives wrt delay_1_rollRate
+    dhdz.push_back(T(edp, delay_1_rollRate, lpf_b0));
+    dhdz.push_back(T(desRollOutput, delay_1_rollRate, m_ctrlParams.at(rollRate).kd*lpf_b0));
+    dhdz.push_back(T(w1, delay_1_rollRate, -(m_ctrlParams.at(rollRate).kd*lpf_b0*m_alpha)/2));
+    dhdz.push_back(T(w2, delay_1_rollRate, -(m_ctrlParams.at(rollRate).kd*lpf_b0*m_alpha)/2));
+    dhdz.push_back(T(w3, delay_1_rollRate, (m_ctrlParams.at(rollRate).kd*lpf_b0*m_alpha)/2));
+    dhdz.push_back(T(w4, delay_1_rollRate, (m_ctrlParams.at(rollRate).kd*lpf_b0*m_alpha)/2));
+    // derivatives wrt delay_2_rollRate
+    // derivatives wrt eip
+    dhdz.push_back(T(desRollOutput, eip, m_ctrlParams.at(rollRate).ki));
+    dhdz.push_back(T(w1, eip, -(m_ctrlParams.at(rollRate).ki*m_alpha)/2));
+    dhdz.push_back(T(w2, eip, -(m_ctrlParams.at(rollRate).ki*m_alpha)/2));
+    dhdz.push_back(T(w3, eip, (m_ctrlParams.at(rollRate).ki*m_alpha)/2));
+    dhdz.push_back(T(w4, eip, (m_ctrlParams.at(rollRate).ki*m_alpha)/2));
+    // derivatives wrt edp
+    dhdz.push_back(T(desRollOutput, edp, m_ctrlParams.at(rollRate).kd));
+    dhdz.push_back(T(w1, edp, -(m_ctrlParams.at(rollRate).kd*m_alpha)/2));
+    dhdz.push_back(T(w2, edp, -(m_ctrlParams.at(rollRate).kd*m_alpha)/2));
+    dhdz.push_back(T(w3, edp, (m_ctrlParams.at(rollRate).kd*m_alpha)/2));
+    dhdz.push_back(T(w4, edp, (m_ctrlParams.at(rollRate).kd*m_alpha)/2));
+    // derivatives wrt desRollOutput
+    dhdz.push_back(T(w1, desRollOutput, -m_alpha/2));
+    dhdz.push_back(T(w2, desRollOutput, -m_alpha/2));
+    dhdz.push_back(T(w3, desRollOutput, m_alpha/2));
+    dhdz.push_back(T(w4, desRollOutput, m_alpha/2));
 
+    // derivatives wrt eiz
+    dhdz.push_back(T(desVelZ, eiz, m_ctrlParams.at(posZ).ki));
+    dhdz.push_back(T(eizdot, eiz, m_ctrlParams.at(posZ).ki*timestep));
+    dhdz.push_back(T(desThrust, eiz, m_thrustScale*(m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w1, eiz, m_alpha*m_thrustScale*(m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w2, eiz, m_alpha*m_thrustScale*(m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w3, eiz, m_alpha*m_thrustScale*(m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w4, eiz, m_alpha*m_thrustScale*(m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).ki*m_ctrlParams.at(velZ).ki*timestep)));  
+    // derivatives wrt edz
+    dhdz.push_back(T(desVelZ,  edz, m_ctrlParams.at(posZ).kd));
+    dhdz.push_back(T(eizdot, edz, m_ctrlParams.at(posZ).kd*timestep));
+    dhdz.push_back(T(desThrust, edz, m_thrustScale*(m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w1, edz, m_alpha*m_thrustScale*(m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w2, edz, m_alpha*m_thrustScale*(m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w3, edz, m_alpha*m_thrustScale*(m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w4, edz, m_alpha*m_thrustScale*(m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).kp + m_ctrlParams.at(posZ).kd*m_ctrlParams.at(velZ).ki*timestep))); 
+    // derivatives wrt desVelZ
+    dhdz.push_back(T(eizdot, desVelZ, timestep));
+    dhdz.push_back(T(desThrust, desVelZ, m_thrustScale*(m_ctrlParams.at(velZ).kp + m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w1, desVelZ, m_alpha*m_thrustScale*(m_ctrlParams.at(velZ).kp + m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w2, desVelZ, m_alpha*m_thrustScale*(m_ctrlParams.at(velZ).kp + m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w3, desVelZ, m_alpha*m_thrustScale*(m_ctrlParams.at(velZ).kp + m_ctrlParams.at(velZ).ki*timestep)));
+    dhdz.push_back(T(w4, desVelZ, m_alpha*m_thrustScale*(m_ctrlParams.at(velZ).kp + m_ctrlParams.at(velZ).ki*timestep)));
+    // derivatives wrt to eizdot
+    dhdz.push_back(T(desThrust, eizdot, m_ctrlParams.at(velZ).ki*m_thrustScale));
+    dhdz.push_back(T(w1, eizdot, m_ctrlParams.at(velZ).ki*m_alpha*m_thrustScale));
+    dhdz.push_back(T(w2, eizdot, m_ctrlParams.at(velZ).ki*m_alpha*m_thrustScale));
+    dhdz.push_back(T(w3, eizdot, m_ctrlParams.at(velZ).ki*m_alpha*m_thrustScale));
+    dhdz.push_back(T(w4, eizdot, m_ctrlParams.at(velZ).ki*m_alpha*m_thrustScale));
+    // derivatives wrt edzdot
+    dhdz.push_back(T(desThrust, edzdot, m_ctrlParams.at(velZ).kd*m_thrustScale));
+    dhdz.push_back(T(w1, edzdot, m_ctrlParams.at(velZ).kd*m_alpha*m_thrustScale));
+    dhdz.push_back(T(w2, edzdot, m_ctrlParams.at(velZ).kd*m_alpha*m_thrustScale));
+    dhdz.push_back(T(w3, edzdot, m_ctrlParams.at(velZ).kd*m_alpha*m_thrustScale));
+    dhdz.push_back(T(w4, edzdot, m_ctrlParams.at(velZ).kd*m_alpha*m_thrustScale));
+    // derivatives wrt desThrust
+    dhdz.push_back(T(w1, desThrust, m_alpha));
+    dhdz.push_back(T(w2, desThrust, m_alpha));
+    dhdz.push_back(T(w3, desThrust, m_alpha));
+    dhdz.push_back(T(w4, desThrust, m_alpha));
+    // derivatives wrt eipsi
+    dhdz.push_back(T(desYawRate, eipsi, m_ctrlParams.at(yaw).ki));
+    dhdz.push_back(T(eir, eipsi, m_ctrlParams.at(yaw).ki*timestep));
+    dhdz.push_back(T(desYawOutput, eipsi, m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep));
+    dhdz.push_back(T(w1, eipsi, m_alpha*(m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w2, eipsi, -m_alpha*(m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w3, eipsi, m_alpha*(m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w4, eipsi, -m_alpha*(m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep)));
+    // derivatives wrt edpsi
+    dhdz.push_back(T(desYawRate, edpsi, m_ctrlParams.at(yaw).kd));
+    dhdz.push_back(T(eir, edpsi, m_ctrlParams.at(yaw).kd*timestep));
+    dhdz.push_back(T(desYawOutput, edpsi, m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).ki*timestep));
+    dhdz.push_back(T(w1, edpsi, m_alpha*(m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w2, edpsi, -m_alpha*(m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w3, edpsi, m_alpha*(m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w4, edpsi, -m_alpha*(m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).kd*m_ctrlParams.at(yawRate).ki*timestep)));
+    // derivatives wrt desYawRate
+    dhdz.push_back(T(eir, desYawRate, timestep));
+    dhdz.push_back(T(desYawOutput, desYawRate, m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yawRate).ki*timestep));
+    dhdz.push_back(T(w1, desYawRate, m_alpha*(m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w2, desYawRate, -m_alpha*(m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w3, desYawRate, m_alpha*(m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w4, desYawRate, -m_alpha*(m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yawRate).ki*timestep)));
+    // eir 
+    dhdz.push_back(T(desYawOutput, eir, m_ctrlParams.at(yawRate).ki));
+    dhdz.push_back(T(w1, eir, m_ctrlParams.at(yawRate).ki*m_alpha));
+    dhdz.push_back(T(w2, eir, -m_ctrlParams.at(yawRate).ki*m_alpha));
+    dhdz.push_back(T(w3, eir, m_ctrlParams.at(yawRate).ki*m_alpha));
+    dhdz.push_back(T(w4, eir, -m_ctrlParams.at(yawRate).ki*m_alpha));
+    // derivatives wrt edr
+    dhdz.push_back(T(desYawOutput, edr, m_ctrlParams.at(yawRate).kd));
+    dhdz.push_back(T(w1, edr, m_ctrlParams.at(yawRate).kd*m_alpha));
+    dhdz.push_back(T(w2, edr, -m_ctrlParams.at(yawRate).kd*m_alpha));
+    dhdz.push_back(T(w3, edr, m_ctrlParams.at(yawRate).kd*m_alpha));
+    dhdz.push_back(T(w4, edr, -m_ctrlParams.at(yawRate).kd*m_alpha));
+    // derivatives wrt desYawOutput
+    dhdz.push_back(T(w1, desYawOutput, m_alpha));
+    dhdz.push_back(T(w2, desYawOutput, -m_alpha));
+    dhdz.push_back(T(w3, desYawOutput, m_alpha));
+    dhdz.push_back(T(w4, desYawOutput, -m_alpha));
+
+    if (state.alge(desPitch) > -20 && state.alge(desPitch) < 20) {
+        m_logger << "desPitch not saturated " << std:: endl;
+        // derivatives wrt eix
+        dhdz.push_back(T(eitheta, eix, timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(desPitchRate, eix, m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(eiq, eix, m_ctrlParams.at(pitch).ki*std::pow(timestep, 2)*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(desPitchOutput, eix, m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)) + m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep))));
+        dhdz.push_back(T(w1, eix, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)))/2)));
+        dhdz.push_back(T(w2, eix, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)))/2)));
+        dhdz.push_back(T(w3, eix, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)))/2)));
+        dhdz.push_back(T(w4, eix, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).ki*m_ctrlParams.at(velX).ki*timestep)))/2)));
+        // derivatives wrt edx
+        dhdz.push_back(T(eitheta, edx, timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(desPitchRate, edx, m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(eiq, edx, m_ctrlParams.at(pitch).ki*std::pow(timestep, 2)*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(desPitchOutput, edx, m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)) + m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep))));
+        dhdz.push_back(T(w1, edx, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)))/2)));
+        dhdz.push_back(T(w2, edx, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)))/2)));
+        dhdz.push_back(T(w3, edx, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)))/2)));
+        dhdz.push_back(T(w4, edx, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).kp + m_ctrlParams.at(posX).kd*m_ctrlParams.at(velX).ki*timestep)))/2)));
+        // derivatives wrt desVelX
+        dhdz.push_back(T(eitheta, desVelX, timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(desPitchRate, desVelX, m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(eiq, desVelX, m_ctrlParams.at(pitch).ki*std::pow(timestep, 2)*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(desPitchOutput, desVelX, m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)) + m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep))));
+        dhdz.push_back(T(w1, desVelX, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)))/2)));
+        dhdz.push_back(T(w2, desVelX, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)))/2)));
+        dhdz.push_back(T(w3, desVelX, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)))/2)));
+        dhdz.push_back(T(w4, desVelX, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)))/2)));
+        // derivatives wrt eixdot
+        dhdz.push_back(T(eitheta, eixdot, m_ctrlParams.at(velX).ki*timestep));
+        dhdz.push_back(T(desPitchRate, eixdot, m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep));
+        dhdz.push_back(T(eiq, eixdot, m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*std::pow(timestep, 2)));
+        dhdz.push_back(T(desPitchOutput, eixdot, m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep) + m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep)));
+        dhdz.push_back(T(w1, eixdot, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep))/2)));
+        dhdz.push_back(T(w2, eixdot, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep))/2)));
+        dhdz.push_back(T(w3, eixdot, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep))/2)));
+        dhdz.push_back(T(w4, eixdot, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).ki*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(velX).ki*timestep))/2)));
+        // derivatives wrt edxdot
+        dhdz.push_back(T(eitheta, edxdot, m_ctrlParams.at(velX).kd*timestep));
+        dhdz.push_back(T(desPitchRate, edxdot, m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep));
+        dhdz.push_back(T(eiq, edxdot, m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*std::pow(timestep, 2)));
+        dhdz.push_back(T(desPitchOutput, edxdot, m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep) + m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep)));
+        dhdz.push_back(T(w1, edxdot, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2)));
+        dhdz.push_back(T(w2, edxdot, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2)));
+        dhdz.push_back(T(w3, edxdot, -m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2)));
+        dhdz.push_back(T(w4, edxdot, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2)));
+    }
+    if (state.alge(desRoll) > -20 && state.alge(desRoll) < 20) {
+        m_logger << "desRoll not saturated " << std:: endl;
+        // derivatives wrt eiy
+        dhdz.push_back(T(eiphi, eiy, timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(desRollRate, eiy, m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(eip, eiy, m_ctrlParams.at(roll).ki*std::pow(timestep, 2)*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(desRollOutput, eiy, m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)) + m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep))));
+        dhdz.push_back(T(w1, eiy, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)))/2)));
+        dhdz.push_back(T(w2, eiy, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)))/2)));
+        dhdz.push_back(T(w3, eiy, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)))/2)));
+        dhdz.push_back(T(w4, eiy, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).ki*m_ctrlParams.at(velY).ki*timestep)))/2)));
+        // derivatives wrt edy
+        dhdz.push_back(T(eiphi, edy, timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(desRollRate, edy, m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(eip, edy, m_ctrlParams.at(roll).ki*std::pow(timestep, 2)*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(desRollOutput, edy, m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)) + m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep))));
+        dhdz.push_back(T(w1, edy, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)))/2)));
+        dhdz.push_back(T(w2, edy, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)))/2)));
+        dhdz.push_back(T(w3, edy, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)))/2)));
+        dhdz.push_back(T(w4, edy, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).kp + m_ctrlParams.at(posY).kd*m_ctrlParams.at(velY).ki*timestep)))/2)));
+        // derivatives wrt desVelY
+        dhdz.push_back(T(eiphi, desVelY, timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(desRollRate, desVelY, m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(eip, desVelY, m_ctrlParams.at(roll).ki*std::pow(timestep, 2)*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(desRollOutput, desVelY, m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)) + m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep))));
+        dhdz.push_back(T(w1, desVelY, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)))/2)));
+        dhdz.push_back(T(w2, desVelY, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)))/2)));
+        dhdz.push_back(T(w3, desVelY, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)))/2)));
+        dhdz.push_back(T(w4, desVelY, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)))/2)));
+        // derivatives wrt edydot
+        dhdz.push_back(T(eiphi, eiydot, m_ctrlParams.at(velY).ki*timestep));
+        dhdz.push_back(T(desRollRate, eiydot, m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep));
+        dhdz.push_back(T(eip, eiydot, m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*std::pow(timestep, 2)));
+        dhdz.push_back(T(desRollOutput, eiydot, m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep) + m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep)));
+        dhdz.push_back(T(w1, eiydot, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep))/2)));
+        dhdz.push_back(T(w2, eiydot, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep))/2)));
+        dhdz.push_back(T(w3, eiydot, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep))/2)));
+        dhdz.push_back(T(w4, eiydot, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).ki*m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(velY).ki*timestep))/2)));
+        // derivatives wrt edydot
+        dhdz.push_back(T(eiphi, edydot, m_ctrlParams.at(velY).kd*timestep));
+        dhdz.push_back(T(desRollRate, edydot, m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep));
+        dhdz.push_back(T(eip, edydot, m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*std::pow(timestep, 2)));
+        dhdz.push_back(T(desRollOutput, edydot, m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep) + m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep)));
+        dhdz.push_back(T(w1, edydot, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep))/2)));
+        dhdz.push_back(T(w2, edydot, -m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep))/2)));
+        dhdz.push_back(T(w3, edydot, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep))/2)));
+        dhdz.push_back(T(w4, edydot, m_alpha*((m_ctrlParams.at(rollRate).kp*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep))/2 + (m_ctrlParams.at(rollRate).ki*timestep*(m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).kp + m_ctrlParams.at(velY).kd*m_ctrlParams.at(roll).ki*timestep))/2)));
+    }
+
+    // w1 ... w4
+    dhdz.push_back(T(ft, w1, m_droneParams.kf * 2 * state.alge(w1)));
+    dhdz.push_back(T(tx, w1, - m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * state.alge(w1)));
+    dhdz.push_back(T(ty, w1, m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * state.alge(w1)));
+    dhdz.push_back(T(tz, w1, m_droneParams.km * 2 * state.alge(w1)));
+
+    dhdz.push_back(T(ft, w2, m_droneParams.kf * 2 * state.alge(w2)));
+    dhdz.push_back(T(tx, w2, - m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * state.alge(w2)));
+    dhdz.push_back(T(ty, w2, - m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * state.alge(w2)));
+    dhdz.push_back(T(tz, w2, - m_droneParams.km * 2 * state.alge(w2)));
+
+    dhdz.push_back(T(ft, w3, m_droneParams.kf * 2 * state.alge(w3)));
+    dhdz.push_back(T(tx, w3, m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * state.alge(w3)));
+    dhdz.push_back(T(ty, w3, - m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * state.alge(w3)));
+    dhdz.push_back(T(tz, w3, - m_droneParams.km * 2 * state.alge(w3)));
+
+    dhdz.push_back(T(ft, w4, m_droneParams.kf * 2 * state.alge(w4)));
+    dhdz.push_back(T(tx, w4, m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * state.alge(w4)));
+    dhdz.push_back(T(ty, w4, m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * state.alge(w4)));
+    dhdz.push_back(T(tz, w4, - m_droneParams.km * 2 * state.alge(w4)));
+    
     Eigen::SparseMatrix<double> dhdz_mat(NUM_Z_STATES, NUM_Z_STATES);
+    dhdz_mat.setFromTriplets(dhdz.begin(), dhdz.end());
+
+    Eigen::Vector<double, NUM_Z_STATES> ft_vec = m_droneParams.kf * 2 * (state.alge(w1)*dhdz_mat.row(w1) 
+                                                                       + state.alge(w2)*dhdz_mat.row(w2)
+                                                                       + state.alge(w3)*dhdz_mat.row(w3)
+                                                                       + state.alge(w4)*dhdz_mat.row(w4));
+                                             
+    Eigen::Vector<double, NUM_Z_STATES> tx_vec = m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * (- state.alge(w1)*dhdz_mat.row(w1) 
+                                                                                                               - state.alge(w2)*dhdz_mat.row(w2) 
+                                                                                                               + state.alge(w3)*dhdz_mat.row(w3) 
+                                                                                                               + state.alge(w4)*dhdz_mat.row(w4));
+    Eigen::Vector<double, NUM_Z_STATES> ty_vec = m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * (  state.alge(w1)*dhdz_mat.row(w1) 
+                                                                                                               - state.alge(w2)*dhdz_mat.row(w2) 
+                                                                                                               - state.alge(w3)*dhdz_mat.row(w3) 
+                                                                                                               + state.alge(w4)*dhdz_mat.row(w4));
+    Eigen::Vector<double, NUM_Z_STATES> tz_vec = m_droneParams.km * 2 * (state.alge(w1)*dhdz_mat.row(w1) 
+                                                                       - state.alge(w2)*dhdz_mat.row(w2) 
+                                                                       + state.alge(w3)*dhdz_mat.row(w3) 
+                                                                       - state.alge(w4)*dhdz_mat.row(w4));
+
+    // Append  entries to the original triplets
+    for (int col = 0; col < NUM_Z_STATES; ++col) {
+        if (ft_vec(col) != 0.0) {
+            dhdz.emplace_back(ft, col, ft_vec(col));
+        }
+        if (tx_vec(col) != 0.0) {
+            dhdz.emplace_back(tx, col, tx_vec(col));
+        }
+        if (ty_vec(col) != 0.0) {
+            dhdz.emplace_back(ty, col, ty_vec(col));
+        }
+        if (tz_vec(col) != 0.0) {
+            dhdz.emplace_back(tz, col, tz_vec(col));
+        }
+        // also identity matrix
+        dhdz.emplace_back(col, col, 1);
+    }
+
     dhdz_mat.setFromTriplets(dhdz.begin(), dhdz.end());
     return dhdz_mat;
 }
