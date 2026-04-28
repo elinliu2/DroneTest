@@ -66,8 +66,9 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         dxdwo_plus = (I - (timestep / 2.0) * dfdx_plus).toDense().inverse() * (dxdwo + (timestep / 2.0)*(dfdx_curr*dxdwo + (dfdz_plus+dfdz_curr)*dzdwo));
 
         // dzdwo for 1 to n
-        Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], timestep);
+        dhdx_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
         dhdz_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
+        Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], simResults.time[i], timestep);
         Eigen::SparseMatrix<double> dhdx_curr = dhdxCurr(timestep);
         Eigen::SparseMatrix<double> dhdz_plus = dhdzPlus(simResults.stateProgression[i], timestep); 
         Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(simResults.stateProgression[i], timestep); 
