@@ -139,9 +139,9 @@ void DroneTrajectory::dhdx_test(SystemState currState, SystemState prevState, do
 void DroneTrajectory::dhdz_test(SystemState currState, SystemState prevState, double time, double timestep)
 {
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzPlus = dhdzPlus(currState, timestep);
-    // Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzCurr = dhdzCurr(timestep);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzCurr = dhdzCurr(currState, timestep);
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzPlus;
-    // Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzCurr;
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzCurr;
     
     double delta = 1e-5;
     for(int i = 0; i < NUM_Z_STATES; i++) 
@@ -170,4 +170,27 @@ void DroneTrajectory::dhdz_test(SystemState currState, SystemState prevState, do
 
     m_logger << "dhdzPlus max diff: " << std::max((exact_dhdzPlus - delta_dhdzPlus).maxCoeff(), (delta_dhdzPlus - exact_dhdzPlus).maxCoeff()) << std::endl;
 
+    for(int i = 0; i < NUM_Z_STATES; i++) 
+    {
+        Eigen::Vector<double, NUM_ALGE_STATES> plus = currState.alge;
+        Eigen::Vector<double, NUM_ALGE_STATES> minus = currState.alge;
+        plus(i) += delta;
+        minus(i) -= delta;
+        Eigen::Vector<double, NUM_ALGE_STATES> plus_h = h(currState.plant, prevState.plant, plus, time, timestep, NUM_Z_STATES, 0);
+        Eigen::Vector<double, NUM_ALGE_STATES> minus_h = h(currState.plant, prevState.plant, minus, time, timestep, NUM_Z_STATES, 0);
+        delta_dhdzCurr.col(i) =  1/(2*delta)*(plus_h-minus_h).segment(0, NUM_Z_STATES);
+    }
+
+    for(int i = 0; i < NUM_Z_STATES; i++)
+    {
+        for(int j = 0; j < NUM_Z_STATES; j++)
+        {
+            if (std::abs(exact_dhdzCurr(i, j) - delta_dhdzCurr(i, j)) > 2e-5)
+            {
+                m_logger << "dhdz_diff: index - " << i << " " << j << " diff: " << exact_dhdzCurr(i, j) - delta_dhdzCurr(i, j) << std::endl;
+                m_logger << "exact_dhdzCurr " << exact_dhdzCurr(i, j) << " delta_dhdzCurr " << delta_dhdzCurr(i, j) << std::endl;
+            }
+        }
+    }
+    m_logger << "dhdzCurr max diff: " << std::max((exact_dhdzCurr - delta_dhdzCurr).maxCoeff(), (delta_dhdzCurr - exact_dhdzCurr).maxCoeff()) << std::endl;
 }

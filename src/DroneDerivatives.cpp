@@ -123,7 +123,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdxCurr(double timestep)
 Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double timestep)
 {
     std::vector<T> dhdz;
-    
+    dhdz.reserve(300);
     // derivatives wrt eix
     dhdz.push_back(T(desVelX,  eix, m_ctrlParams.at(posX).ki));
     dhdz.push_back(T(eixdot, eix, m_ctrlParams.at(posX).ki*timestep));
@@ -480,13 +480,142 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double 
     return dhdz_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr(double timestep)
+Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr(SystemState state, double timestep)
 {
     std::vector<T> dhdz;
-    dhdz.reserve(23);
-    dhdz.push_back(T(eix, eix, timestep));
+    dhdz.reserve(93);
+    dhdz.push_back(T(eix, eix, 1));
+    dhdz.push_back(T(desVelX, eix, m_ctrlParams.at(posX).ki));
+    dhdz.push_back(T(eiy, eiy, 1));
+    dhdz.push_back(T(desVelY, eiy, m_ctrlParams.at(posY).ki));
+    dhdz.push_back(T(eiz, eiz, 1));
+    dhdz.push_back(T(desVelZ, eiz, m_ctrlParams.at(posZ).ki));
+    dhdz.push_back(T(eixdot, eix, m_ctrlParams.at(posX).ki*timestep));
+    dhdz.push_back(T(eixdot, eixdot, 1));
+    dhdz.push_back(T(eiydot, eiy, m_ctrlParams.at(posY).ki*timestep));
+    dhdz.push_back(T(eiydot, eiydot, 1));
+    dhdz.push_back(T(eizdot, eiz, m_ctrlParams.at(posZ).ki*timestep));
+    dhdz.push_back(T(eizdot, eizdot, 1));
+    dhdz.push_back(T(desThrust, eiz, m_thrustScale*(m_ctrlParams.at(velZ).kp*m_ctrlParams.at(posZ).ki + m_ctrlParams.at(velZ).ki*m_ctrlParams.at(posZ).ki*timestep)));
+    dhdz.push_back(T(desThrust, eizdot, m_ctrlParams.at(velZ).ki*m_thrustScale));
+    dhdz.push_back(T(eiphi, eiphi, 1));
+    dhdz.push_back(T(desRollRate, eiphi, m_ctrlParams.at(roll).ki));
+    dhdz.push_back(T(eitheta, eitheta, 1));
+    dhdz.push_back(T(desPitchRate, eitheta, m_ctrlParams.at(pitch).ki));
+    dhdz.push_back(T(eipsi, eipsi, 1));
+    dhdz.push_back(T(desYawRate, eipsi, m_ctrlParams.at(yaw).ki));
+    dhdz.push_back(T(eip, eiphi, m_ctrlParams.at(roll).ki*timestep));
+    dhdz.push_back(T(eip, eip, 1));
+    dhdz.push_back(T(edp, delay_1_rollRate, lpf_b1 - lpf_a1*lpf_b0));
+    dhdz.push_back(T(edp, delay_2_rollRate, lpf_b2 - lpf_b0*lpf_a2));
+    dhdz.push_back(T(desRollOutput, eiphi, m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp + m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).ki*timestep));
+    dhdz.push_back(T(desRollOutput, eip, m_ctrlParams.at(rollRate).ki));
+    dhdz.push_back(T(desRollOutput, delay_1_rollRate, m_ctrlParams.at(rollRate).kd*(lpf_b1 - lpf_a1*lpf_b0)));
+    dhdz.push_back(T(desRollOutput, delay_2_rollRate, m_ctrlParams.at(rollRate).kd*(lpf_b2 - lpf_b0*lpf_a2)));
+    dhdz.push_back(T(eiq, eitheta, m_ctrlParams.at(pitch).ki*timestep));
+    dhdz.push_back(T(eiq, eiq, 1));
+    dhdz.push_back(T(edq, delay_1_pitchRate, lpf_b1 - lpf_a1*lpf_b0));
+    dhdz.push_back(T(edq, delay_2_pitchRate, lpf_b2 - lpf_b0*lpf_a2));
+    dhdz.push_back(T(desPitchOutput, eitheta, m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp + m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).ki*timestep));
+    dhdz.push_back(T(desPitchOutput, eiq, m_ctrlParams.at(pitchRate).ki));
+    dhdz.push_back(T(desPitchOutput, delay_1_pitchRate, m_ctrlParams.at(pitchRate).kd*(lpf_b1 - lpf_a1*lpf_b0)));
+    dhdz.push_back(T(desPitchOutput, delay_2_pitchRate, m_ctrlParams.at(pitchRate).kd*(lpf_b2 - lpf_b0*lpf_a2)));
+    dhdz.push_back(T(eir, eipsi, m_ctrlParams.at(yaw).ki*timestep));
+    dhdz.push_back(T(eir, eir, 1));
+    dhdz.push_back(T(desYawOutput, eipsi, m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep));
+    dhdz.push_back(T(desYawOutput, eir, m_ctrlParams.at(yawRate).ki));
+    dhdz.push_back(T(delay_1_rollRate, delay_1_rollRate, -lpf_a1));
+    dhdz.push_back(T(delay_1_rollRate, delay_2_rollRate, -lpf_a2));
+    dhdz.push_back(T(delay_2_rollRate, delay_1_rollRate, 1));
+    dhdz.push_back(T(delay_1_pitchRate, delay_1_pitchRate, -lpf_a1));
+    dhdz.push_back(T(delay_1_pitchRate, delay_2_pitchRate, -lpf_a2));
+    dhdz.push_back(T(delay_2_pitchRate, delay_1_pitchRate, 1));
+    dhdz.push_back(T(w1, eiz, m_alpha*m_thrustScale*(m_ctrlParams.at(velZ).kp*m_ctrlParams.at(posZ).ki + m_ctrlParams.at(velZ).ki*m_ctrlParams.at(posZ).ki*timestep)));
+    dhdz.push_back(T(w1, eizdot, m_alpha*m_ctrlParams.at(velZ).ki*m_thrustScale));
+    dhdz.push_back(T(w1, eiphi, -m_alpha*((m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w1, eitheta, m_alpha*((m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w1, eipsi, m_alpha*(m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w1, eip, -(m_alpha*m_ctrlParams.at(rollRate).ki)/2));
+    dhdz.push_back(T(w1, eiq, (m_alpha*m_ctrlParams.at(pitchRate).ki)/2));
+    dhdz.push_back(T(w1, eir, m_alpha*m_ctrlParams.at(yawRate).ki));
+    dhdz.push_back(T(w1, delay_1_rollRate, -(m_alpha*m_ctrlParams.at(rollRate).kd*(lpf_b1 - lpf_a1*lpf_b0))/2));
+    dhdz.push_back(T(w1, delay_2_rollRate, -(m_alpha*m_ctrlParams.at(rollRate).kd*(lpf_b2 - lpf_b0*lpf_a2))/2));
+    dhdz.push_back(T(w1, delay_1_pitchRate, (m_alpha*m_ctrlParams.at(pitchRate).kd*(lpf_b1 - lpf_a1*lpf_b0))/2));
+    dhdz.push_back(T(w1, delay_2_pitchRate, (m_alpha*m_ctrlParams.at(pitchRate).kd*(lpf_b2 - lpf_b0*lpf_a2))/2));
+    dhdz.push_back(T(w2, eiz, m_alpha*m_thrustScale*(m_ctrlParams.at(velZ).kp*m_ctrlParams.at(posZ).ki + m_ctrlParams.at(velZ).ki*m_ctrlParams.at(posZ).ki*timestep)));
+    dhdz.push_back(T(w2, eizdot, m_alpha*m_ctrlParams.at(velZ).ki*m_thrustScale));
+    dhdz.push_back(T(w2, eiphi, -m_alpha*((m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w2, eitheta, -m_alpha*((m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w2, eipsi, -m_alpha*(m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w2, eip, -(m_alpha*m_ctrlParams.at(rollRate).ki)/2));
+    dhdz.push_back(T(w2, eiq, -(m_alpha*m_ctrlParams.at(pitchRate).ki)/2));
+    dhdz.push_back(T(w2, eir, -m_alpha*m_ctrlParams.at(yawRate).ki));
+    dhdz.push_back(T(w2, delay_1_rollRate, -(m_alpha*m_ctrlParams.at(rollRate).kd*(lpf_b1 - lpf_a1*lpf_b0))/2));
+    dhdz.push_back(T(w2, delay_2_rollRate, -(m_alpha*m_ctrlParams.at(rollRate).kd*(lpf_b2 - lpf_b0*lpf_a2))/2));
+    dhdz.push_back(T(w2, delay_1_pitchRate, -(m_alpha*m_ctrlParams.at(pitchRate).kd*(lpf_b1 - lpf_a1*lpf_b0))/2));
+    dhdz.push_back(T(w2, delay_2_pitchRate, -(m_alpha*m_ctrlParams.at(pitchRate).kd*(lpf_b2 - lpf_b0*lpf_a2))/2));
+    dhdz.push_back(T(w3, eiz, m_alpha*m_thrustScale*(m_ctrlParams.at(velZ).kp*m_ctrlParams.at(posZ).ki + m_ctrlParams.at(velZ).ki*m_ctrlParams.at(posZ).ki*timestep)));
+    dhdz.push_back(T(w3, eizdot, m_alpha*m_ctrlParams.at(velZ).ki*m_thrustScale));
+    dhdz.push_back(T(w3, eiphi, m_alpha*((m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w3, eitheta, -m_alpha*((m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w3, eipsi, m_alpha*(m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w3, eip, (m_alpha*m_ctrlParams.at(rollRate).ki)/2));
+    dhdz.push_back(T(w3, eiq, -(m_alpha*m_ctrlParams.at(pitchRate).ki)/2));
+    dhdz.push_back(T(w3, eir, m_alpha*m_ctrlParams.at(yawRate).ki));
+    dhdz.push_back(T(w3, delay_1_rollRate, (m_alpha*m_ctrlParams.at(rollRate).kd*(lpf_b1 - lpf_a1*lpf_b0))/2));
+    dhdz.push_back(T(w3, delay_2_rollRate, (m_alpha*m_ctrlParams.at(rollRate).kd*(lpf_b2 - lpf_b0*lpf_a2))/2));
+    dhdz.push_back(T(w3, delay_1_pitchRate, -(m_alpha*m_ctrlParams.at(pitchRate).kd*(lpf_b1 - lpf_a1*lpf_b0))/2));
+    dhdz.push_back(T(w3, delay_2_pitchRate, -(m_alpha*m_ctrlParams.at(pitchRate).kd*(lpf_b2 - lpf_b0*lpf_a2))/2));
+    dhdz.push_back(T(w4, eiz, m_alpha*m_thrustScale*(m_ctrlParams.at(velZ).kp*m_ctrlParams.at(posZ).ki + m_ctrlParams.at(velZ).ki*m_ctrlParams.at(posZ).ki*timestep)));
+    dhdz.push_back(T(w4, eizdot, m_alpha*m_ctrlParams.at(velZ).ki*m_thrustScale));
+    dhdz.push_back(T(w4, eiphi, m_alpha*((m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).kp)/2 + (m_ctrlParams.at(roll).ki*m_ctrlParams.at(rollRate).ki*timestep)/2)));
+    dhdz.push_back(T(w4, eitheta, m_alpha*((m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).kp)/2 + (m_ctrlParams.at(pitch).ki*m_ctrlParams.at(pitchRate).ki*timestep)/2)));
+    dhdz.push_back(T(w4, eipsi, -m_alpha*(m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).kp + m_ctrlParams.at(yaw).ki*m_ctrlParams.at(yawRate).ki*timestep)));
+    dhdz.push_back(T(w4, eip, (m_alpha*m_ctrlParams.at(rollRate).ki)/2));
+    dhdz.push_back(T(w4, eiq, (m_alpha*m_ctrlParams.at(pitchRate).ki)/2));
+    dhdz.push_back(T(w4, eir, -m_alpha*m_ctrlParams.at(yawRate).ki));
+    dhdz.push_back(T(w4, delay_1_rollRate, (m_alpha*m_ctrlParams.at(rollRate).kd*(lpf_b1 - lpf_a1*lpf_b0))/2));
+    dhdz.push_back(T(w4, delay_2_rollRate, (m_alpha*m_ctrlParams.at(rollRate).kd*(lpf_b2 - lpf_b0*lpf_a2))/2));
+    dhdz.push_back(T(w4, delay_1_pitchRate, (m_alpha*m_ctrlParams.at(pitchRate).kd*(lpf_b1 - lpf_a1*lpf_b0))/2));
+    dhdz.push_back(T(w4, delay_2_pitchRate, (m_alpha*m_ctrlParams.at(pitchRate).kd*(lpf_b2 - lpf_b0*lpf_a2))/2));
 
     Eigen::SparseMatrix<double> dhdz_mat(NUM_Z_STATES, NUM_Z_STATES);
+    dhdz_mat.setFromTriplets(dhdz.begin(), dhdz.end());
+
+    Eigen::Vector<double, NUM_Z_STATES> ft_vec = m_droneParams.kf * 2 * (state.alge(w1)*dhdz_mat.row(w1) 
+                                                                       + state.alge(w2)*dhdz_mat.row(w2)
+                                                                       + state.alge(w3)*dhdz_mat.row(w3)
+                                                                       + state.alge(w4)*dhdz_mat.row(w4));
+                                             
+    Eigen::Vector<double, NUM_Z_STATES> tx_vec = m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * (- state.alge(w1)*dhdz_mat.row(w1) 
+                                                                                                               - state.alge(w2)*dhdz_mat.row(w2) 
+                                                                                                               + state.alge(w3)*dhdz_mat.row(w3) 
+                                                                                                               + state.alge(w4)*dhdz_mat.row(w4));
+    Eigen::Vector<double, NUM_Z_STATES> ty_vec = m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * (  state.alge(w1)*dhdz_mat.row(w1) 
+                                                                                                               - state.alge(w2)*dhdz_mat.row(w2) 
+                                                                                                               - state.alge(w3)*dhdz_mat.row(w3) 
+                                                                                                               + state.alge(w4)*dhdz_mat.row(w4));
+    Eigen::Vector<double, NUM_Z_STATES> tz_vec = m_droneParams.km * 2 * (state.alge(w1)*dhdz_mat.row(w1) 
+                                                                       - state.alge(w2)*dhdz_mat.row(w2) 
+                                                                       + state.alge(w3)*dhdz_mat.row(w3) 
+                                                                       - state.alge(w4)*dhdz_mat.row(w4));
+
+    // Append  entries to the original triplets
+    for (int col = 0; col < NUM_Z_STATES; ++col) {
+        if (ft_vec(col) != 0.0) {
+            dhdz.emplace_back(ft, col, ft_vec(col));
+        }
+        if (tx_vec(col) != 0.0) {
+            dhdz.emplace_back(tx, col, tx_vec(col));
+        }
+        if (ty_vec(col) != 0.0) {
+            dhdz.emplace_back(ty, col, ty_vec(col));
+        }
+        if (tz_vec(col) != 0.0) {
+            dhdz.emplace_back(tz, col, tz_vec(col));
+        }
+    }
+
     dhdz_mat.setFromTriplets(dhdz.begin(), dhdz.end());
     return dhdz_mat;
 }
