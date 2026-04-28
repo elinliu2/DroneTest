@@ -11,7 +11,7 @@
 
 #define NUM_PLANT_STATES 12
 #define NUM_PIDS 12
-#define NUM_Z_STATES 64
+#define NUM_Z_STATES 46
 #define NUM_Y_STATES 2
 #define NUM_ALGE_STATES (NUM_Y_STATES+NUM_Z_STATES)
 #define NUM_STATES (NUM_PLANT_STATES+NUM_ALGE_STATES)
@@ -111,7 +111,7 @@ enum algeIndex  {eix, edx, desVelX, eiy, edy, desVelY, eiz, edz, desVelZ,
                 eixdot, edxdot, eiydot, edydot, eizdot, edzdot, desThrust, 
                 eiphi, edphi, desRollRate, eitheta, edtheta, desPitchRate, eipsi, edpsi, desYawRate, 
                 eip, edp, desRollOutput, eiq, edq, desPitchOutput, eir, edr, desYawOutput, 
-                delay_1_rollRate, delay_2_rollRate, delay_1_pitchRate, delay_2_pitchRate, ft, tx, ty, tz, w1, w2, w3, w4, desRoll, desPitch};
+                delay_1_rollRate, delay_2_rollRate, delay_1_pitchRate, delay_2_pitchRate, w1, w2, w3, w4, ft, tx, ty, tz, desRoll, desPitch};
 enum pidIndex   {kp_error, ki_error, kd_error};
 enum distIndex  {Fwx, Fwy, Fwz, Twx, Twy, Twz};
 enum refIndex   {refx, refy, refz, refyaw};
@@ -170,19 +170,18 @@ class DroneTrajectory
     bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
 
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx(SystemState state);
-    Eigen::SparseMatrix<double> dfdz( SystemState state);
-    Eigen::SparseMatrix<double> dgdz(SystemState state);
+    Eigen::SparseMatrix<double> dfdz(SystemState state);
+    Eigen::SparseMatrix<double> dgdz(SystemState state, double timestep);
     Eigen::SparseMatrix<double> dhdxPlus(SystemState state, double timestep);
     Eigen::SparseMatrix<double> dhdxCurr(double timestep);
     Eigen::SparseMatrix<double> dhdzPlus(SystemState state, double timestep);
     Eigen::SparseMatrix<double> dhdzCurr(double timestep);
     Eigen::SparseMatrix<double> dhdy();
 
-    Eigen::Vector<double, NUM_ALGE_STATES> ImTooTiredToCareThatItsUglyAndDumb_h( 
-    Eigen::Vector<double, NUM_PLANT_STATES> plantState,
+    Eigen::Vector<double, NUM_ALGE_STATES> h(Eigen::Vector<double, NUM_PLANT_STATES> plantState,
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
     Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates,
-    double time, double timestep, int index);
+    double time, double timestep, int index, double delta);
 
     public:
         DroneTrajectory( 

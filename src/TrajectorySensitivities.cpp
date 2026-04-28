@@ -39,7 +39,7 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
     // m_logger << "test0" << std::endl; 
 
     // iterating trajectory sensitivity
-    for(int i = 1; i < iterations; i++)
+    for(int i = 1; i < 2; i++)
     {
         double timestep = simResults.time[i] - simResults.time[i-1];
         // dwdwo
@@ -67,11 +67,12 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
 
         // dzdwo for 1 to n
         Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], timestep);
+        dhdz_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
         Eigen::SparseMatrix<double> dhdx_curr = dhdxCurr(timestep);
         Eigen::SparseMatrix<double> dhdz_plus = dhdzPlus(simResults.stateProgression[i], timestep); 
         Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(timestep); 
         Eigen::SparseMatrix<double> dhdy_plus = dhdy();
-        Eigen::SparseMatrix<double> dgdz_plus = dgdz(simResults.stateProgression[i]);
+        Eigen::SparseMatrix<double> dgdz_plus = dgdz(simResults.stateProgression[i], timestep);
         dzdwo_plus = dhdx_plus * dxdwo_plus + dhdx_curr * dxdwo + dhdz_curr * dzdwo;
         // std::chrono::time_point elapsed3 = std::chrono::steady_clock::now();
         // m_logger << "test3" << std::endl;

@@ -139,44 +139,35 @@ void DroneTrajectory::dhdx_test(SystemState currState, SystemState prevState, do
 void DroneTrajectory::dhdz_test(SystemState currState, SystemState prevState, double time, double timestep)
 {
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzPlus = dhdzPlus(currState, timestep);
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzCurr = dhdzCurr(timestep);
+    // Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzCurr = dhdzCurr(timestep);
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzPlus;
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzCurr;
+    // Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzCurr;
     
-    SystemState plus; 
-    SystemState minus; 
     double delta = 1e-5;
     for(int i = 0; i < NUM_Z_STATES; i++) 
     {
-        plus = currState;
-        plus.alge(i) += delta;
-        minus = currState;
-        minus.alge(i) -= delta;
-
-        Eigen::Vector<double, NUM_ALGE_STATES> plus_h = CascadedPIDController(currState.plant, prevState.plant, plus.alge, time, timestep);
-        Eigen::Vector<double, NUM_ALGE_STATES> minus_h = CascadedPIDController(currState.plant, prevState.plant, minus.alge, time, timestep);
+        Eigen::Vector<double, NUM_ALGE_STATES> plus_h = h(currState.plant, prevState.plant, currState.alge, time, timestep, i, delta);
+        Eigen::Vector<double, NUM_ALGE_STATES> minus_h = h(currState.plant, prevState.plant, currState.alge, time, timestep, i, -delta);
         delta_dhdzPlus.col(i) =  1/(2*delta)*(plus_h-minus_h).segment(0, NUM_Z_STATES);
     }
 
-    m_logger << "exact dhdzPlus" << std::endl;
-    m_logger << exact_dhdzPlus << std::endl;
-    m_logger << "delta dhdzPlus" << std::endl;
-    m_logger << delta_dhdzPlus << std::endl;
+    // m_logger << "exact dhdzPlus" << std::endl;
+    // m_logger << exact_dhdzPlus << std::endl;
+    // m_logger << "delta dhdzPlus" << std::endl;
+    // m_logger << delta_dhdzPlus << std::endl;
 
-    m_logger << "dhdzPlus max diff: " << std::max((exact_dhdzPlus - delta_dhdzPlus).maxCoeff(), (delta_dhdzPlus - exact_dhdzPlus).maxCoeff()) << std::endl;
-
-    for(int i = 0; i < NUM_Z_STATES; i++) 
+    for(int i = 0; i < NUM_Z_STATES; i++)
     {
-        plus = prevState;
-        plus.alge(i) += delta;
-        minus = prevState;
-        minus.alge(i) -= delta;
-
-        Eigen::Vector<double, NUM_ALGE_STATES> plus_h = CascadedPIDController(currState.plant, prevState.plant, plus.alge, time, timestep);
-        Eigen::Vector<double, NUM_ALGE_STATES> minus_h = CascadedPIDController(currState.plant, prevState.plant, minus.alge, time, timestep);
-        delta_dhdzCurr.col(i) =  1/(2*delta)*(plus_h-minus_h).segment(0, NUM_Z_STATES);
+        for(int j = 0; j < NUM_Z_STATES; j++)
+        {
+            if (std::abs(exact_dhdzPlus(i, j) - delta_dhdzPlus(i, j)) > 2e-5)
+            {
+                m_logger << "dhdz_diff: index - " << i << " " << j << " diff: " << exact_dhdzPlus(i, j) - delta_dhdzPlus(i, j) << std::endl;
+                m_logger << "exact_dhdzPlus " << exact_dhdzPlus(i, j) << " delta_dhdzPlus " << delta_dhdzPlus(i, j) << std::endl;
+            }
+        }
     }
 
-    m_logger << "dhdzCurr max diff: " << std::max((exact_dhdzCurr - delta_dhdzCurr).maxCoeff(), (exact_dhdzCurr - delta_dhdzCurr).maxCoeff()) << std::endl;
+    m_logger << "dhdzPlus max diff: " << std::max((exact_dhdzPlus - delta_dhdzPlus).maxCoeff(), (delta_dhdzPlus - exact_dhdzPlus).maxCoeff()) << std::endl;
 
 }
