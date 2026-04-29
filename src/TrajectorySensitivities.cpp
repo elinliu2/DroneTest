@@ -39,8 +39,9 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
     // m_logger << "test0" << std::endl; 
 
     // iterating trajectory sensitivity
-    for(int i = 1; i < 2; i++)
+    for(int i = 411; i < 412; i++)
     {
+        // m_logger << "i: " << i << " desRoll " << simResults.stateProgression[i].alge(desRoll) << " desPitch " << simResults.stateProgression[i].alge(desPitch) << std::endl;
         double timestep = simResults.time[i] - simResults.time[i-1];
         // dwdwo
         dwdwo curr = ts[i-1];
