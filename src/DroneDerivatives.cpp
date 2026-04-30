@@ -76,18 +76,20 @@ Eigen::SparseMatrix<double> DroneTrajectory::dfdz(SystemState state)
 Eigen::SparseMatrix<double> DroneTrajectory::dgdz(SystemState state, double timestep)
 {
     std::vector<T> dgdz;
-    dgdz.reserve(8);
+    dgdz.reserve(10);
     if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
-        dgdz.push_back(T(0, eiydot, m_ctrlParams.at(velY).ki));
-        dgdz.push_back(T(0, desVelY, m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep));
-        dgdz.push_back(T(0, eiy, m_ctrlParams.at(posY).ki*(m_ctrlParams.at(velY).kp + timestep*m_ctrlParams.at(velY).ki)));
-        dgdz.push_back(T(0, edy, m_ctrlParams.at(posY).kd*(m_ctrlParams.at(velY).kp + timestep*m_ctrlParams.at(velY).ki)));
+        dgdz.push_back(T(0, 3, -m_ctrlParams.at(posY).ki*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)));
+        dgdz.push_back(T(0, 4, -m_ctrlParams.at(posY).kd*(m_ctrlParams.at(velY).kp + m_ctrlParams.at(velY).ki*timestep)));
+        dgdz.push_back(T(0, 5, -m_ctrlParams.at(velY).kp - m_ctrlParams.at(velY).ki*timestep));
+        dgdz.push_back(T(0, 11, -m_ctrlParams.at(velY).ki));
+        dgdz.push_back(T(0, 12, -m_ctrlParams.at(velY).kd));
     }
     if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
-        dgdz.push_back(T(1, eixdot, m_ctrlParams.at(velX).ki));
-        dgdz.push_back(T(1, desVelX, m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep));
-        dgdz.push_back(T(1, eix, m_ctrlParams.at(posX).ki*(m_ctrlParams.at(velX).kp + timestep*m_ctrlParams.at(velX).ki)));
-        dgdz.push_back(T(1, edx, m_ctrlParams.at(posX).kd*(m_ctrlParams.at(velX).kp + timestep*m_ctrlParams.at(velX).ki)));
+        dgdz.push_back(T(1, 0, m_ctrlParams.at(posX).ki*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)));
+        dgdz.push_back(T(1, 1, m_ctrlParams.at(posX).kd*(m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep)));
+        dgdz.push_back(T(1, 2, m_ctrlParams.at(velX).kp + m_ctrlParams.at(velX).ki*timestep));
+        dgdz.push_back(T(1, 9, m_ctrlParams.at(velX).ki));
+        dgdz.push_back(T(1, 10, m_ctrlParams.at(velX).kd));
     }
     Eigen::SparseMatrix<double> dgdz_mat(NUM_Y_STATES, NUM_Z_STATES);
     dgdz_mat.setFromTriplets(dgdz.begin(), dgdz.end());
@@ -776,7 +778,6 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double 
     dhdz.push_back(T(w4, desYawOutput, -m_alpha));
 
     if (state.alge(desPitch) > -20 && state.alge(desPitch) < 20) {
-        m_logger << "desPitch not saturated " << std:: endl;
         // derivatives wrt eix
         dhdz.push_back(T(eitheta, eix, timestep*(m_ctrlParams.at(velX).kp*m_ctrlParams.at(posX).ki + m_ctrlParams.at(velX).ki*m_ctrlParams.at(posX).ki*timestep)));
         dhdz.push_back(T(desPitchRate, eix, m_ctrlParams.at(pitch).kp*(m_ctrlParams.at(velX).kp*m_ctrlParams.at(posX).ki + m_ctrlParams.at(velX).ki*m_ctrlParams.at(posX).ki*timestep) + m_ctrlParams.at(pitch).ki*timestep*(m_ctrlParams.at(velX).kp*m_ctrlParams.at(posX).ki + m_ctrlParams.at(velX).ki*m_ctrlParams.at(posX).ki*timestep)));
@@ -824,7 +825,6 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double 
         dhdz.push_back(T(w4, edxdot, m_alpha*((m_ctrlParams.at(pitchRate).kp*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2 + (m_ctrlParams.at(pitchRate).ki*timestep*(m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).kp + m_ctrlParams.at(velX).kd*m_ctrlParams.at(pitch).ki*timestep))/2)));
     }
     if (state.alge(desRoll) > -20 && state.alge(desRoll) < 20) {
-        m_logger << "desRoll not saturated " << std:: endl;
         // derivatives wrt eiy
         dhdz.push_back(T(eiphi, eiy, -timestep*(m_ctrlParams.at(velY).kp*m_ctrlParams.at(posY).ki + m_ctrlParams.at(velY).ki*m_ctrlParams.at(posY).ki*timestep)));
         dhdz.push_back(T(desRollRate, eiy, - m_ctrlParams.at(roll).kp*(m_ctrlParams.at(velY).kp*m_ctrlParams.at(posY).ki + m_ctrlParams.at(velY).ki*m_ctrlParams.at(posY).ki*timestep) - m_ctrlParams.at(roll).ki*timestep*(m_ctrlParams.at(velY).kp*m_ctrlParams.at(posY).ki + m_ctrlParams.at(velY).ki*m_ctrlParams.at(posY).ki*timestep)));
@@ -1113,9 +1113,65 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr(SystemState state, double 
     return dhdz_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dhdy()
+Eigen::SparseMatrix<double> DroneTrajectory::dhdy(SystemState state, double timestep)
 {
-    Eigen::SparseMatrix<double> dhdy(NUM_Z_STATES, NUM_Y_STATES);
-    return dhdy; 
+    std::vector<T> dhdy;
+    dhdy.push_back(T(eiphi, 0, timestep));
+    dhdy.push_back(T(desRollRate, 0, m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*timestep));
+    dhdy.push_back(T(eitheta, 1, timestep));
+    dhdy.push_back(T(desPitchRate, 1, m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*timestep));
+    dhdy.push_back(T(eip, 0, timestep*(m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*timestep)));
+    dhdy.push_back(T(desRollOutput, 0, (m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*timestep)*(m_ctrlParams.at(rollRate).kp + m_ctrlParams.at(rollRate).ki*timestep)));
+    dhdy.push_back(T(eiq, 1, timestep*(m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*timestep)));
+    dhdy.push_back(T(desPitchOutput, 1, (m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*timestep)*(m_ctrlParams.at(pitchRate).kp + m_ctrlParams.at(pitchRate).ki*timestep)));
+    dhdy.push_back(T(w1, 0, -(m_alpha*(m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*timestep)*(m_ctrlParams.at(rollRate).kp + m_ctrlParams.at(rollRate).ki*timestep))/2));
+    dhdy.push_back(T(w1, 1, (m_alpha*(m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*timestep)*(m_ctrlParams.at(pitchRate).kp + m_ctrlParams.at(pitchRate).ki*timestep))/2));
+    dhdy.push_back(T(w2, 0, -(m_alpha*(m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*timestep)*(m_ctrlParams.at(rollRate).kp + m_ctrlParams.at(rollRate).ki*timestep))/2));
+    dhdy.push_back(T(w2, 1, -(m_alpha*(m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*timestep)*(m_ctrlParams.at(pitchRate).kp + m_ctrlParams.at(pitchRate).ki*timestep))/2));
+    dhdy.push_back(T(w3, 0, (m_alpha*(m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*timestep)*(m_ctrlParams.at(rollRate).kp + m_ctrlParams.at(rollRate).ki*timestep))/2));
+    dhdy.push_back(T(w3, 1, -(m_alpha*(m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*timestep)*(m_ctrlParams.at(pitchRate).kp + m_ctrlParams.at(pitchRate).ki*timestep))/2));
+    dhdy.push_back(T(w4, 0, (m_alpha*(m_ctrlParams.at(roll).kp + m_ctrlParams.at(roll).ki*timestep)*(m_ctrlParams.at(rollRate).kp + m_ctrlParams.at(rollRate).ki*timestep))/2));
+    dhdy.push_back(T(w4, 1, (m_alpha*(m_ctrlParams.at(pitch).kp + m_ctrlParams.at(pitch).ki*timestep)*(m_ctrlParams.at(pitchRate).kp + m_ctrlParams.at(pitchRate).ki*timestep))/2));
+    
+    Eigen::SparseMatrix<double> dhdy_mat(NUM_Z_STATES, NUM_Z_STATES);
+    dhdy_mat.setFromTriplets(dhdy.begin(), dhdy.end()); 
+
+    Eigen::Vector<double, NUM_Z_STATES> ft_vec = m_droneParams.kf * 2 * (state.alge(w1)*dhdy_mat.row(w1) 
+                                                                       + state.alge(w2)*dhdy_mat.row(w2)
+                                                                       + state.alge(w3)*dhdy_mat.row(w3)
+                                                                       + state.alge(w4)*dhdy_mat.row(w4));
+                                             
+    Eigen::Vector<double, NUM_Z_STATES> tx_vec = m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * (- state.alge(w1)*dhdy_mat.row(w1) 
+                                                                                                               - state.alge(w2)*dhdy_mat.row(w2) 
+                                                                                                               + state.alge(w3)*dhdy_mat.row(w3) 
+                                                                                                               + state.alge(w4)*dhdy_mat.row(w4));
+    Eigen::Vector<double, NUM_Z_STATES> ty_vec = m_droneParams.kf * m_droneParams.length * 2.0/std::sqrt(2) * (  state.alge(w1)*dhdy_mat.row(w1) 
+                                                                                                               - state.alge(w2)*dhdy_mat.row(w2) 
+                                                                                                               - state.alge(w3)*dhdy_mat.row(w3) 
+                                                                                                               + state.alge(w4)*dhdy_mat.row(w4));
+    Eigen::Vector<double, NUM_Z_STATES> tz_vec = m_droneParams.km * 2 * (state.alge(w1)*dhdy_mat.row(w1) 
+                                                                       - state.alge(w2)*dhdy_mat.row(w2) 
+                                                                       + state.alge(w3)*dhdy_mat.row(w3) 
+                                                                       - state.alge(w4)*dhdy_mat.row(w4));
+
+    // Append  entries to the original triplets
+    for (int col = 0; col < NUM_Z_STATES; ++col) {
+        if (ft_vec(col) != 0.0) {
+            dhdy.emplace_back(ft, col, ft_vec(col));
+        }
+        if (tx_vec(col) != 0.0) {
+            dhdy.emplace_back(tx, col, tx_vec(col));
+        }
+        if (ty_vec(col) != 0.0) {
+            dhdy.emplace_back(ty, col, ty_vec(col));
+        }
+        if (tz_vec(col) != 0.0) {
+            dhdy.emplace_back(tz, col, tz_vec(col));
+        }
+    }
+
+    dhdy_mat.setFromTriplets(dhdy.begin(), dhdy.end());
+
+    return dhdy_mat;
 }
 
