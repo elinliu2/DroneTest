@@ -87,7 +87,7 @@ void DroneTrajectory::dfdz_test(SystemState initialState)
     // m_logger << "delta dfdz" << std::endl;
     // m_logger << delta_dfdz << std::endl;
 
-    m_logger << "dfdx max diff: " << std::max((exact_dfdz - delta_dfdz).maxCoeff(), (delta_dfdz - exact_dfdz).maxCoeff()) << std::endl;
+    m_logger << "dfdz max diff: " << std::max((exact_dfdz - delta_dfdz).maxCoeff(), (delta_dfdz - exact_dfdz).maxCoeff()) << std::endl;
 
 }
 
