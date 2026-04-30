@@ -124,8 +124,6 @@ void DroneTrajectory::dhdx_test(SystemState currState, SystemState prevState, do
     //     }
     // }
 
-    m_logger << "dhdxPlus max diff: " << std::max((exact_dhdxPlus - delta_dhdxPlus).maxCoeff(), (delta_dhdxPlus - exact_dhdxPlus).maxCoeff()) << std::endl;
-
     for(int i = 0; i < NUM_PLANT_STATES; i++) 
     {
         plus = prevState;
@@ -137,6 +135,19 @@ void DroneTrajectory::dhdx_test(SystemState currState, SystemState prevState, do
         delta_dhdxCurr.col(i) =  1/(2*delta)*(plus_h-minus_h).segment(0, NUM_Z_STATES);
     }
 
+    // for(int i = 0; i < NUM_Z_STATES; i++)
+    // {
+    //     for(int j = 0; j < NUM_PLANT_STATES; j++)
+    //     {
+    //         if (std::abs(exact_dhdxCurr(i, j) - delta_dhdxCurr(i, j)) > 2e-5)
+    //         {
+    //             m_logger << "dhdx_diff: index - " << i << " " << j << " diff: " << exact_dhdxCurr(i, j) - delta_dhdxCurr(i, j) << std::endl;
+    //             m_logger << "exact_dhdxPlus " << exact_dhdxCurr(i, j) << " delta_dhdxPlus " << delta_dhdxCurr(i, j) << std::endl;
+    //         }
+    //     }
+    // }
+
+    m_logger << "dhdxPlus max diff: " << std::max((exact_dhdxPlus - delta_dhdxPlus).maxCoeff(), (delta_dhdxPlus - exact_dhdxPlus).maxCoeff()) << std::endl;
     m_logger << "dhdxCurr max diff: " << std::max((exact_dhdxCurr - delta_dhdxCurr).maxCoeff(), (exact_dhdxCurr - delta_dhdxCurr).maxCoeff()) << std::endl;
 
 }
