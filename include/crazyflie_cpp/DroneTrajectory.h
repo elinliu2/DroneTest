@@ -176,7 +176,7 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> dhdxCurr(SystemState curr, SystemState prev, double timestep);
     Eigen::SparseMatrix<double> dhdzPlus(SystemState state, double timestep);
     Eigen::SparseMatrix<double> dhdzCurr(SystemState state, double timestep);
-    Eigen::SparseMatrix<double> dhdy();
+    Eigen::SparseMatrix<double> dhdy(SystemState state, double timestep);
 
     Eigen::Vector<double, NUM_ALGE_STATES> h(Eigen::Vector<double, NUM_PLANT_STATES> plantState,
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
@@ -199,6 +199,8 @@ class DroneTrajectory
         void dfdz_test(SystemState initialState);
         void dhdx_test(SystemState currState, SystemState prevState, double time, double timestep);
         void dhdz_test(SystemState currState, SystemState prevState, double time, double timestep);
+        void dgdz_test(SystemState currState, SystemState prevState, double time, double timestep);
+        void dhdy_test(SystemState currState, SystemState prevState, double time, double timestep);
 };
 
 #endif

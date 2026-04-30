@@ -69,11 +69,13 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         // dzdwo for 1 to n
         dhdx_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
         dhdz_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
+        dgdz_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
+        dhdy_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
         Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], simResults.time[i], timestep);
         Eigen::SparseMatrix<double> dhdx_curr = dhdxCurr(simResults.stateProgression[i], simResults.stateProgression[i-1], timestep);
         Eigen::SparseMatrix<double> dhdz_plus = dhdzPlus(simResults.stateProgression[i], timestep); 
         Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(simResults.stateProgression[i], timestep); 
-        Eigen::SparseMatrix<double> dhdy_plus = dhdy();
+        Eigen::SparseMatrix<double> dhdy_plus = dhdy(simResults.stateProgression[i], timestep);
         Eigen::SparseMatrix<double> dgdz_plus = dgdz(simResults.stateProgression[i], timestep);
         dzdwo_plus = dhdx_plus * dxdwo_plus + dhdx_curr * dxdwo + dhdz_curr * dzdwo;
         // std::chrono::time_point elapsed3 = std::chrono::steady_clock::now();

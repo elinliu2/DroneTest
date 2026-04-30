@@ -210,3 +210,57 @@ void DroneTrajectory::dhdz_test(SystemState currState, SystemState prevState, do
     }
     m_logger << "dhdzCurr max diff: " << std::max((exact_dhdzCurr - delta_dhdzCurr).maxCoeff(), (delta_dhdzCurr - exact_dhdzCurr).maxCoeff()) << std::endl;
 }
+
+void DroneTrajectory::dgdz_test(SystemState currState, SystemState prevState, double time, double timestep)
+{
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> exact_dgdz = dgdz(currState, timestep);
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> delta_dgdz;
+    
+    double delta = 1e-5;
+    for(int i = 0; i < NUM_Z_STATES; i++) 
+    {
+        Eigen::Vector<double, NUM_ALGE_STATES> plus_h = h(currState.plant, prevState.plant, currState.alge, time, timestep, i, delta);
+        Eigen::Vector<double, NUM_ALGE_STATES> minus_h = h(currState.plant, prevState.plant, currState.alge, time, timestep, i, -delta);
+        delta_dgdz.col(i) =  1/(2*delta)*(plus_h-minus_h).segment(NUM_Z_STATES, NUM_Y_STATES);
+    }
+    for(int i = 0; i < NUM_Y_STATES; i++)
+    {
+        for(int j = 0; j < NUM_Z_STATES; j++)
+        {
+            if (std::abs(exact_dgdz(i, j) - delta_dgdz(i, j)) > 2e-5)
+            {
+                m_logger << "dgdz: index - " << i << " " << j << " diff: " << exact_dgdz(i, j) - delta_dgdz(i, j) << std::endl;
+                m_logger << "exact_dgdz " << exact_dgdz(i, j) << " delta_dgdz " << delta_dgdz(i, j) << std::endl;
+            }
+        }
+    }
+    m_logger << "dgdz max diff: " << std::max((exact_dgdz - delta_dgdz).maxCoeff(), (delta_dgdz - exact_dgdz).maxCoeff()) << std::endl;
+
+}
+
+void DroneTrajectory::dhdy_test(SystemState currState, SystemState prevState, double time, double timestep)
+{
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> exact_dhdy = dhdy(currState, timestep);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> delta_dhdy;
+    
+    double delta = 1e-5;
+    for(int i = 0; i < NUM_Y_STATES; i++) 
+    {
+        Eigen::Vector<double, NUM_ALGE_STATES> plus_h = h(currState.plant, prevState.plant, currState.alge, time, timestep, NUM_Z_STATES+i, delta);
+        Eigen::Vector<double, NUM_ALGE_STATES> minus_h = h(currState.plant, prevState.plant, currState.alge, time, timestep, NUM_Z_STATES+i, -delta);
+        delta_dhdy.col(i) =  1/(2*delta)*(plus_h-minus_h).segment(0, NUM_Z_STATES);
+    }
+    for(int i = 0; i < NUM_Z_STATES; i++)
+    {
+        for(int j = 0; j < NUM_Y_STATES; j++)
+        {
+            if (std::abs(exact_dhdy(i, j) - delta_dhdy(i, j)) > 2e-5)
+            {
+                m_logger << "dhdy: index - " << i << " " << j << " diff: " << exact_dhdy(i, j) - delta_dhdy(i, j) << std::endl;
+                m_logger << "exact_dgdz " << exact_dhdy(i, j) << " delta_dgdz " << delta_dhdy(i, j) << std::endl;
+            }
+        }
+    }
+    m_logger << "dhdy max diff: " << std::max((exact_dhdy - delta_dhdy).maxCoeff(), (delta_dhdy - exact_dhdy).maxCoeff()) << std::endl;
+
+}
