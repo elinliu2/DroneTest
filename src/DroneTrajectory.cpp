@@ -109,7 +109,7 @@ Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double
         }
     }
 
-    Eigen::Vector<double, NUM_ALGE_STATES> algeStates = CascadedPIDController(guess.plant, prev.plant, guess.alge, time, timestep);
+    Eigen::Vector<double, NUM_ALGE_STATES> algeStates = CascadedPIDController(guess.plant, prev.plant, prev.alge, time, timestep);
 
     guess.alge = algeStates;
     stable = stable && count < max_iterations;   

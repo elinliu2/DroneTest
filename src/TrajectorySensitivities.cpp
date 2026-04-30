@@ -39,7 +39,7 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
     // m_logger << "test0" << std::endl; 
 
     // iterating trajectory sensitivity
-    for(int i = 411; i < 412; i++)
+    for(int i = 1; i < 2; i++)
     {
         // m_logger << "i: " << i << " desRoll " << simResults.stateProgression[i].alge(desRoll) << " desPitch " << simResults.stateProgression[i].alge(desPitch) << std::endl;
         double timestep = simResults.time[i] - simResults.time[i-1];
@@ -55,6 +55,10 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         dfdx_curr = dfdx(simResults.stateProgression[i-1]);
         Eigen::SparseMatrix<double> dfdz_plus = dfdz({simResults.stateProgression[i].plant, simResults.stateProgression[i-1].alge}); 
         Eigen::SparseMatrix<double> dfdz_curr = dfdz(simResults.stateProgression[i-1]);   
+        dfdx_test({simResults.stateProgression[i].plant, simResults.stateProgression[i-1].alge});
+        dfdz_test({simResults.stateProgression[i].plant, simResults.stateProgression[i-1].alge});
+        dfdx_test(simResults.stateProgression[i-1]);
+        dfdz_test(simResults.stateProgression[i-1]);
         // Eigen::SparseMatrix<double> dfdz_plus; 
         // Eigen::SparseMatrix<double> dfdz_curr;   
         // dfdz_plus.setZero();
@@ -64,9 +68,13 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         // B = dxdwo + (timestep / 2.0)*(dfdx_curr*dxdwo + 2*dfdz_curr*dzdwo);
         // solver.compute(A);
         // dxdwo_plus.noalias() = solver.solve(B);
+        // m_logger << "(I - T/2 * dfdx_plus).toDense().inverse():" << std::endl;
+        // m_logger << (I - (timestep / 2.0) * dfdx_plus).toDense().inverse() << std::endl;
+        // m_logger << "(dxdwo + (timestep / 2.0)*(dfdx_curr*dxdwo + (dfdz_plus+dfdz_curr)*dzdwo))" << std::endl;
+        // m_logger <<  (dxdwo + (timestep / 2.0)*(dfdx_curr*dxdwo + (dfdz_plus+dfdz_curr)*dzdwo)) << std::endl;
         dxdwo_plus = (I - (timestep / 2.0) * dfdx_plus).toDense().inverse() * (dxdwo + (timestep / 2.0)*(dfdx_curr*dxdwo + (dfdz_plus+dfdz_curr)*dzdwo));
-
         // dzdwo for 1 to n
+        
         dhdx_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
         dhdz_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
         dgdz_test(simResults.stateProgression[i], simResults.stateProgression[i-1], simResults.time[i], timestep);
@@ -81,10 +89,10 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         // std::chrono::time_point elapsed3 = std::chrono::steady_clock::now();
         // m_logger << "test3" << std::endl;
 
-        for(int i = 0; i < desThrust; i ++){
+        for(int zBeforey = 0; zBeforey < desThrust; zBeforey ++){
             Eigen::Matrix<double, 1, NUM_STATES> tmp;
-            tmp.noalias() = dhdz_plus.block(i, 0, NUM_STATES, i) * dzdwo_plus.topRows(i);
-            dzdwo_plus.row(i) += tmp;
+            // tmp.noalias() = dhdz_plus.block(zBeforey, 0, 1, zBeforey) * dzdwo_plus.topRows(zBeforey);
+            dzdwo_plus.row(zBeforey) += tmp;
         }
         // std::chrono::time_point elapsed4 = std::chrono::steady_clock::now();
         // m_logger << "test4" << std::endl;
@@ -96,10 +104,10 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
 
         // dzdwo 
         dzdwo_plus += dhdy_plus * dydwo_plus;
-        for(int i = eiphi; i < NUM_Z_STATES; i ++){
+        for(int zAftery = eiphi; zAftery < NUM_Z_STATES; zAftery ++){
             Eigen::Matrix<double, 1, NUM_STATES> tmp;
-            tmp.noalias() = dhdz_plus.block(i, 0, NUM_STATES, i) * dzdwo_plus.topRows(i);
-            dzdwo_plus.row(i) += tmp;
+            // tmp.noalias() = dhdz_plus.block(zAftery, 0, 1, zAftery) * dzdwo_plus.topRows(zAftery);
+            dzdwo_plus.row(zAftery) += tmp;
         }
         // std::chrono::time_point elapsed6 = std::chrono::steady_clock::now();
         // m_logger << "test6" << std::endl;
