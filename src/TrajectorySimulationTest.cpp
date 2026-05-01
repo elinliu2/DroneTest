@@ -94,7 +94,7 @@ void DroneTrajectory::dfdz_test(SystemState initialState)
 void DroneTrajectory::dhdx_test(SystemState currState, SystemState prevState, double time, double timestep)
 {
     Eigen::Matrix<double, NUM_Z_STATES, NUM_PLANT_STATES> exact_dhdxPlus = dhdxPlus(currState, time, timestep);
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_PLANT_STATES> exact_dhdxCurr = dhdxCurr(currState, prevState, timestep);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_PLANT_STATES> exact_dhdxCurr = dhdxCurr(prevState, timestep);
     Eigen::Matrix<double, NUM_Z_STATES, NUM_PLANT_STATES> delta_dhdxPlus;
     Eigen::Matrix<double, NUM_Z_STATES, NUM_PLANT_STATES> delta_dhdxCurr;
     
@@ -155,7 +155,7 @@ void DroneTrajectory::dhdx_test(SystemState currState, SystemState prevState, do
 void DroneTrajectory::dhdz_test(SystemState currState, SystemState prevState, double time, double timestep)
 {
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzPlus = dhdzPlus(currState, timestep);
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzCurr = dhdzCurr(currState, timestep);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzCurr = dhdzCurr();
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzPlus;
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzCurr;
     
@@ -213,7 +213,7 @@ void DroneTrajectory::dhdz_test(SystemState currState, SystemState prevState, do
 
 void DroneTrajectory::dgdz_test(SystemState currState, SystemState prevState, double time, double timestep)
 {
-    Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> exact_dgdz = dgdz(currState, timestep);
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> exact_dgdz = dgdz(currState);
     Eigen::Matrix<double, NUM_Y_STATES, NUM_Z_STATES> delta_dgdz;
     
     double delta = 1e-5;
@@ -240,7 +240,7 @@ void DroneTrajectory::dgdz_test(SystemState currState, SystemState prevState, do
 
 void DroneTrajectory::dhdy_test(SystemState currState, SystemState prevState, double time, double timestep)
 {
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> exact_dhdy = dhdy(currState, timestep);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> exact_dhdy = dhdy(timestep);
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> delta_dhdy;
     
     double delta = 1e-5;
