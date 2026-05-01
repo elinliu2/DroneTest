@@ -58,16 +58,18 @@ SystemState initializeState()
 
 void printDwdwo(Logger & log, dwdwo trajSens)
 {
-    log << trajSens.dxdwo << std::endl;
+    // log << trajSens.dxdwo << std::endl;
     log << trajSens.dzdwo << std::endl;
-    log << trajSens.dydwo << std::endl;
+    // log << trajSens.dydwo << std::endl;
 }
 
 void diffDwdwo(Logger & log, dwdwo trajSensA, dwdwo trajSensB)
 {
+    log << "dxdwo diff" << std::endl;
     log << trajSensA.dxdwo - trajSensB.dxdwo << std::endl;
+    log << "dzdwo diff" << std::endl;
     log << trajSensA.dzdwo - trajSensB.dzdwo << std::endl;
-    log << trajSensA.dydwo - trajSensB.dydwo << std::endl;
+    // log << trajSensA.dydwo - trajSensB.dydwo << std::endl;
 }
 
 std::pair<double, int> diffTrajSens(std::vector<dwdwo> const & tsA, std::vector<dwdwo> const & tsB)
@@ -132,12 +134,36 @@ int main()
     log << "max diff ts 0: " << diff.first << std::endl;
     diff = diffTrajSens({ts.at(1)}, {tsTest.at(1)});
     log << "max diff ts 1: " << diff.first <<  std::endl;
-
+    diff = diffTrajSens({ts.at(2)}, {tsTest.at(2)});
+    log << "max diff ts 2: " << diff.first <<  std::endl;
+    
+    // diff = diffTrajSens({ts.at(2)}, {tsTest.at(2)});
+    // log << "max diff ts 2: " << diff.first <<  std::endl;
     // diffDwdwo(log, ts.at(1), tsTest.at(1));
-    // log << "INFO - ts" << std::endl;
-    // printDwdwo(log, ts.at(1));
-    // log << "INFO - tsTest" << std::endl;
-    // printDwdwo(log, tsTest.at(1));
+
+    diff = diffTrajSens(ts, tsTest);
+    log << "max diff ts: " << diff.first <<  " index: " << diff.second << std::endl;    
+
+    // log << "ts.at(1).dzdwo.row(i)" << std::endl << ts.at(1).dzdwo.row(37) << std::endl;
+    // log << "tsTest.at(1).dzdwo.row(i)" << std::endl << tsTest.at(1).dzdwo.row(37) << std::endl;
+        
+
+    // for (int i = 0; i < NUM_Z_STATES; i++){
+    //     log << "row " << i << std::endl;
+    //     // log << "ts.at(1).dzdwo.row(i)" << std::endl << ts.at(1).dzdwo.row(i) << std::endl;
+    //     // log << "tsTest.at(1).dzdwo.row(i)" << std::endl << tsTest.at(1).dzdwo.row(i) << std::endl;
+    //     log << (ts.at(1).dzdwo.row(i)-tsTest.at(1).dzdwo.row(i)).maxCoeff() << std::endl;
+    //     log << (-ts.at(1).dzdwo.row(i)+tsTest.at(1).dzdwo.row(i)).maxCoeff() << std::endl;
+        
+    // }
+
+    // for (int i = 0; i < 10001; i++){
+    //     diff = diffTrajSens({ts.at(i)}, {tsTest.at(i)});
+    //     log << diff.first << std::endl;
+    // }
+    
+    // log << "INFO - diff" << std::endl;
+    // diffDwdwo(log, ts.at(10001), tsTest.at(10001));
     
     std::cout << ":D" << std::endl;
     return 0;
