@@ -73,6 +73,25 @@ Eigen::SparseMatrix<double> DroneTrajectory::dfdz(SystemState state)
     return dfdz_mat;
 }
 
+Eigen::SparseMatrix<double> DroneTrajectory::dgdx(SystemState state)
+{
+    std::vector<T> dgdx;
+    dgdx.reserve(10);
+    if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
+        dgdx.push_back(T(0, xdot, -m_ctrlParams.at(velY).kp*sin(state.plant(psi))));
+        dgdx.push_back(T(0, ydot, m_ctrlParams.at(velY).kp*cos(state.plant(psi))));
+        dgdx.push_back(T(0, psi, m_ctrlParams.at(velY).kp*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)))));
+    }
+    if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
+        dgdx.push_back(T(1, xdot, -m_ctrlParams.at(velX).kp*cos(state.plant(psi))));
+        dgdx.push_back(T(1, ydot, -m_ctrlParams.at(velX).kp*sin(state.plant(psi))));
+        dgdx.push_back(T(1, psi, m_ctrlParams.at(velX).kp*(-state.plant(xdot)*sin(state.plant(psi)) + state.plant(ydot)*cos(state.plant(psi)))));
+    }
+    Eigen::SparseMatrix<double> dgdx_mat(NUM_Y_STATES, NUM_PLANT_STATES);
+    dgdx_mat.setFromTriplets(dgdx.begin(), dgdx.end());
+    return dgdx_mat;
+}
+
 Eigen::SparseMatrix<double> DroneTrajectory::dgdz(SystemState state)
 {
     std::vector<T> dgdz;
@@ -120,15 +139,15 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdxPlus(SystemState state, double 
     dhdx.push_back(T(edz, z, -1/timestep));
     dhdx.push_back(T(desVelZ, z, -m_ctrlParams.at(posZ).kp));
 
-    dhdx.push_back(T(eixdot, x, -timestep*cos(state.plant(psi))));
-    dhdx.push_back(T(eixdot, y, -timestep*sin(state.plant(psi))));
+    dhdx.push_back(T(eixdot, xdot, -timestep*cos(state.plant(psi))));
+    dhdx.push_back(T(eixdot, ydot, -timestep*sin(state.plant(psi))));
     dhdx.push_back(T(eixdot, psi, -timestep*(state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)))));
     dhdx.push_back(T(edxdot, xdot, -1/timestep*cos(state.plant(psi))));
     dhdx.push_back(T(edxdot, ydot, -1/timestep*sin(state.plant(psi))));
     dhdx.push_back(T(edxdot, psi, -(state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)))/timestep ));
 
-    dhdx.push_back(T(eiydot, x, timestep*sin(state.plant(psi))));
-    dhdx.push_back(T(eiydot, y, -timestep*cos(state.plant(psi))));
+    dhdx.push_back(T(eiydot, xdot, timestep*sin(state.plant(psi))));
+    dhdx.push_back(T(eiydot, ydot, -timestep*cos(state.plant(psi))));
     dhdx.push_back(T(eiydot, psi, timestep*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi))) ));
     dhdx.push_back(T(edydot, xdot, 1/timestep*sin(state.plant(psi))));
     dhdx.push_back(T(edydot, ydot, -1/timestep*cos(state.plant(psi))));
@@ -292,10 +311,10 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double 
     dhdz.push_back(T(ty, w3, - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w3)));
     dhdz.push_back(T(ty, w4, m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * state.alge(w4)));
 
-    dhdz.push_back(T(tz, w1, m_droneParams.km * state.alge(w1)));
-    dhdz.push_back(T(tz, w2, - m_droneParams.km * state.alge(w2)));
-    dhdz.push_back(T(tz, w3, m_droneParams.km * state.alge(w3)));
-    dhdz.push_back(T(tz, w4, - m_droneParams.km * state.alge(w4)));
+    dhdz.push_back(T(tz, w1, m_droneParams.km * 2 * state.alge(w1)));
+    dhdz.push_back(T(tz, w2, - m_droneParams.km * 2 * state.alge(w2)));
+    dhdz.push_back(T(tz, w3, m_droneParams.km * 2 * state.alge(w3)));
+    dhdz.push_back(T(tz, w4, - m_droneParams.km * 2 * state.alge(w4)));
 
     Eigen::SparseMatrix<double> dhdz_mat(NUM_Z_STATES, NUM_Z_STATES);
     dhdz_mat.setFromTriplets(dhdz.begin(), dhdz.end());
