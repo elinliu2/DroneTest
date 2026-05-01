@@ -182,10 +182,13 @@ int main()
     diff = diffTrajSens({ts.at(2)}, {tsTest.at(2)});
     log << "max diff ts 2: " << diff.first <<  std::endl;
 
-    diff = diffTrajSens({ts.at(412)}, {tsTest.at(412)});
-    log << "max diff ts 412: " << diff.first <<  std::endl;
-    // diff = diffTrajSens(ts, tsTest);
-    // log << "max diff: " << diff.first <<  std::endl;
+    
+    // diff = diffTrajSens({ts.at(411)}, {tsTest.at(411)});
+    // log << "max diff ts 411: " << diff.first <<  std::endl;
+    // diff = diffTrajSens({ts.at(412)}, {tsTest.at(412)});
+    // log << "max diff ts 412: " << diff.first <<  std::endl;
+    diff = diffTrajSens(ts, tsTest);
+    log << "max diff: " << diff.first <<  std::endl;
     
     // diff = diffTrajSens({ts.at(2)}, {tsTest.at(2)});
     // log << "max diff ts 2: " << diff.first <<  std::endl;
@@ -198,22 +201,29 @@ int main()
     // log << "max diff dxdwo: " << diff.first <<  " index: " << diff.second << std::endl;  
     // for (int i = 0; i < NUM_PLANT_STATES; i++){
     //     log << "row " << i << std::endl;
-    //     // log << "ts.at(1).dzdwo.row(i)" << std::endl << ts.at(1).dzdwo.row(i) << std::endl;
-    //     // log << "tsTest.at(1).dzdwo.row(i)" << std::endl << tsTest.at(1).dzdwo.row(i) << std::endl;
-    //     log << (ts.at(2).dxdwo.row(i)-tsTest.at(2).dxdwo.row(i)).maxCoeff() << std::endl;
-    //     log << (-ts.at(2).dxdwo.row(i)+tsTest.at(2).dxdwo.row(i)).maxCoeff() << std::endl;
-        
-    // }  
+    //     log << ts.at(410).dxdwo.row(i) << std::endl;
+    //     log << tsTest.at(410).dxdwo.row(i) << std::endl;
+    //     log << (ts.at(410).dxdwo.row(i)-tsTest.at(410).dxdwo.row(i)).maxCoeff() << std::endl;
+    //     log << (-ts.at(410).dxdwo.row(i)+tsTest.at(410).dxdwo.row(i)).maxCoeff() << std::endl;  
+    // } 
+
+    // for (int i = 0; i < NUM_Y_STATES; i++){
+    //     log << "row " << i << std::endl;
+    //     log << ts.at(410).dydwo.row(i) << std::endl;
+    //     log << tsTest.at(410).dydwo.row(i) << std::endl;
+    //     log << (ts.at(410).dydwo.row(i)-tsTest.at(410).dydwo.row(i)).maxCoeff() << std::endl;
+    //     log << (-ts.at(410).dydwo.row(i)+tsTest.at(410).dydwo.row(i)).maxCoeff() << std::endl;  
+    // } 
 
     // diff = diffdzdwo({ts.at(2)}, {tsTest.at(2)});
     // log << "max diff dzdwo: " << diff.first <<  " index: " << diff.second << std::endl;    
 
     // for (int i = 0; i < NUM_Z_STATES; i++){
     //     log << "row " << i << std::endl;
-    //     log << ts.at(412).dzdwo.row(i) << std::endl;
-    //     log << tsTest.at(412).dzdwo.row(i) << std::endl;
-    //     log << ( ts.at(412).dzdwo.row(i)-tsTest.at(412).dzdwo.row(i)).maxCoeff() << std::endl;
-    //     log << (-ts.at(412).dzdwo.row(i)+tsTest.at(412).dzdwo.row(i)).maxCoeff() << std::endl;
+    //     log << ts.at(410).dzdwo.row(i) << std::endl;
+    //     log << tsTest.at(410).dzdwo.row(i) << std::endl;
+    //     log << ( ts.at(410).dzdwo.row(i)-tsTest.at(410).dzdwo.row(i)).maxCoeff() << std::endl;
+    //     log << (-ts.at(410).dzdwo.row(i)+tsTest.at(410).dzdwo.row(i)).maxCoeff() << std::endl;
     // }
 
     // for (int i = 0; i < 10001; i++){

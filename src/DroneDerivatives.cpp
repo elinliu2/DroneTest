@@ -76,16 +76,16 @@ Eigen::SparseMatrix<double> DroneTrajectory::dfdz(SystemState state)
 Eigen::SparseMatrix<double> DroneTrajectory::dgdx(SystemState state)
 {
     std::vector<T> dgdx;
-    dgdx.reserve(10);
+    dgdx.reserve(6);
     if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
         dgdx.push_back(T(0, xdot, -m_ctrlParams.at(velY).kp*sin(state.plant(psi))));
         dgdx.push_back(T(0, ydot, m_ctrlParams.at(velY).kp*cos(state.plant(psi))));
-        dgdx.push_back(T(0, psi, m_ctrlParams.at(velY).kp*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)))));
+        dgdx.push_back(T(0, psi, -m_ctrlParams.at(velY).kp*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)))));
     }
     if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
         dgdx.push_back(T(1, xdot, -m_ctrlParams.at(velX).kp*cos(state.plant(psi))));
         dgdx.push_back(T(1, ydot, -m_ctrlParams.at(velX).kp*sin(state.plant(psi))));
-        dgdx.push_back(T(1, psi, m_ctrlParams.at(velX).kp*(-state.plant(xdot)*sin(state.plant(psi)) + state.plant(ydot)*cos(state.plant(psi)))));
+        dgdx.push_back(T(1, psi, -m_ctrlParams.at(velX).kp*(-state.plant(xdot)*sin(state.plant(psi)) + state.plant(ydot)*cos(state.plant(psi)))));
     }
     Eigen::SparseMatrix<double> dgdx_mat(NUM_Y_STATES, NUM_PLANT_STATES);
     dgdx_mat.setFromTriplets(dgdx.begin(), dgdx.end());
@@ -95,14 +95,14 @@ Eigen::SparseMatrix<double> DroneTrajectory::dgdx(SystemState state)
 Eigen::SparseMatrix<double> DroneTrajectory::dgdz(SystemState state)
 {
     std::vector<T> dgdz;
-    dgdz.reserve(10);
+    dgdz.reserve(6);
     if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
-        dgdz.push_back(T(0, desVelY, m_ctrlParams.at(velY).kp));
+        dgdz.push_back(T(0, desVelY, -m_ctrlParams.at(velY).kp));
         dgdz.push_back(T(0, eiydot, -m_ctrlParams.at(velY).ki));
         dgdz.push_back(T(0, edydot, -m_ctrlParams.at(velY).kd));
     }
     if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
-        dgdz.push_back(T(1, desVelX, (m_ctrlParams.at(velX).kp)));
+        dgdz.push_back(T(1, desVelX, m_ctrlParams.at(velX).kp));
         dgdz.push_back(T(1, eixdot, m_ctrlParams.at(velX).ki));
         dgdz.push_back(T(1, edxdot, m_ctrlParams.at(velX).kd));
     }
