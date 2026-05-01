@@ -113,6 +113,51 @@ std::pair<double, int> diffTrajSens(std::vector<dwdwo> const & tsA, std::vector<
     return {maxDiff, index};
 }
 
+
+std::pair<double, int> diffdxdwo(std::vector<dwdwo> const & tsA, std::vector<dwdwo> const & tsB)
+{
+    int numIterations = std::min(tsA.size(), tsB.size());
+    double maxDiff = 0;
+    int index = 0;
+    for (int i = 0; i < numIterations; i++)
+    {
+        Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwoDiff = tsA[i].dxdwo-tsB[i].dxdwo;
+     
+        if (dxdwoDiff.maxCoeff() > maxDiff){
+            maxDiff = dxdwoDiff.maxCoeff();
+            index = i;
+        }
+
+        if ((-1*dxdwoDiff.maxCoeff()) > maxDiff){
+            maxDiff = (-1*dxdwoDiff.maxCoeff());
+            index = i;
+        }
+    }
+    return {maxDiff, index};
+}
+
+std::pair<double, int> diffdzdwo(std::vector<dwdwo> const & tsA, std::vector<dwdwo> const & tsB)
+{
+    int numIterations = std::min(tsA.size(), tsB.size());
+    double maxDiff = 0;
+    int index = 0;
+    for (int i = 0; i < numIterations; i++)
+    {
+        Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwoDiff = tsA[i].dzdwo-tsB[i].dzdwo;
+        
+        if (dzdwoDiff.maxCoeff() > maxDiff){
+            maxDiff = dzdwoDiff.maxCoeff();
+            index = i;
+        }
+
+        if ((-1*dzdwoDiff.maxCoeff()) > maxDiff){
+            maxDiff = (-1*dzdwoDiff.maxCoeff());
+            index = i;
+        }
+
+    }
+    return {maxDiff, index};
+}
 int main()
 {
     Logger log("log.txt");
@@ -136,25 +181,39 @@ int main()
     log << "max diff ts 1: " << diff.first <<  std::endl;
     diff = diffTrajSens({ts.at(2)}, {tsTest.at(2)});
     log << "max diff ts 2: " << diff.first <<  std::endl;
+
+    diff = diffTrajSens({ts.at(412)}, {tsTest.at(412)});
+    log << "max diff ts 412: " << diff.first <<  std::endl;
+    // diff = diffTrajSens(ts, tsTest);
+    // log << "max diff: " << diff.first <<  std::endl;
     
     // diff = diffTrajSens({ts.at(2)}, {tsTest.at(2)});
     // log << "max diff ts 2: " << diff.first <<  std::endl;
     // diffDwdwo(log, ts.at(1), tsTest.at(1));
 
-    diff = diffTrajSens(ts, tsTest);
-    log << "max diff ts: " << diff.first <<  " index: " << diff.second << std::endl;    
-
-    // log << "ts.at(1).dzdwo.row(i)" << std::endl << ts.at(1).dzdwo.row(37) << std::endl;
-    // log << "tsTest.at(1).dzdwo.row(i)" << std::endl << tsTest.at(1).dzdwo.row(37) << std::endl;
-        
-
-    // for (int i = 0; i < NUM_Z_STATES; i++){
+    // diff = diffTrajSens(ts, tsTest);
+    // log << "max diff ts: " << diff.first <<  " index: " << diff.second << std::endl;    
+   
+    // diff = diffdxdwo({ts.at(2)}, {tsTest.at(2)});
+    // log << "max diff dxdwo: " << diff.first <<  " index: " << diff.second << std::endl;  
+    // for (int i = 0; i < NUM_PLANT_STATES; i++){
     //     log << "row " << i << std::endl;
     //     // log << "ts.at(1).dzdwo.row(i)" << std::endl << ts.at(1).dzdwo.row(i) << std::endl;
     //     // log << "tsTest.at(1).dzdwo.row(i)" << std::endl << tsTest.at(1).dzdwo.row(i) << std::endl;
-    //     log << (ts.at(1).dzdwo.row(i)-tsTest.at(1).dzdwo.row(i)).maxCoeff() << std::endl;
-    //     log << (-ts.at(1).dzdwo.row(i)+tsTest.at(1).dzdwo.row(i)).maxCoeff() << std::endl;
+    //     log << (ts.at(2).dxdwo.row(i)-tsTest.at(2).dxdwo.row(i)).maxCoeff() << std::endl;
+    //     log << (-ts.at(2).dxdwo.row(i)+tsTest.at(2).dxdwo.row(i)).maxCoeff() << std::endl;
         
+    // }  
+
+    // diff = diffdzdwo({ts.at(2)}, {tsTest.at(2)});
+    // log << "max diff dzdwo: " << diff.first <<  " index: " << diff.second << std::endl;    
+
+    // for (int i = 0; i < NUM_Z_STATES; i++){
+    //     log << "row " << i << std::endl;
+    //     log << ts.at(412).dzdwo.row(i) << std::endl;
+    //     log << tsTest.at(412).dzdwo.row(i) << std::endl;
+    //     log << ( ts.at(412).dzdwo.row(i)-tsTest.at(412).dzdwo.row(i)).maxCoeff() << std::endl;
+    //     log << (-ts.at(412).dzdwo.row(i)+tsTest.at(412).dzdwo.row(i)).maxCoeff() << std::endl;
     // }
 
     // for (int i = 0; i < 10001; i++){

@@ -88,8 +88,15 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(); 
         Eigen::SparseMatrix<double> dhdy_plus = dhdy(timestep);
         Eigen::SparseMatrix<double> dgdz_plus = dgdz(simResults.stateProgression[i]);
+        Eigen::SparseMatrix<double> dgdx_plus = dgdx(simResults.stateProgression[i]);
         dzdwo_plus = dhdx_plus * dxdwo_plus + dhdx_curr * dxdwo + dhdz_curr * dzdwo;
 
+        // if (i == 412){        
+        //     m_logger << "dhdx_plus * dxdwo_plus row 9" << std::endl << (dhdx_plus * dxdwo_plus).row(1) << std::endl;
+        //     m_logger << "dhdx_curr * dxdwo row 9" << std::endl << (dhdx_curr * dxdwo).row(1) << std::endl;
+        //     m_logger << "dhdz_curr * dzdwo row 9" << std::endl << (dhdz_curr * dzdwo).row(1) << std::endl;
+        // }
+        
         // std::chrono::time_point elapsed3 = std::chrono::steady_clock::now();
         // m_logger << "test3" << std::endl;
         
@@ -98,12 +105,16 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
             tmp = dhdz_plus.block(zBeforey, 0, 1, zBeforey) * dzdwo_plus.topRows(zBeforey);
             dzdwo_plus.row(zBeforey) += tmp;
         }
+        // if (i == 412){        
+        //     m_logger << "dzdwo_plus row 9" << std::endl << (dzdwo_plus).row(1) << std::endl;
+        // }
+        
          
         // std::chrono::time_point elapsed4 = std::chrono::steady_clock::now();
         // m_logger << "test4" << std::endl;
 
         // dydwo
-        dydwo_plus = dgdz_plus * dzdwo_plus;
+        dydwo_plus = dgdz_plus * dzdwo_plus + dgdx_plus * dxdwo_plus;
         // std::chrono::time_point elapsed5 = std::chrono::steady_clock::now();
         // m_logger << "test5" << std::endl;
 
