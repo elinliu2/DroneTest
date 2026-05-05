@@ -180,6 +180,13 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> dhdzCurr();
     Eigen::SparseMatrix<double> dhdy(double timestep);
 
+    Eigen::Matrix<double, NUM_PLANT_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> d2fdx2(SystemState state);
+
+    Eigen::Matrix<double, NUM_Y_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> d2gdx2(SystemState state);
+    Eigen::Matrix<double, NUM_Z_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> d2hdx2_plus(SystemState state, double time, double timestep);
+    Eigen::Matrix<double, NUM_Z_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> d2hdx2_curr(SystemState state, double timestep);
+    Eigen::Matrix<double, NUM_Z_STATES*NUM_Z_STATES, NUM_Z_STATES> d2hdz2_plus();
+
     Eigen::Vector<double, NUM_ALGE_STATES> h(Eigen::Vector<double, NUM_PLANT_STATES> plantState,
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
     Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates,

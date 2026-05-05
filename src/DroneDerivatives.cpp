@@ -367,3 +367,213 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdy(double timestep)
     dhdy_mat.setFromTriplets(dhdy.begin(), dhdy.end()); 
     return dhdy_mat;
 }
+
+Eigen::Matrix<double, NUM_PLANT_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> DroneTrajectory::d2fdx2(SystemState state)
+{
+    Eigen::Matrix<double, NUM_PLANT_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> d2fdx2 = Eigen::Matrix<double, NUM_PLANT_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES>::Zero();
+    Eigen::Vector<double, NUM_PLANT_STATES> plant = state.plant;
+    Eigen::Vector<double, NUM_ALGE_STATES> alge = state.alge;
+
+    d2fdx2(39, 3) = - plant(r)*cos(plant(phi))*tan(plant(theta)) - plant(q)*sin(plant(phi))*tan(plant(theta));
+    d2fdx2(39, 4) = plant(q)*cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1) - plant(r)*sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2(39, 10) = cos(plant(phi))*tan(plant(theta));
+    d2fdx2(39, 11) = -sin(plant(phi))*tan(plant(theta));
+    d2fdx2(40, 3) = plant(q)*cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1) - plant(r)*sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2(40, 4) = 2*plant(r)*cos(plant(phi))*tan(plant(theta))*(std::pow(tan(plant(theta)), 2) + 1) + 2*plant(q)*sin(plant(phi))*tan(plant(theta))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2(40, 10) = sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2(40, 11) = cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2(46, 3) = cos(plant(phi))*tan(plant(theta));
+    d2fdx2(46, 4) = sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2(47, 3) = -sin(plant(phi))*tan(plant(theta));
+    d2fdx2(47, 4) = cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2(51, 3) = plant(r)*sin(plant(phi)) - plant(q)*cos(plant(phi));
+    d2fdx2(51, 10) = -sin(plant(phi));
+    d2fdx2(51, 11) = -cos(plant(phi));
+    d2fdx2(58, 3) = -sin(plant(phi));
+    d2fdx2(59, 3) = -cos(plant(phi));
+    d2fdx2(63, 3) = - (plant(r)*cos(plant(phi)))/cos(plant(theta)) - (plant(q)*sin(plant(phi)))/cos(plant(theta));
+    d2fdx2(63, 4) = (plant(q)*cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2) - (plant(r)*sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2(63, 10) = cos(plant(phi))/cos(plant(theta));
+    d2fdx2(63, 11) = -sin(plant(phi))/cos(plant(theta));
+    d2fdx2(64, 3) = (plant(q)*cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2) - (plant(r)*sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2(64, 4) = (plant(r)*cos(plant(phi)))/cos(plant(theta)) + (plant(q)*sin(plant(phi)))/cos(plant(theta)) + std::pow((2*plant(r)*cos(plant(phi))*std::pow(sin(plant(theta)), 2))/cos(plant(theta)), 3) + std::pow((2*plant(q)*sin(plant(phi))*std::pow(sin(plant(theta)), 2))/cos(plant(theta)), 3);
+    d2fdx2(64, 10) = (sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2(64, 11) = (cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2(70, 3) = cos(plant(phi))/cos(plant(theta));
+    d2fdx2(70, 4) = (sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2(71, 3) = -sin(plant(phi))/cos(plant(theta));
+    d2fdx2(71, 4) = (cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2(75, 3) = -(alge(ft)*(sin(plant(phi))*sin(plant(psi)) + cos(plant(phi))*cos(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2(75, 4) = -(alge(ft)*cos(plant(psi))*cos(plant(theta))*sin(plant(phi)))/m_droneParams.mass;
+    d2fdx2(75, 5) = (alge(ft)*(cos(plant(phi))*cos(plant(psi)) + sin(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2(76, 3) = -(alge(ft)*cos(plant(psi))*cos(plant(theta))*sin(plant(phi)))/m_droneParams.mass;
+    d2fdx2(76, 4) = -(alge(ft)*cos(plant(phi))*cos(plant(psi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdx2(76, 5) = -(alge(ft)*cos(plant(phi))*cos(plant(theta))*sin(plant(psi)))/m_droneParams.mass;
+    d2fdx2(77, 3) = (alge(ft)*(cos(plant(phi))*cos(plant(psi)) + sin(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2(77, 4) = -(alge(ft)*cos(plant(phi))*cos(plant(theta))*sin(plant(psi)))/m_droneParams.mass;
+    d2fdx2(77, 5) = -(alge(ft)*(sin(plant(phi))*sin(plant(psi)) + cos(plant(phi))*cos(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2(87, 3) = (alge(ft)*(cos(plant(psi))*sin(plant(phi)) - cos(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2(87, 4) = -(alge(ft)*cos(plant(theta))*sin(plant(phi))*sin(plant(psi)))/m_droneParams.mass;
+    d2fdx2(87, 5) = (alge(ft)*(cos(plant(phi))*sin(plant(psi)) - cos(plant(psi))*sin(plant(phi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2(88, 3) = -(alge(ft)*cos(plant(theta))*sin(plant(phi))*sin(plant(psi)))/m_droneParams.mass;
+    d2fdx2(88, 4) = -(alge(ft)*cos(plant(phi))*sin(plant(psi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdx2(88, 5) = (alge(ft)*cos(plant(phi))*cos(plant(psi))*cos(plant(theta)))/m_droneParams.mass;
+    d2fdx2(89, 3) = (alge(ft)*(cos(plant(phi))*sin(plant(psi)) - cos(plant(psi))*sin(plant(phi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2(89, 4) = (alge(ft)*cos(plant(phi))*cos(plant(psi))*cos(plant(theta)))/m_droneParams.mass;
+    d2fdx2(89, 5) = (alge(ft)*(cos(plant(psi))*sin(plant(phi)) - cos(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2(99, 3) = -(alge(ft)*cos(plant(phi))*cos(plant(theta)))/m_droneParams.mass;
+    d2fdx2(99, 4) = (alge(ft)*sin(plant(phi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdx2(100, 3) = (alge(ft)*sin(plant(phi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdx2(100, 4) = -(alge(ft)*cos(plant(phi))*cos(plant(theta)))/m_droneParams.mass;
+    d2fdx2(118, 11) = (m_droneParams.Iy - m_droneParams.Iz)/m_droneParams.Ix;
+    d2fdx2(119, 10) = (m_droneParams.Iy - m_droneParams.Iz)/m_droneParams.Ix;
+    d2fdx2(129, 11) = -(m_droneParams.Ix - m_droneParams.Iz)/m_droneParams.Iy;
+    d2fdx2(131, 9) = -(m_droneParams.Ix - m_droneParams.Iz)/m_droneParams.Iy;
+    d2fdx2(141, 10) = (m_droneParams.Ix - m_droneParams.Iy)/m_droneParams.Iz;
+    d2fdx2(142, 9) = (m_droneParams.Ix - m_droneParams.Iy)/m_droneParams.Iz;
+    return d2fdx2;
+}
+
+
+Eigen::Matrix<double, NUM_Y_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> DroneTrajectory::d2gdx2(SystemState state)
+{
+    Eigen::Matrix<double, NUM_Y_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> d2gdx2 = Eigen::Matrix<double, NUM_Y_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES>::Zero();
+    if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
+        d2gdx2(xdot, psi) = -m_ctrlParams.at(velY).kp*cos(state.plant(psi));
+        d2gdx2(ydot, psi) = -m_ctrlParams.at(velY).kp*sin(state.plant(psi));
+        d2gdx2(psi, xdot) = -m_ctrlParams.at(velY).kp*cos(state.plant(psi));
+        d2gdx2(psi, ydot) = -m_ctrlParams.at(velY).kp*sin(state.plant(psi));
+        d2gdx2(psi, psi) =  -m_ctrlParams.at(velY).kp*(state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)));
+    }
+    if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
+        d2gdx2(NUM_PLANT_STATES + xdot, psi) =  m_ctrlParams.at(velX).kp*sin(state.plant(psi));
+        d2gdx2(NUM_PLANT_STATES + ydot, psi) = -m_ctrlParams.at(velX).kp*cos(state.plant(psi));
+        d2gdx2(NUM_PLANT_STATES + psi, xdot) =  m_ctrlParams.at(velX).kp*sin(state.plant(psi));
+        d2gdx2(NUM_PLANT_STATES + psi, ydot) = -m_ctrlParams.at(velX).kp*cos(state.plant(psi));
+        d2gdx2(NUM_PLANT_STATES + psi, psi) = m_ctrlParams.at(velX).kp*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)));
+    }
+    return d2gdx2;
+}
+
+Eigen::Matrix<double, NUM_Z_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> DroneTrajectory::d2hdx2_plus(SystemState state, double time, double timestep)
+{
+    Eigen::Matrix<double, NUM_Z_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> d2hdx2_plus = Eigen::Matrix<double, NUM_Z_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES>::Zero();
+    d2hdx2_plus(eix*NUM_PLANT_STATES+x, psi) = timestep*sin(state.plant(psi));
+    d2hdx2_plus(eix*NUM_PLANT_STATES+y, psi) = -timestep*cos(state.plant(psi));
+    d2hdx2_plus(eix*NUM_PLANT_STATES+psi, x) = timestep*sin(state.plant(psi));
+    d2hdx2_plus(eix*NUM_PLANT_STATES+psi, y) = -timestep*cos(state.plant(psi));
+    d2hdx2_plus(eix*NUM_PLANT_STATES+psi, psi) = -timestep*(cos(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)) + sin(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)));
+
+    d2hdx2_plus(edx*NUM_PLANT_STATES+x, psi) = 1/timestep*sin(state.plant(psi));
+    d2hdx2_plus(edx*NUM_PLANT_STATES+y, psi) = -1/timestep*cos(state.plant(psi));
+    d2hdx2_plus(edx*NUM_PLANT_STATES+psi, x) = 1/timestep*sin(state.plant(psi));
+    d2hdx2_plus(edx*NUM_PLANT_STATES+psi, y) = -1/timestep*cos(state.plant(psi));
+    d2hdx2_plus(edx*NUM_PLANT_STATES+psi, psi) = (state.plant(x)*cos(state.plant(psi)) + state.plant(y)*sin(state.plant(psi)))/timestep;
+
+    d2hdx2_plus(desVelX*NUM_PLANT_STATES+x, psi) = m_ctrlParams.at(posX).kp*sin(state.plant(psi));
+    d2hdx2_plus(desVelX*NUM_PLANT_STATES+y, psi) = -m_ctrlParams.at(posX).kp*cos(state.plant(psi));
+    d2hdx2_plus(desVelX*NUM_PLANT_STATES+psi, x) = m_ctrlParams.at(posX).kp*sin(state.plant(psi));
+    d2hdx2_plus(desVelX*NUM_PLANT_STATES+psi, y) = -m_ctrlParams.at(posX).kp*cos(state.plant(psi));
+    d2hdx2_plus(desVelX*NUM_PLANT_STATES+psi, psi) = -m_ctrlParams.at(posX).kp*(cos(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)) + sin(state.plant(psi))*(m_ref.at(refy)(time) - state.plant(y)));
+
+    d2hdx2_plus(eiy*NUM_PLANT_STATES+x, psi) = timestep*cos(state.plant(psi));
+    d2hdx2_plus(eiy*NUM_PLANT_STATES+y, psi) = timestep*sin(state.plant(psi));
+    d2hdx2_plus(eiy*NUM_PLANT_STATES+psi, x) = timestep*cos(state.plant(psi));
+    d2hdx2_plus(eiy*NUM_PLANT_STATES+psi, y) = timestep*sin(state.plant(psi));
+    d2hdx2_plus(eiy*NUM_PLANT_STATES+psi, psi) = -timestep*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -x));
+
+    d2hdx2_plus(edy*NUM_PLANT_STATES+x, psi) = 1/timestep*cos(state.plant(psi));
+    d2hdx2_plus(edy*NUM_PLANT_STATES+y, psi) = 1/timestep*sin(state.plant(psi));
+    d2hdx2_plus(edy*NUM_PLANT_STATES+psi, x) = 1/timestep*cos(state.plant(psi));
+    d2hdx2_plus(edy*NUM_PLANT_STATES+psi, y) = 1/timestep*sin(state.plant(psi));
+    d2hdx2_plus(edy*NUM_PLANT_STATES+psi, psi) = (state.plant(y)*cos(state.plant(psi)) - state.plant(x)*sin(state.plant(psi)))/timestep;
+
+    d2hdx2_plus(desVelY*NUM_PLANT_STATES+x, psi) = m_ctrlParams.at(posY).kp*cos(state.plant(psi));
+    d2hdx2_plus(desVelY*NUM_PLANT_STATES+y, psi) = m_ctrlParams.at(posY).kp*sin(state.plant(psi));
+    d2hdx2_plus(desVelY*NUM_PLANT_STATES+psi, x) = m_ctrlParams.at(posY).kp*cos(state.plant(psi));
+    d2hdx2_plus(desVelY*NUM_PLANT_STATES+psi, y) = m_ctrlParams.at(posY).kp*sin(state.plant(psi));
+    d2hdx2_plus(desVelY*NUM_PLANT_STATES+psi, psi) = -m_ctrlParams.at(posY).kp*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)));
+    
+    d2hdx2_plus(eixdot*NUM_PLANT_STATES+xdot, psi) = timestep*sin(state.plant(psi));
+    d2hdx2_plus(eixdot*NUM_PLANT_STATES+ydot, psi) = -timestep*cos(state.plant(psi));
+    d2hdx2_plus(eixdot*NUM_PLANT_STATES+psi, x) = timestep*sin(state.plant(psi));
+    d2hdx2_plus(eixdot*NUM_PLANT_STATES+psi, y) = -timestep*cos(state.plant(psi));
+    d2hdx2_plus(eixdot*NUM_PLANT_STATES+psi, psi) = timestep*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)));
+
+    d2hdx2_plus(edxdot*NUM_PLANT_STATES+xdot, psi) = 1/timestep*sin(state.plant(psi));
+    d2hdx2_plus(edxdot*NUM_PLANT_STATES+ydot, psi) = -1/timestep*cos(state.plant(psi));
+    d2hdx2_plus(edxdot*NUM_PLANT_STATES+psi, xdot) = 1/timestep*sin(state.plant(psi));
+    d2hdx2_plus(edxdot*NUM_PLANT_STATES+psi, ydot) = -1/timestep*cos(state.plant(psi));
+    d2hdx2_plus(edxdot*NUM_PLANT_STATES+psi, psi) = (state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)))/timestep;
+
+    d2hdx2_plus(eiydot*NUM_PLANT_STATES+xdot, psi) = timestep*cos(state.plant(psi));
+    d2hdx2_plus(eiydot*NUM_PLANT_STATES+ydot, psi) = timestep*sin(state.plant(psi));
+    d2hdx2_plus(eiydot*NUM_PLANT_STATES+psi, xdot) = timestep*cos(state.plant(psi));
+    d2hdx2_plus(eiydot*NUM_PLANT_STATES+psi, ydot) = timestep*sin(state.plant(psi));
+    d2hdx2_plus(eiydot*NUM_PLANT_STATES+psi, psi) = timestep*(state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)));
+
+    d2hdx2_plus(edydot*NUM_PLANT_STATES+xdot, psi) = 1/timestep*cos(state.plant(psi));
+    d2hdx2_plus(edydot*NUM_PLANT_STATES+ydot, psi) = 1/timestep*sin(state.plant(psi));
+    d2hdx2_plus(edydot*NUM_PLANT_STATES+psi, xdot) = 1/timestep*cos(state.plant(psi));
+    d2hdx2_plus(edydot*NUM_PLANT_STATES+psi, ydot) = 1/timestep*sin(state.plant(psi));
+    d2hdx2_plus(edydot*NUM_PLANT_STATES+psi, psi) = (state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)))/timestep;
+  
+    return d2hdx2_plus;
+}
+
+Eigen::Matrix<double, NUM_Z_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> DroneTrajectory::d2hdx2_curr(SystemState prev, double timestep)
+{
+    Eigen::Matrix<double, NUM_Z_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES> d2hdx2_curr = Eigen::Matrix<double, NUM_Z_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES>::Zero();
+    d2hdx2_curr(edx*NUM_PLANT_STATES + x, psi) = -1/timestep*sin(prev.plant(psi));
+    d2hdx2_curr(edx*NUM_PLANT_STATES + y, psi) = 1/timestep*cos(prev.plant(psi));
+    d2hdx2_curr(edx*NUM_PLANT_STATES + psi, x) = -sin(prev.plant(psi))/timestep;
+    d2hdx2_curr(edx*NUM_PLANT_STATES + psi, y) = cos(prev.plant(psi))/timestep;
+    d2hdx2_curr(edx*NUM_PLANT_STATES + psi, psi) = -(prev.plant(x)*cos(prev.plant(psi)) + prev.plant(y)*sin(prev.plant(psi)))/timestep;
+
+    d2hdx2_curr(edy*NUM_PLANT_STATES + x, psi) = -1/timestep*cos(prev.plant(psi));
+    d2hdx2_curr(edy*NUM_PLANT_STATES + y, psi) = -1/timestep*sin(prev.plant(psi));
+    d2hdx2_curr(edy*NUM_PLANT_STATES + psi, x) = -cos(prev.plant(psi))/timestep;
+    d2hdx2_curr(edy*NUM_PLANT_STATES + psi, y) = -sin(prev.plant(psi))/timestep;
+    d2hdx2_curr(edy*NUM_PLANT_STATES + psi, psi) = -(prev.plant(y)*cos(prev.plant(psi)) - prev.plant(x)*sin(prev.plant(psi)))/timestep;
+
+    d2hdx2_curr(edxdot*NUM_PLANT_STATES + xdot, psi) = -1/timestep*sin(prev.plant(psi));
+    d2hdx2_curr(edxdot*NUM_PLANT_STATES + ydot, psi) = 1/timestep*cos(prev.plant(psi));
+    d2hdx2_curr(edxdot*NUM_PLANT_STATES + psi, x) = -sin(prev.plant(psi))/timestep;
+    d2hdx2_curr(edxdot*NUM_PLANT_STATES + psi, y) = cos(prev.plant(psi))/timestep;
+    d2hdx2_curr(edxdot*NUM_PLANT_STATES + psi, psi) = -(prev.plant(xdot)*cos(prev.plant(psi)) + prev.plant(ydot)*sin(prev.plant(psi)))/timestep;
+
+    d2hdx2_curr(edydot*NUM_PLANT_STATES + xdot, psi) = -1/timestep*cos(prev.plant(psi));
+    d2hdx2_curr(edydot*NUM_PLANT_STATES + ydot, psi) = -1/timestep*sin(prev.plant(psi));
+    d2hdx2_curr(edydot*NUM_PLANT_STATES + psi, x) = -cos(prev.plant(psi))/timestep;
+    d2hdx2_curr(edydot*NUM_PLANT_STATES + psi, y) = -sin(prev.plant(psi))/timestep;
+    d2hdx2_curr(edydot*NUM_PLANT_STATES + psi, psi) = -(prev.plant(ydot)*cos(prev.plant(psi)) - prev.plant(xdot)*sin(prev.plant(psi)))/timestep;
+
+    return d2hdx2_curr;
+}
+
+Eigen::Matrix<double, NUM_Z_STATES*NUM_Z_STATES, NUM_Z_STATES> DroneTrajectory::d2hdz2_plus()
+{
+    Eigen::Matrix<double, NUM_Z_STATES*NUM_Z_STATES, NUM_Z_STATES> d2hdz2_plus = Eigen::Matrix<double, NUM_Z_STATES*NUM_Z_STATES, NUM_Z_STATES>::Zero();
+  
+    d2hdz2_plus(ft*NUM_Z_STATES + w1, w1) = m_droneParams.kf * 2;
+    d2hdz2_plus(ft*NUM_Z_STATES + w2, w2) = m_droneParams.kf * 2;
+    d2hdz2_plus(ft*NUM_Z_STATES + w3, w3) = m_droneParams.kf * 2;
+    d2hdz2_plus(ft*NUM_Z_STATES + w4, w4) = m_droneParams.kf * 2;
+
+    d2hdz2_plus(tx*NUM_Z_STATES + w1, w1) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2);
+    d2hdz2_plus(tx*NUM_Z_STATES + w2, w2) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2);
+    d2hdz2_plus(tx*NUM_Z_STATES + w3, w3) = m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2);
+    d2hdz2_plus(tx*NUM_Z_STATES + w4, w4) = m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2);
+
+    d2hdz2_plus(ty*NUM_Z_STATES + w1, w1) = m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2);
+    d2hdz2_plus(ty*NUM_Z_STATES + w2, w2) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2);
+    d2hdz2_plus(ty*NUM_Z_STATES + w3, w3) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2);
+    d2hdz2_plus(ty*NUM_Z_STATES + w4, w4) = m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2);
+    
+    d2hdz2_plus(tz*NUM_Z_STATES + w1, w1) = m_droneParams.km * 2;
+    d2hdz2_plus(tz*NUM_Z_STATES + w2, w2) = - m_droneParams.km * 2;
+    d2hdz2_plus(tz*NUM_Z_STATES + w3, w3) = m_droneParams.km * 2;
+    d2hdz2_plus(tz*NUM_Z_STATES + w4, w4) = - m_droneParams.km * 2;
+
+    return d2hdz2_plus;
+}
