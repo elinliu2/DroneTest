@@ -93,3 +93,21 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
 
     return ts;
 }
+
+std::vector<d2wdwo2>  DroneTrajectory::secondOrdertrajSens(SimResults const & simResults, std::vector<d2wdwo2> const & ts)
+{
+    std::chrono::time_point start = std::chrono::steady_clock::now();
+
+    const int iterations = simResults.time.size();
+    m_logger << "iterations: " << iterations << std::endl;
+    std::vector<d2wdwo2> ts2;
+    ts2.reserve(iterations);
+
+    for(int i = 0; i < iterations; i++)
+    {
+        double timestep = simResults.time[i] - simResults.time[i-1];
+        
+
+    }
+    return ts;
+}
