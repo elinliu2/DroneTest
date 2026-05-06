@@ -470,7 +470,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2gdx2_mult_dxdwo(SystemState state
     return d2gdx2_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::d2hdx2_plus(SystemState state, double time, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo)
+Eigen::SparseMatrix<double> DroneTrajectory::d2hdx2_plus_mult_dxdwo(SystemState state, double time, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo)
 {
     std::vector<T> d2hdx2_plus;
     d2hdx2_plus.reserve(10*NUM_STATES);
@@ -543,7 +543,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2hdx2_plus(SystemState state, doub
     return d2hdx2_plus_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::d2hdx2_curr(SystemState prev, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo)
+Eigen::SparseMatrix<double> DroneTrajectory::d2hdx2_curr_mult_dxdwo(SystemState prev, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo)
 {
     std::vector<T> d2hdx2_curr;
     d2hdx2_curr.reserve(4*NUM_STATES);
@@ -608,4 +608,23 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2hdz2_plus_mult_dzdwo(Eigen::Matri
     Eigen::SparseMatrix<double> d2hdz2_plus_mat(NUM_Z_STATES*NUM_Z_STATES, NUM_STATES);
     d2hdz2_plus_mat.setFromTriplets(d2hdz2_plus.begin(), d2hdz2_plus.end());
     return d2hdz2_plus_mat;
+}
+
+
+Eigen::Tensor<double, 3, Eigen::RowMajor> DroneTrajectory::dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3, Eigen::RowMajor> const& d2zdwo2)
+{
+    Eigen::Tensor<double, 3, Eigen::RowMajor> result;
+    result.setZero();
+   
+    result.chip(xdot, 0) += (1.0/m_droneParams.mass * (std::sin(state.plant(phi)) * std::sin(state.plant(psi)) 
+                             + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)))) * d2zdwo2.chip(ft, 0);
+    result.chip(ydot, 0) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi))*std::sin(state.plant(psi))*std::sin(state.plant(theta)) 
+               - std::cos(state.plant(psi))*std::sin(state.plant(phi)))) * d2zdwo2.chip(ft, 0);
+    result.chip(zdot, 0) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi)) * std::cos(state.plant(theta)))) * d2zdwo2.chip(ft, 0);
+
+    result.chip(p, 0) += 1.0/m_droneParams.Ix * d2zdwo2.chip(tx, 0);
+    result.chip(q, 0) += 1.0/m_droneParams.Iy * d2zdwo2.chip(ty, 0);
+    result.chip(r, 0) += 1.0/m_droneParams.Iz * d2zdwo2.chip(tz, 0);
+
+    return result;
 }

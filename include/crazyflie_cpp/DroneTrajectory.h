@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include <Eigen/Dense>
+#include <Unsupported/Eigen/CXX11/Tensor>
 
 #include "Logger.h"
 
@@ -134,14 +135,14 @@ struct dwdwo {
 };
 
 struct d2wdwo2 {
-    Eigen::Matrix<double, NUM_PLANT_STATES*NUM_STATES, NUM_STATES> d2xdwo2;
-    Eigen::Matrix<double, NUM_Z_STATES*NUM_STATES, NUM_STATES> d2zdwo2;
-    Eigen::Matrix<double, NUM_Y_STATES*NUM_STATES, NUM_STATES> d2ydwo2;
+    Eigen::Tensor<double, 3, Eigen::RowMajor> d2xdwo2;
+    Eigen::Tensor<double, 3, Eigen::RowMajor> d2zdwo2;
+    Eigen::Tensor<double, 3, Eigen::RowMajor> d2ydwo2;
 
     d2wdwo2(
-        const Eigen::Matrix<double, NUM_PLANT_STATES*NUM_STATES, NUM_STATES>& dx,
-        const Eigen::Matrix<double, NUM_Z_STATES*NUM_STATES, NUM_STATES>& dz,
-        const Eigen::Matrix<double, NUM_Y_STATES*NUM_STATES, NUM_STATES>& dy
+        Eigen::Tensor<double, 3, Eigen::RowMajor> dx,
+        Eigen::Tensor<double, 3, Eigen::RowMajor> dz,
+        Eigen::Tensor<double, 3, Eigen::RowMajor> dy
     )
         : d2xdwo2(dx), d2zdwo2(dz), d2ydwo2(dy)
     {}
@@ -198,9 +199,10 @@ class DroneTrajectory
 
     Eigen::SparseMatrix<double> d2fdx2(SystemState state); 
     Eigen::SparseMatrix<double> d2gdx2_mult_dxdwo(SystemState state, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
-    Eigen::SparseMatrix<double> d2hdx2_plus(SystemState state, double time, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
-    Eigen::SparseMatrix<double> d2hdx2_curr(SystemState state, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mult_dxdwo(SystemState state, double time, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
+    Eigen::SparseMatrix<double> d2hdx2_curr_mult_dxdwo(SystemState state, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
     Eigen::SparseMatrix<double> d2hdz2_plus_mult_dzdwo(Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo);
+    Eigen::Tensor<double, 3, Eigen::RowMajor> dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3, Eigen::RowMajor> const& d2zdwo2);
 
     Eigen::Vector<double, NUM_ALGE_STATES> h(Eigen::Vector<double, NUM_PLANT_STATES> plantState,
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
@@ -219,7 +221,7 @@ class DroneTrajectory
         SimResults Trajectory(SystemState initialState); 
         std::vector<dwdwo> trajSens(SimResults const & simResults);
         std::vector<dwdwo> trajSensTest(SystemState initialState);
-        std::vector<d2wdwo2> secondOrdertrajSens(SimResults const & simResults, std::vector<d2wdwo2> const & ts);
+        std::vector<d2wdwo2> secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts);
         void dfdx_test(SystemState initialState);
         void dfdz_test(SystemState initialState);
         void dhdx_test(SystemState currState, SystemState prevState, double time, double timestep);
