@@ -611,20 +611,20 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2hdz2_plus_mult_dzdwo(Eigen::Matri
 }
 
 
-Eigen::Tensor<double, 3, Eigen::RowMajor> DroneTrajectory::dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3, Eigen::RowMajor> const& d2zdwo2)
+Eigen::Tensor<double, 3> DroneTrajectory::dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3> const& d2zdwo2)
 {
-    Eigen::Tensor<double, 3, Eigen::RowMajor> result;
+    Eigen::Tensor<double, 3> result;
     result.setZero();
    
-    result.chip(xdot, 0) += (1.0/m_droneParams.mass * (std::sin(state.plant(phi)) * std::sin(state.plant(psi)) 
-                             + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)))) * d2zdwo2.chip(ft, 0);
-    result.chip(ydot, 0) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi))*std::sin(state.plant(psi))*std::sin(state.plant(theta)) 
-               - std::cos(state.plant(psi))*std::sin(state.plant(phi)))) * d2zdwo2.chip(ft, 0);
-    result.chip(zdot, 0) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi)) * std::cos(state.plant(theta)))) * d2zdwo2.chip(ft, 0);
+    result.chip(xdot, 2) += (1.0/m_droneParams.mass * (std::sin(state.plant(phi)) * std::sin(state.plant(psi)) 
+                             + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)))) * d2zdwo2.chip(ft, 2);
+    result.chip(ydot, 2) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi))*std::sin(state.plant(psi))*std::sin(state.plant(theta)) 
+                             - std::cos(state.plant(psi))*std::sin(state.plant(phi)))) * d2zdwo2.chip(ft, 2);
+    result.chip(zdot, 2) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi)) * std::cos(state.plant(theta)))) * d2zdwo2.chip(ft, 2);
 
-    result.chip(p, 0) += 1.0/m_droneParams.Ix * d2zdwo2.chip(tx, 0);
-    result.chip(q, 0) += 1.0/m_droneParams.Iy * d2zdwo2.chip(ty, 0);
-    result.chip(r, 0) += 1.0/m_droneParams.Iz * d2zdwo2.chip(tz, 0);
+    result.chip(p, 2) += 1.0/m_droneParams.Ix * d2zdwo2.chip(tx, 2);
+    result.chip(q, 2) += 1.0/m_droneParams.Iy * d2zdwo2.chip(ty, 2);
+    result.chip(r, 2) += 1.0/m_droneParams.Iz * d2zdwo2.chip(tz, 2);
 
     return result;
 }

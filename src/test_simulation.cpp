@@ -163,20 +163,28 @@ int main()
     Logger log("log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    DroneTrajectory droneTrajectory(log, dist, ref);
+    double finalTime = 10;
+    double simTimestep = 1e-3;
+    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTimestep);
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
     log << "INFO - time size: " << simResults.time.size() << std::endl;
     
-    Logger splot("splot.txt");
-    splotTrajectory(simResults, splot);
+    // Logger splot("splot.txt");
+    // splotTrajectory(simResults, splot);
 
     std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
     log << "INFO - trajSens size: " << ts.size() << std::endl;
+    
+    G_tp gtp = droneTrajectory.calc_G_tp(ts);
+    finalTime = gtp.tp*simTimestep;
 
-    std::vector<dwdwo> tsTest = droneTrajectory.trajSensTest(initializeState());
-    std::pair<double, int> diff = diffTrajSens(ts, tsTest);
-    log << "max diff: " << diff.first <<  std::endl;
+    // std::vector<dwdwo> tsTest = droneTrajectory.trajSensTest(initializeState());
+    // std::pair<double, int> diff = diffTrajSens(ts, tsTest);
+    // log << "max diff: " << diff.first <<  std::endl;
+
+    std::vector<d2wdwo2> ts2Test = droneTrajectory.secondOrdertrajSensTest(initializeState());
+    std::vector<d2wdwodp> ts2ParamsTest = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
     
     std::cout << ":D" << std::endl;
     return 0;
