@@ -12,6 +12,7 @@
 
 #define NUM_PLANT_STATES 12
 #define NUM_PIDS 12
+#define NUM_PARAMETERS 36
 #define NUM_Z_STATES 46
 #define NUM_Y_STATES 2
 #define NUM_ALGE_STATES (NUM_Y_STATES+NUM_Z_STATES)
@@ -135,19 +136,56 @@ struct dwdwo {
 };
 
 struct d2wdwo2 {
-    Eigen::Tensor<double, 3, Eigen::RowMajor> d2xdwo2;
-    Eigen::Tensor<double, 3, Eigen::RowMajor> d2zdwo2;
-    Eigen::Tensor<double, 3, Eigen::RowMajor> d2ydwo2;
+    Eigen::Tensor<double, 3> d2xdwo2;
+    Eigen::Tensor<double, 3> d2zdwo2;
+    Eigen::Tensor<double, 3> d2ydwo2;
 
     d2wdwo2(
-        Eigen::Tensor<double, 3, Eigen::RowMajor> dx,
-        Eigen::Tensor<double, 3, Eigen::RowMajor> dz,
-        Eigen::Tensor<double, 3, Eigen::RowMajor> dy
+        Eigen::Tensor<double, 3> dx,
+        Eigen::Tensor<double, 3> dz,
+        Eigen::Tensor<double, 3> dy
     )
         : d2xdwo2(dx), d2zdwo2(dz), d2ydwo2(dy)
     {}
 
-    d2wdwo2() : d2xdwo2(), d2zdwo2(),  d2ydwo2() {}
+    d2wdwo2()
+        : d2xdwo2(NUM_PLANT_STATES, NUM_STATES, NUM_STATES),
+          d2zdwo2(NUM_Z_STATES, NUM_STATES, NUM_STATES),
+          d2ydwo2(NUM_Y_STATES, NUM_STATES, NUM_STATES)
+    {
+        d2xdwo2.setZero();
+        d2zdwo2.setZero();
+        d2ydwo2.setZero();
+    }
+};
+
+struct d2wdwodp {
+    Eigen::Tensor<double, 3> d2xdwodp;
+    Eigen::Tensor<double, 3> d2zdwodp;
+    Eigen::Tensor<double, 3> d2ydwodp;
+
+    d2wdwodp(
+        Eigen::Tensor<double, 3> dx,
+        Eigen::Tensor<double, 3> dz,
+        Eigen::Tensor<double, 3> dy
+    )
+        : d2xdwodp(dx), d2zdwodp(dz), d2ydwodp(dy)
+    {}
+
+    d2wdwodp()
+        : d2xdwodp(NUM_PLANT_STATES, NUM_STATES, NUM_PARAMETERS),
+          d2zdwodp(NUM_Z_STATES, NUM_STATES, NUM_PARAMETERS),
+          d2ydwodp(NUM_Y_STATES, NUM_STATES, NUM_PARAMETERS)
+    {
+        d2xdwodp.setZero();
+        d2zdwodp.setZero();
+        d2ydwodp.setZero();
+    }
+};
+
+struct G_tp{
+    double G;
+    int tp;
 };
 
 class DroneTrajectory 
@@ -187,6 +225,11 @@ class DroneTrajectory
     bool isConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
     bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
 
+    // On the off chance that someone ever reads this, just know that I hate this too, but I'm lazy
+    // and these are class functions because the parameter values are part of the class 
+    // so here we have a giga file with a bajillion functions that don't technically need to be here
+    // and yes i could fix it but i have other stuff to do
+    // don't get mad at me tho go look at the string class and be outraged at that instead
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx(SystemState state);
     Eigen::SparseMatrix<double> dfdz(SystemState state);
     Eigen::SparseMatrix<double> dgdx(SystemState state);
@@ -202,7 +245,7 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> d2hdx2_plus_mult_dxdwo(SystemState state, double time, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
     Eigen::SparseMatrix<double> d2hdx2_curr_mult_dxdwo(SystemState state, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
     Eigen::SparseMatrix<double> d2hdz2_plus_mult_dzdwo(Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo);
-    Eigen::Tensor<double, 3, Eigen::RowMajor> dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3, Eigen::RowMajor> const& d2zdwo2);
+    Eigen::Tensor<double, 3> dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3> const& d2zdwo2);
 
     Eigen::Vector<double, NUM_ALGE_STATES> h(Eigen::Vector<double, NUM_PLANT_STATES> plantState,
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
@@ -214,14 +257,20 @@ class DroneTrajectory
             Logger & log, 
             std::array<double(*)(double), NUM_DIST_STATES> const& dist,
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
+            double finalTime = 10, double simTimestep = 1e-3,
             std::array<PIDParameters, NUM_PIDS> ctrlParams = defaultPIDParameters(),
             DroneParameters droneParameters = {},
-            double simTimestep = 1e-3, double finalTime = 10, double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);
+            double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);
         
         SimResults Trajectory(SystemState initialState); 
         std::vector<dwdwo> trajSens(SimResults const & simResults);
         std::vector<dwdwo> trajSensTest(SystemState initialState);
         std::vector<d2wdwo2> secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts);
+        std::vector<d2wdwo2> secondOrdertrajSensTest(SystemState initialState);
+        std::vector<d2wdwodp> secondOrdertrajSensParamsTest(SystemState initialState);
+
+        G_tp calc_G_tp(std::vector<dwdwo> trajSens);
+
         void dfdx_test(SystemState initialState);
         void dfdz_test(SystemState initialState);
         void dhdx_test(SystemState currState, SystemState prevState, double time, double timestep);

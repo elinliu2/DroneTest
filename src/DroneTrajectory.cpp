@@ -16,9 +16,10 @@ DroneTrajectory::DroneTrajectory(
     Logger & logger, 
     std::array<double(*)(double), NUM_DIST_STATES> const& dist,
     std::array<double(*)(double), NUM_REF_STATES> const& ref,
+    double finalTime, double simTimestep, 
     std::array<PIDParameters, NUM_PIDS> ctrlParams,
     DroneParameters droneParameters, 
-    double simTimestep, double finalTime, double sampleRate, double cutoffFreq, bool fixedNumIterations) : 
+    double sampleRate, double cutoffFreq, bool fixedNumIterations) : 
     m_logger(logger), 
     m_ctrlParams(ctrlParams),
     m_droneParams(droneParameters), 
@@ -54,6 +55,16 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
         time += m_simTimestep;        
         simResults.time.push_back(time);
 
+        // TOOD: check not converging and end earlier
+        if (isConverging(state1.state, m_ref, time)){
+            // m_logger << "converging :D" << std::endl;
+            simResults.converged = true;
+            return simResults;
+        } else if (isNotConverging(state1.state, m_ref, time)) {
+            // m_logger << "not converging D:" << std::endl;
+            return simResults;
+        }
+
         if (!m_fixedNumIterations)
         {
             Timestep state2 = simulateTimestep(state1.state, time, m_simTimestep);
@@ -70,16 +81,6 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
                 if (m_simTimestep > 1e-3){
                     m_simTimestep /= 2;
                 }
-            }
-            
-            // TOOD: check not converging and end earlier
-            if (isConverging(state2.state, m_ref, time)){
-                // m_logger << "converging :D" << std::endl;
-                simResults.converged = true;
-                return simResults;
-            } else if (isNotConverging(state2.state, m_ref, time)) {
-                // m_logger << "not converging D:" << std::endl;
-                return simResults;
             }
         }
     }
