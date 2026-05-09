@@ -3,10 +3,10 @@
 
 std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
 {
-    std::chrono::time_point start = std::chrono::steady_clock::now();
+    // std::chrono::time_point start = std::chrono::steady_clock::now();
 
     const int iterations = simResults.time.size();
-    m_logger << "iterations: " << iterations << std::endl;
+    // m_logger << "iterations: " << iterations << std::endl;
     std::vector<dwdwo> ts;
     ts.reserve(iterations);
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> initial_dxdwo;
@@ -86,17 +86,17 @@ std::vector<dwdwo>  DroneTrajectory::trajSens(SimResults const & simResults)
         ts.emplace_back(dxdwo_plus, dzdwo_plus, dydwo_plus);
     }
 
-    std::chrono::time_point end = std::chrono::steady_clock::now();
-    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    // std::chrono::time_point end = std::chrono::steady_clock::now();
+    // std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     
-    m_logger << "Elapsed Time: " << elapsed.count() << " us" << std::endl;
+    // m_logger << "Elapsed Time: " << elapsed.count() << " us" << std::endl;
 
     return ts;
 }
 
 std::vector<d2wdwo2>  DroneTrajectory::secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts)
 {
-    std::chrono::time_point start = std::chrono::steady_clock::now();
+    // std::chrono::time_point start = std::chrono::steady_clock::now();
 
     const int iterations = simResults.time.size();
     m_logger << "iterations: " << iterations << std::endl;
@@ -167,10 +167,10 @@ std::vector<d2wdwo2>  DroneTrajectory::secondOrdertrajSens(SimResults const & si
         d2xdwo2_plus = a6_A_tensor.contract(a6_B_tensor, contract_dims).eval();
     }
 
-    std::chrono::time_point end = std::chrono::steady_clock::now();
-    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    // std::chrono::time_point end = std::chrono::steady_clock::now();
+    // std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     
-    m_logger << "Elapsed Time: " << elapsed.count() << " us" << std::endl;
+    // m_logger << "Elapsed Time: " << elapsed.count() << " us" << std::endl;
 
     return ts2;
 }

@@ -118,6 +118,10 @@ enum algeIndex  {eix, edx, desVelX, eiy, edy, desVelY, eiz, edz, desVelZ,
 enum pidIndex   {kp_error, ki_error, kd_error};
 enum distIndex  {Fwx, Fwy, Fwz, Twx, Twy, Twz};
 enum refIndex   {refx, refy, refz, refyaw};
+enum paramIndex {kppx, kipx, kdpx, kppy, kipy, kdpy, kppz, kipz, kdpz, 
+                 kpvx, kivx, kdvx, kpvy, kivy, kdvy, kpvz, kivz, kdvz,
+                 kpphi, kiphi, kdphi, kptheta, kitheta, kdtheta, kppsi, kipsi, kdpsi,
+                 kpp, kip, kdp, kpq, kiq, kdq, kpr, kir, kdr};
 
 struct dwdwo {
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo;
@@ -133,6 +137,22 @@ struct dwdwo {
     {}
 
     dwdwo() : dxdwo(), dzdwo(),  dydwo() {}
+};
+
+struct dwdp {
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PARAMETERS> dxdp;
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_PARAMETERS> dzdp;
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_PARAMETERS> dydp;
+
+    dwdp(
+        const Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PARAMETERS>& dx,
+        const Eigen::Matrix<double, NUM_Z_STATES, NUM_PARAMETERS>& dz,
+        const Eigen::Matrix<double, NUM_Y_STATES, NUM_PARAMETERS>& dy
+    )
+        : dxdp(dx), dzdp(dz), dydp(dy)
+    {}
+
+    dwdp() : dxdp(), dzdp(),  dydp() {}
 };
 
 struct d2wdwo2 {
@@ -234,11 +254,13 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> dfdz(SystemState state);
     Eigen::SparseMatrix<double> dgdx(SystemState state);
     Eigen::SparseMatrix<double> dgdz(SystemState state);
+    Eigen::SparseMatrix<double> dgdp(SystemState state);
     Eigen::SparseMatrix<double> dhdxPlus(SystemState state, double time, double timestep);
     Eigen::SparseMatrix<double> dhdxCurr(SystemState prev, double timestep);
     Eigen::SparseMatrix<double> dhdzPlus(SystemState state, double timestep);
     Eigen::SparseMatrix<double> dhdzCurr();
     Eigen::SparseMatrix<double> dhdy(double timestep);
+    Eigen::SparseMatrix<double> dhdp(SystemState state, double time);
 
     Eigen::SparseMatrix<double> d2fdx2(SystemState state); 
     Eigen::SparseMatrix<double> d2gdx2_mult_dxdwo(SystemState state, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
@@ -265,11 +287,14 @@ class DroneTrajectory
         SimResults Trajectory(SystemState initialState); 
         std::vector<dwdwo> trajSens(SimResults const & simResults);
         std::vector<dwdwo> trajSensTest(SystemState initialState);
+        std::vector<dwdp> trajSensParam(SimResults const & simResults);
+        std::vector<dwdp> trajSensParamTest(SimResults const & simResults);
         std::vector<d2wdwo2> secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts);
         std::vector<d2wdwo2> secondOrdertrajSensTest(SystemState initialState);
         std::vector<d2wdwodp> secondOrdertrajSensParamsTest(SystemState initialState);
 
         G_tp calc_G_tp(std::vector<dwdwo> trajSens);
+        Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, dwdp ts_p, G_tp gtp);
 
         void dfdx_test(SystemState initialState);
         void dfdz_test(SystemState initialState);

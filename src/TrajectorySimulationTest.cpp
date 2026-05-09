@@ -198,6 +198,134 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParamsTest(SystemState
     return ts2;
 }
 
+Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(SystemState initialState, dwdwo ts, dwdp ts_p, G_tp gtp)
+{
+    std::chrono::time_point start = std::chrono::steady_clock::now();
+    double delta = 1e-5;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> dwdwo_matrix;
+    dwdwo_matrix << ts.dxdwo, ts.dzdwo, ts. dydwo;
+
+    d2wdwo2 trajSenswo2;
+    for(int i = 0; i < NUM_STATES; i++) {
+        // m_logger << i << std::endl;
+        SystemState testPlusState = initialState;
+        SystemState testMinusState = initialState;
+        if (i < NUM_PLANT_STATES){
+            testPlusState.plant(i) += delta;
+            testMinusState.plant(i) -= delta;
+        } else if ( i < NUM_PLANT_STATES + NUM_Z_STATES) {
+            testPlusState.alge(i-NUM_PLANT_STATES) += delta;
+            testMinusState.alge(i-NUM_PLANT_STATES) -= delta;
+        } else {
+            testPlusState.alge(i-NUM_PLANT_STATES) += delta;
+            testMinusState.alge(i-NUM_PLANT_STATES) -= delta;
+        }
+
+        SimResults plusSimResults = Trajectory(testPlusState);
+        SimResults minusSimResults = Trajectory(testMinusState);
+
+        std::vector<dwdwo> plus_ts = trajSens(plusSimResults);
+        std::vector<dwdwo> minus_ts = trajSens(minusSimResults);
+
+        Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX = (plus_ts.at(gtp.tp).dxdwo - minus_ts.at(gtp.tp).dxdwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY = (plus_ts.at(gtp.tp).dydwo - minus_ts.at(gtp.tp).dydwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ = (plus_ts.at(gtp.tp).dzdwo - minus_ts.at(gtp.tp).dzdwo) / (2.0 * delta);
+
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultX_tensor(resultX.data(), NUM_PLANT_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultY_tensor(resultY.data(), NUM_Y_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultZ_tensor(resultZ.data(), NUM_Z_STATES, NUM_STATES);
+
+        trajSenswo2.d2xdwo2.chip(i, 2) = resultX_tensor;
+        trajSenswo2.d2ydwo2.chip(i, 2) = resultY_tensor;
+        trajSenswo2.d2zdwo2.chip(i, 2) = resultZ_tensor;
+    }
+
+    d2wdwodp trajSenswodp;
+    std::array<PIDParameters, NUM_PIDS> og_params = m_ctrlParams;
+    SimResults plusSimResults;
+    SimResults minusSimResults;
+    for(int i = 0; i < NUM_PIDS; i++) {
+        m_ctrlParams.at(i).kp = og_params.at(i).kp + delta;
+        plusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> plus_kp = trajSens(plusSimResults);
+        m_ctrlParams.at(i).kp = og_params.at(i).kp - delta;
+        minusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> minus_kp = trajSens(minusSimResults);
+
+        m_ctrlParams.at(i).ki = og_params.at(i).ki + delta;
+        plusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> plus_ki = trajSens(plusSimResults);
+        m_ctrlParams.at(i).ki = og_params.at(i).ki - delta;
+        minusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> minus_ki = trajSens(minusSimResults);
+
+        m_ctrlParams.at(i).kd = og_params.at(i).kd + delta;
+        plusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> plus_kd = trajSens(plusSimResults);
+        m_ctrlParams.at(i).kd = og_params.at(i).kd - delta;
+        minusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> minus_kd = trajSens(minusSimResults);
+
+        Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_kp = (plus_kp.at(gtp.tp).dxdwo - minus_kp.at(gtp.tp).dxdwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY_kp = (plus_kp.at(gtp.tp).dydwo - minus_kp.at(gtp.tp).dydwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ_kp = (plus_kp.at(gtp.tp).dzdwo - minus_kp.at(gtp.tp).dzdwo) / (2.0 * delta);
+
+        Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_ki = (plus_ki.at(gtp.tp).dxdwo - minus_ki.at(gtp.tp).dxdwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY_ki = (plus_ki.at(gtp.tp).dydwo - minus_ki.at(gtp.tp).dydwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ_ki = (plus_ki.at(gtp.tp).dzdwo - minus_ki.at(gtp.tp).dzdwo) / (2.0 * delta);
+
+        Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_kd = (plus_kd.at(gtp.tp).dxdwo - minus_kd.at(gtp.tp).dxdwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY_kd = (plus_kd.at(gtp.tp).dydwo - minus_kd.at(gtp.tp).dydwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ_kd = (plus_kd.at(gtp.tp).dzdwo - minus_kd.at(gtp.tp).dzdwo) / (2.0 * delta);
+
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultX_kp_tensor(resultX_kp.data(), NUM_PLANT_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultY_kp_tensor(resultY_kp.data(), NUM_Y_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultZ_kp_tensor(resultZ_kp.data(), NUM_Z_STATES, NUM_STATES);
+
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultX_ki_tensor(resultX_ki.data(), NUM_PLANT_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultY_ki_tensor(resultY_ki.data(), NUM_Y_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultZ_ki_tensor(resultZ_ki.data(), NUM_Z_STATES, NUM_STATES);
+
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultX_kd_tensor(resultX_kd.data(), NUM_PLANT_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultY_kd_tensor(resultY_kd.data(), NUM_Y_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> resultZ_kd_tensor(resultZ_kd.data(), NUM_Z_STATES, NUM_STATES);
+
+        trajSenswodp.d2xdwodp.chip(i*NUM_PID_STATES, 2) = resultX_kp_tensor;
+        trajSenswodp.d2ydwodp.chip(i*NUM_PID_STATES, 2) = resultY_kp_tensor;
+        trajSenswodp.d2zdwodp.chip(i*NUM_PID_STATES, 2) = resultZ_kp_tensor;
+
+        trajSenswodp.d2xdwodp.chip(i*NUM_PID_STATES + 1, 2) = resultX_ki_tensor;
+        trajSenswodp.d2ydwodp.chip(i*NUM_PID_STATES + 1, 2) = resultY_ki_tensor;
+        trajSenswodp.d2zdwodp.chip(i*NUM_PID_STATES + 1, 2) = resultZ_ki_tensor;
+
+        trajSenswodp.d2xdwodp.chip(i*NUM_PID_STATES + 2, 2) = resultX_kd_tensor;
+        trajSenswodp.d2ydwodp.chip(i*NUM_PID_STATES + 2, 2) = resultY_kd_tensor;
+        trajSenswodp.d2zdwodp.chip(i*NUM_PID_STATES + 2, 2) = resultZ_kd_tensor;
+    }
+    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS>::Zero();
+    for(int j = 0; j < NUM_STATES+NUM_PARAMETERS; j++)
+    {
+        for(int i = 0; i < NUM_STATES; i++)
+        {
+            // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> signed_dw = dwdwo_matrix.col(i).array().sign();
+            // TODO: instead of having separate tensors above, just have one giga tensor
+            // TODO: get tensor slice 
+            // dG(j) = dG(j) += signed_dw transpose *tensor slice vector;
+
+            // I just want to get an estimate of timing for now
+            Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> signed_dw = Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS>::Zero();
+            signed_dw.segment(0, NUM_STATES) = dwdwo_matrix.col(i).array().sign();
+            dG(j) = dG(j) + signed_dw.transpose() * signed_dw;
+        }
+    }
+    dG = -1 * std::pow(gtp.G, 2) * dG;
+    std::chrono::time_point end = std::chrono::steady_clock::now();
+    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    m_logger << "Elapsed Time dG: " << elapsed.count() << " us" << std::endl;
+    return dG;
+}
+
 
 
 void DroneTrajectory::dfdx_test(SystemState initialState)
