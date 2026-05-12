@@ -186,10 +186,10 @@ int main()
     // std::pair<double, int> diff = diffTrajSens(ts, tsTest);
     // log << "max diff: " << diff.first <<  std::endl;
 
-    dwdp ts_p_test;
+    std::vector<dwdp> ts_p = droneTrajectory.trajSensParam(simResults, gtp);
     // std::vector<d2wdwo2> ts2Test = droneTrajectory.secondOrdertrajSensTest(initializeState());
     // std::vector<d2wdwodp> ts2ParamsTest = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
-    Eigen::VectorXd dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), ts_p_test, gtp);
+    Eigen::VectorXd dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, simResults.time.at(gtp.tp));
     
     std::cout << ":D" << std::endl;
     return 0;

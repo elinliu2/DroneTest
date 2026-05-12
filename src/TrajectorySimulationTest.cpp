@@ -198,25 +198,24 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParamsTest(SystemState
     return ts2;
 }
 
-Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(SystemState initialState, dwdwo ts, dwdp ts_p, G_tp gtp)
+Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(SystemState initialState, dwdwo ts, dwdp ts_p, G_tp gtp, double endtime)
 {
     std::chrono::time_point start = std::chrono::steady_clock::now();
     double delta = 1e-5;
 
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> dwdwo_matrix;
-    dwdwo_matrix << ts.dxdwo, ts.dzdwo, ts. dydwo;
+    dwdwo_matrix << ts.dxdwo, ts.dzdwo, ts.dydwo;
+
+    // I don't like this either but I don't have time to fix it right now
+    m_finalTime = endtime;
 
     d2wdwo2 trajSenswo2;
     for(int i = 0; i < NUM_STATES; i++) {
-        // m_logger << i << std::endl;
         SystemState testPlusState = initialState;
         SystemState testMinusState = initialState;
         if (i < NUM_PLANT_STATES){
             testPlusState.plant(i) += delta;
             testMinusState.plant(i) -= delta;
-        } else if ( i < NUM_PLANT_STATES + NUM_Z_STATES) {
-            testPlusState.alge(i-NUM_PLANT_STATES) += delta;
-            testMinusState.alge(i-NUM_PLANT_STATES) -= delta;
         } else {
             testPlusState.alge(i-NUM_PLANT_STATES) += delta;
             testMinusState.alge(i-NUM_PLANT_STATES) -= delta;
@@ -240,7 +239,6 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
         trajSenswo2.d2ydwo2.chip(i, 2) = resultY_tensor;
         trajSenswo2.d2zdwo2.chip(i, 2) = resultZ_tensor;
     }
-
     d2wdwodp trajSenswodp;
     std::array<PIDParameters, NUM_PIDS> og_params = m_ctrlParams;
     SimResults plusSimResults;
@@ -303,22 +301,34 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
         trajSenswodp.d2ydwodp.chip(i*NUM_PID_STATES + 2, 2) = resultY_kd_tensor;
         trajSenswodp.d2zdwodp.chip(i*NUM_PID_STATES + 2, 2) = resultZ_kd_tensor;
     }
+    Eigen::Tensor<double, 3> tmp1 = trajSenswo2.d2xdwo2.concatenate(trajSenswo2.d2ydwo2, 0);
+    Eigen::Tensor<double, 3> secondOrderTraj = tmp1.concatenate(trajSenswo2.d2zdwo2, 0);
+    Eigen::Tensor<double, 3> tmp2 = trajSenswodp.d2xdwodp.concatenate(trajSenswodp.d2ydwodp, 0);
+    Eigen::Tensor<double, 3> secondOrderTrajParams = tmp2.concatenate(trajSenswodp.d2zdwodp, 0);
+
     Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS>::Zero();
-    for(int j = 0; j < NUM_STATES+NUM_PARAMETERS; j++)
+    for(int j = 0; j < NUM_STATES; j++)
     {
         for(int i = 0; i < NUM_STATES; i++)
         {
-            // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> signed_dw = dwdwo_matrix.col(i).array().sign();
-            // TODO: instead of having separate tensors above, just have one giga tensor
-            // TODO: get tensor slice 
-            // dG(j) = dG(j) += signed_dw transpose *tensor slice vector;
-
-            // I just want to get an estimate of timing for now
-            Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> signed_dw = Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS>::Zero();
-            signed_dw.segment(0, NUM_STATES) = dwdwo_matrix.col(i).array().sign();
-            dG(j) = dG(j) + signed_dw.transpose() * signed_dw;
+            Eigen::Vector<double, NUM_STATES> signed_dw = dwdwo_matrix.col(i).array().sign();
+            Eigen::Tensor<double, 1> secondOrderTrajChip = secondOrderTraj.chip(j, 2).chip(i, 1);
+            Eigen::Map<Eigen::Vector<double, NUM_STATES>> secondOrderTrajChipVec(secondOrderTrajChip.data(), secondOrderTrajChip.size());
+            dG(j) += signed_dw.transpose() * secondOrderTrajChipVec;
         }
     }
+
+    for(int j = 0; j < NUM_PARAMETERS; j++)
+    {
+        for(int i = 0; i < NUM_STATES; i++)
+        {
+            Eigen::Vector<double, NUM_STATES> signed_dw = dwdwo_matrix.col(i).array().sign();
+            Eigen::Tensor<double, 1> secondOrderTrajChip = secondOrderTrajParams.chip(j, 2).chip(i, 1);
+            Eigen::Map<Eigen::Vector<double, NUM_STATES>> secondOrderTrajChipVec(secondOrderTrajChip.data(), secondOrderTrajChip.size());
+            dG(NUM_STATES + j) += signed_dw.transpose() * secondOrderTrajChipVec;
+        }
+    }
+    
     dG = -1 * std::pow(gtp.G, 2) * dG;
     std::chrono::time_point end = std::chrono::steady_clock::now();
     std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
