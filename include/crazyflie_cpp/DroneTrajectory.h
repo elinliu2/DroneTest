@@ -208,6 +208,11 @@ struct G_tp{
     int tp;
 };
 
+struct zkpk{
+    Eigen::Vector<double, NUM_STATES> zk;
+    Eigen::Vector<double, NUM_PARAMETERS> pk;
+};
+
 class DroneTrajectory 
 {
     Logger & m_logger;
@@ -234,6 +239,13 @@ class DroneTrajectory
     // want thrustBase = 36000 PWM == hover --> ft = mg
     // des_wi = sqrt(mg/(kf*4)) 
     double m_alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/m_thrustBase;    
+
+    // For ERA algo gradient ascent step
+    double m_algo_alpha = 0.5;
+    // For ERA algo Weighting Matrix
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> m_Pinv = Eigen::Matrix<double, NUM_STATES, NUM_STATES>::Identity();
+    // For ERA algo numerical tolerances for 
+    double m_epsilon = 1e-12;
 
     Eigen::Vector<double, NUM_ALGE_STATES> CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, 
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
@@ -274,6 +286,13 @@ class DroneTrajectory
     Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates,
     double time, double timestep, int index, double delta);
 
+    void dfdx_test(SystemState initialState);
+    void dfdz_test(SystemState initialState);
+    void dhdx_test(SystemState currState, SystemState prevState, double time, double timestep);
+    void dhdz_test(SystemState currState, SystemState prevState, double time, double timestep);
+    void dgdz_test(SystemState currState, SystemState prevState, double time, double timestep);
+    void dhdy_test(SystemState currState, SystemState prevState, double time, double timestep);
+
     public:
         DroneTrajectory( 
             Logger & log, 
@@ -296,12 +315,12 @@ class DroneTrajectory
         G_tp calc_G_tp(std::vector<dwdwo> trajSens);
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, dwdp ts_p, G_tp gtp, double endtime);
 
-        void dfdx_test(SystemState initialState);
-        void dfdz_test(SystemState initialState);
-        void dhdx_test(SystemState currState, SystemState prevState, double time, double timestep);
-        void dhdz_test(SystemState currState, SystemState prevState, double time, double timestep);
-        void dgdz_test(SystemState currState, SystemState prevState, double time, double timestep);
-        void dhdy_test(SystemState currState, SystemState prevState, double time, double timestep);
+        zkpk theGigaAlgo(SystemState currState);
+        zkpk updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> currState);
+
+        Eigen::Vector<double, NUM_PARAMETERS> getParams();
+        void setParams(Eigen::Vector<double, NUM_PARAMETERS> params);
+
 };
 
 #endif

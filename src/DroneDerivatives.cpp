@@ -511,7 +511,6 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2fdx2(SystemState state)
     return d2fdx2_mat;
 }
 
-
 Eigen::SparseMatrix<double> DroneTrajectory::d2gdx2_mult_dxdwo(SystemState state, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo)
 {
     std::vector<T> d2gdx2;
