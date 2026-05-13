@@ -166,30 +166,33 @@ int main()
     double finalTime = 10;
     double simTimestep = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTimestep);
-    SimResults simResults = droneTrajectory.Trajectory(initializeState());
-    log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
-    log << "INFO - time size: " << simResults.time.size() << std::endl;
+    std::chrono::time_point start = std::chrono::steady_clock::now();
+    droneTrajectory.theGigaAlgo(initializeState());
+    std::chrono::time_point end = std::chrono::steady_clock::now();
+    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    log << "Elapsed Time ERA algo: " << elapsed.count() << " us" << std::endl;
+
+
+    // SimResults simResults = droneTrajectory.Trajectory(initializeState());
+    // log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
+    // log << "INFO - time size: " << simResults.time.size() << std::endl;
     
     // Logger splot("splot.txt");
     // splotTrajectory(simResults, splot);
-    std::chrono::time_point start = std::chrono::steady_clock::now();
-    std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
-    std::chrono::time_point end = std::chrono::steady_clock::now();
-    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    log << "Elapsed Time ts: " << elapsed.count() << " us" << std::endl;
-
-    log << "INFO - trajSens size: " << ts.size() << std::endl;
+    // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
     
-    G_tp gtp = droneTrajectory.calc_G_tp(ts);
+    // log << "INFO - trajSens size: " << ts.size() << std::endl;
+    
+    // G_tp gtp = droneTrajectory.calc_G_tp(ts);
 
     // std::vector<dwdwo> tsTest = droneTrajectory.trajSensTest(initializeState());
     // std::pair<double, int> diff = diffTrajSens(ts, tsTest);
     // log << "max diff: " << diff.first <<  std::endl;
 
-    std::vector<dwdp> ts_p = droneTrajectory.trajSensParam(simResults, gtp);
+    // std::vector<dwdp> ts_p = droneTrajectory.trajSensParam(simResults, gtp);
     // std::vector<d2wdwo2> ts2Test = droneTrajectory.secondOrdertrajSensTest(initializeState());
     // std::vector<d2wdwodp> ts2ParamsTest = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
-    Eigen::VectorXd dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, simResults.time.at(gtp.tp));
+    // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, simResults.time.at(gtp.tp));
     
     std::cout << ":D" << std::endl;
     return 0;

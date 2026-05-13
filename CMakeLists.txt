@@ -24,6 +24,7 @@ add_library(crazyflie_cpp
   src/DroneDerivatives.cpp
   src/TrajectorySensitivities.cpp
   src/TrajectorySimulationTest.cpp
+  src/ERA.cpp
 )
 
 target_include_directories(crazyflie_cpp
