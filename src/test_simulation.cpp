@@ -160,17 +160,29 @@ std::pair<double, int> diffdzdwo(std::vector<dwdwo> const & tsA, std::vector<dwd
 }
 int main()
 {
-    Logger log("log.txt");
+    // std::cout << "cwd: " << std::filesystem::current_path() << std::endl;
+    Logger log("./build/log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
     double finalTime = 10;
     double simTimestep = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTimestep);
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    droneTrajectory.theGigaAlgo(initializeState());
+    // SystemState initialState = initializeState();
+    // Eigen::Vector<double, NUM_STATES> z0;
+    // z0 << initialState.plant, initialState.alge;
+    // Eigen::Vector<double, NUM_STATES> old_zk = droneTrajectory.closestZBar(initializeState());
+    // log << "initial zbar dist " << (z0 - old_zk).norm() << std::endl; 
+    zkpk optimal = droneTrajectory.theGigaAlgo(initializeState());
+    // Eigen::Vector<double, NUM_STATES> new_zk = droneTrajectory.closestZBar(initializeState());
+    // log << "new zbar dist " << (z0 - new_zk).norm() << std::endl; 
     std::chrono::time_point end = std::chrono::steady_clock::now();
     std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     log << "Elapsed Time ERA algo: " << elapsed.count() << " us" << std::endl;
+    for(int i = 0; i < NUM_PARAMETERS; i++)
+    {
+        log << i << ": " << optimal.pk(i) << std::endl;
+    }
 
 
     // SimResults simResults = droneTrajectory.Trajectory(initializeState());

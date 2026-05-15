@@ -8,8 +8,6 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
     int count = 0;
     while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-8)
     {
-        count++;
-        m_logger << count << std::endl;
         pk_prev = curr.pk;
         curr = updateStep(curr, z0);
     }
@@ -20,17 +18,15 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
 {
     SystemState prev_zk_state = {prev.zk.segment(0, NUM_PLANT_STATES), prev.zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)};
     SimResults traj = Trajectory(prev_zk_state);
-
     std::vector<dwdwo> ts = trajSens(traj);
     G_tp gtp = calc_G_tp(ts);
     std::vector<dwdp> ts_p = trajSensParam(traj, gtp);
-    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test(prev_zk_state, ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, traj.time.at(gtp.tp));
+    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test(prev_zk_state, ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, traj.time.at(gtp.tp) + m_simTimestep);
     Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
     Eigen::Vector<double, NUM_PARAMETERS> vp = dG.segment(NUM_STATES, NUM_PARAMETERS);
     Eigen::Vector<double, NUM_PARAMETERS> pk = prev.pk + m_algo_alpha*(vz.transpose()*(prev.zk - currState) + gtp.G - m_epsilon)/(vz.transpose()*m_Pinv*vz)*vp;
     setParams(pk);
     Eigen::Vector<double, NUM_STATES> zk = (m_Pinv*vz*vz.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.zk-currState) + (m_Pinv*vz*vp.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.pk-pk) + currState - (m_Pinv*vz)/(vz.transpose()*m_Pinv*vz)*(gtp.G-m_epsilon);
-
     double backtrack = 0.5;
     traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
     while(!traj.stable && (pk-prev.pk).cwiseAbs().sum() > 1e-8)
@@ -46,6 +42,40 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
     } else {
         return {zk, pk};
     }
+}
+
+Eigen::Vector<double, NUM_STATES> DroneTrajectory::closestZBar(SystemState currState)
+{
+    Eigen::Vector<double, NUM_STATES> z0;
+    z0 << currState.plant, currState.alge;
+
+    Eigen::Vector<double, NUM_STATES> zk = z0;
+    Eigen::Vector<double, NUM_STATES> zk_prev = z0;
+    do {
+        SimResults traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
+        std::vector<dwdwo> ts = trajSens(traj);
+        G_tp gtp = calc_G_tp(ts);
+        std::vector<dwdp> ts_p = trajSensParam(traj, gtp);
+        Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)}, ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, traj.time.at(gtp.tp));
+        Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
+
+        zk_prev = zk;
+        zk = z0 + (m_Pinv*vz*vz.transpose())/(vz.transpose()*m_Pinv*vz)*(zk - z0) - (m_Pinv*vz)/(vz.transpose()*m_Pinv*vz)*(gtp.G - m_epsilon);
+
+        double backtrack = 0.1;
+        traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
+        while(!traj.stable && (zk-zk_prev).cwiseAbs().sum() > 1e-8)
+        {
+            zk = zk_prev + backtrack*(zk-zk_prev);
+            traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
+            backtrack /= 2;
+        }
+        if(!traj.stable){
+            zk = zk_prev;
+        }
+    } while((zk-zk_prev).cwiseAbs().sum() > 1e-8);
+
+    return zk;
 }
 
 Eigen::Vector<double, NUM_PARAMETERS> DroneTrajectory::getParams()

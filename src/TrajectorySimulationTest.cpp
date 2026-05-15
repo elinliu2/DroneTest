@@ -207,6 +207,8 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
     dwdwo_matrix << ts.dxdwo, ts.dzdwo, ts.dydwo;
 
     // I don't like this either but I don't have time to fix it right now
+    // Really this should just be passed in
+    double OG_finalTime = m_finalTime;
     m_finalTime = endtime;
 
     d2wdwo2 trajSenswo2;
@@ -221,8 +223,8 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
             testMinusState.alge(i-NUM_PLANT_STATES) -= delta;
         }
 
-        SimResults plusSimResults = Trajectory(testPlusState);
-        SimResults minusSimResults = Trajectory(testMinusState);
+        SimResults plusSimResults = Trajectory(testPlusState, false);
+        SimResults minusSimResults = Trajectory(testMinusState, false);
 
         std::vector<dwdwo> plus_ts = trajSens(plusSimResults);
         std::vector<dwdwo> minus_ts = trajSens(minusSimResults);
@@ -230,7 +232,7 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
         Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX = (plus_ts.at(gtp.tp).dxdwo - minus_ts.at(gtp.tp).dxdwo) / (2.0 * delta);
         Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY = (plus_ts.at(gtp.tp).dydwo - minus_ts.at(gtp.tp).dydwo) / (2.0 * delta);
         Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ = (plus_ts.at(gtp.tp).dzdwo - minus_ts.at(gtp.tp).dzdwo) / (2.0 * delta);
-
+        
         Eigen::TensorMap<Eigen::Tensor<double, 2>> resultX_tensor(resultX.data(), NUM_PLANT_STATES, NUM_STATES);
         Eigen::TensorMap<Eigen::Tensor<double, 2>> resultY_tensor(resultY.data(), NUM_Y_STATES, NUM_STATES);
         Eigen::TensorMap<Eigen::Tensor<double, 2>> resultZ_tensor(resultZ.data(), NUM_Z_STATES, NUM_STATES);
@@ -245,24 +247,24 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
     SimResults minusSimResults;
     for(int i = 0; i < NUM_PIDS; i++) {
         m_ctrlParams.at(i).kp = og_params.at(i).kp + delta;
-        plusSimResults = Trajectory(initialState);
+        plusSimResults = Trajectory(initialState, false);
         std::vector<dwdwo> plus_kp = trajSens(plusSimResults);
         m_ctrlParams.at(i).kp = og_params.at(i).kp - delta;
-        minusSimResults = Trajectory(initialState);
+        minusSimResults = Trajectory(initialState, false);
         std::vector<dwdwo> minus_kp = trajSens(minusSimResults);
 
         m_ctrlParams.at(i).ki = og_params.at(i).ki + delta;
-        plusSimResults = Trajectory(initialState);
+        plusSimResults = Trajectory(initialState, false);
         std::vector<dwdwo> plus_ki = trajSens(plusSimResults);
         m_ctrlParams.at(i).ki = og_params.at(i).ki - delta;
-        minusSimResults = Trajectory(initialState);
+        minusSimResults = Trajectory(initialState, false);
         std::vector<dwdwo> minus_ki = trajSens(minusSimResults);
 
         m_ctrlParams.at(i).kd = og_params.at(i).kd + delta;
-        plusSimResults = Trajectory(initialState);
+        plusSimResults = Trajectory(initialState, false);
         std::vector<dwdwo> plus_kd = trajSens(plusSimResults);
         m_ctrlParams.at(i).kd = og_params.at(i).kd - delta;
-        minusSimResults = Trajectory(initialState);
+        minusSimResults = Trajectory(initialState, false);
         std::vector<dwdwo> minus_kd = trajSens(minusSimResults);
 
         Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_kp = (plus_kp.at(gtp.tp).dxdwo - minus_kp.at(gtp.tp).dxdwo) / (2.0 * delta);
@@ -300,6 +302,8 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
         trajSenswodp.d2xdwodp.chip(i*NUM_PID_STATES + 2, 2) = resultX_kd_tensor;
         trajSenswodp.d2ydwodp.chip(i*NUM_PID_STATES + 2, 2) = resultY_kd_tensor;
         trajSenswodp.d2zdwodp.chip(i*NUM_PID_STATES + 2, 2) = resultZ_kd_tensor;
+
+        m_ctrlParams = og_params;
     }
     Eigen::Tensor<double, 3> tmp1 = trajSenswo2.d2xdwo2.concatenate(trajSenswo2.d2ydwo2, 0);
     Eigen::Tensor<double, 3> secondOrderTraj = tmp1.concatenate(trajSenswo2.d2zdwo2, 0);
@@ -333,6 +337,7 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
     std::chrono::time_point end = std::chrono::steady_clock::now();
     std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     m_logger << "Elapsed Time dG: " << elapsed.count() << " us" << std::endl;
+    m_finalTime = OG_finalTime;
     return dG;
 }
 

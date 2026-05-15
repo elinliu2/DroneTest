@@ -40,13 +40,13 @@ DroneTrajectory::DroneTrajectory(
        
     }
 
-SimResults DroneTrajectory::Trajectory(SystemState initialState)
+SimResults DroneTrajectory::Trajectory(SystemState initialState, bool checkConverge)
 {
     SimResults simResults;
     simResults.stateProgression.push_back(initialState);
     double time = 0;
     simResults.time.push_back(time);
-    while(time <= m_finalTime && simResults.stable){
+    while(time < m_finalTime && simResults.stable){
         SystemState prev = simResults.stateProgression.back();
         Timestep state1 = simulateTimestep(prev, time, m_simTimestep);
         simResults.stateProgression.push_back(state1.state);
@@ -55,34 +55,36 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState)
         time += m_simTimestep;        
         simResults.time.push_back(time);
 
-        // TOOD: check not converging and end earlier
-        if (isConverging(state1.state, m_ref, time)){
-            // m_logger << "converging :D" << std::endl;
-            simResults.converged = true;
-            return simResults;
-        } else if (isNotConverging(state1.state, m_ref, time)) {
-            // m_logger << "not converging D:" << std::endl;
-            return simResults;
-        }
-
-        if (!m_fixedNumIterations)
+        if(checkConverge)
         {
-            Timestep state2 = simulateTimestep(state1.state, time, m_simTimestep);
-            Timestep stateDouble = simulateTimestep(prev, time, 2*m_simTimestep);
-            simResults.stateProgression.push_back(state2.state);
-            simResults.stable &= state2.stable;
-
-            time += m_simTimestep;        
-            simResults.time.push_back(time);
-
-            if ((stateDouble.state.plant - state2.state.plant).norm() < 1e-7 && stateDouble.stable) {
-                m_simTimestep *= 2;
-            } else if ((stateDouble.state.plant - state2.state.plant).norm() > 1e-4) {
-                if (m_simTimestep > 1e-3){
-                    m_simTimestep /= 2;
-                }
+            if (isConverging(state1.state, m_ref, time)){
+                // m_logger << "converging :D" << std::endl;
+                simResults.converged = true;
+                return simResults;
+            } else if (isNotConverging(state1.state, m_ref, time)) {
+                // m_logger << "not converging D:" << std::endl;
+                return simResults;
             }
         }
+
+        // if (!m_fixedNumIterations)
+        // {
+            // Timestep state2 = simulateTimestep(state1.state, time, m_simTimestep);
+            // Timestep stateDouble = simulateTimestep(prev, time, 2*m_simTimestep);
+            // simResults.stateProgression.push_back(state2.state);
+            // simResults.stable &= state2.stable;
+
+            // time += m_simTimestep;        
+            // simResults.time.push_back(time);
+
+            // if ((stateDouble.state.plant - state2.state.plant).norm() < 1e-7 && stateDouble.stable) {
+            //     m_simTimestep *= 2;
+            // } else if ((stateDouble.state.plant - state2.state.plant).norm() > 1e-4) {
+            //     if (m_simTimestep > 1e-3){
+            //         m_simTimestep /= 2;
+            //     }
+            // }
+        // }
     }
     // m_logger << "convergence status: " << simResults.converged << std::endl;
     return simResults;
@@ -114,9 +116,9 @@ Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double
 
     guess.alge = algeStates;
     stable = stable && count < max_iterations;   
-    if (count >= max_iterations) {
-        m_logger << "WARN: took more than " << max_iterations << " iterations for sim to converge" << std::endl;
-    }
+    // if (count >= max_iterations) {
+    //     m_logger << "WARN: took more than " << max_iterations << " iterations for sim to converge" << std::endl;
+    // }
     return {guess, stable};
 }
 

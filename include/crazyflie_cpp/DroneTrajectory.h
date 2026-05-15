@@ -303,7 +303,7 @@ class DroneTrajectory
             DroneParameters droneParameters = {},
             double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);
         
-        SimResults Trajectory(SystemState initialState); 
+        SimResults Trajectory(SystemState initialState, bool checkConverge = true); 
         std::vector<dwdwo> trajSens(SimResults const & simResults);
         std::vector<dwdwo> trajSensTest(SystemState initialState);
         std::vector<dwdp> trajSensParam(SimResults const & simResults, G_tp gtp);
@@ -317,6 +317,8 @@ class DroneTrajectory
 
         zkpk theGigaAlgo(SystemState currState);
         zkpk updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> currState);
+
+        Eigen::Vector<double, NUM_STATES> closestZBar(SystemState currState);
 
         Eigen::Vector<double, NUM_PARAMETERS> getParams();
         void setParams(Eigen::Vector<double, NUM_PARAMETERS> params);
