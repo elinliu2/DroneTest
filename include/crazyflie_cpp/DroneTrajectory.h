@@ -216,7 +216,6 @@ struct zkpk{
 class DroneTrajectory 
 {
     Logger & m_logger;
-    std::array<PIDParameters, NUM_PIDS> m_ctrlParams;
     DroneParameters m_droneParams;
     // input is time
     // direction based on distIndex enum
@@ -294,6 +293,9 @@ class DroneTrajectory
     void dhdy_test(SystemState currState, SystemState prevState, double time, double timestep);
 
     public:
+        // I would add set/gets but please im lazy and i just want to get a mvp
+        std::array<PIDParameters, NUM_PIDS> m_ctrlParams;
+    
         DroneTrajectory( 
             Logger & log, 
             std::array<double(*)(double), NUM_DIST_STATES> const& dist,
