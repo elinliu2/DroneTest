@@ -46,6 +46,52 @@ std::vector<dwdwo> DroneTrajectory::trajSensTest(SystemState initialState)
     return ts;
 }
 
+std::vector<dwdp> DroneTrajectory::trajSensParamTest(SystemState initialState)
+{
+
+    double delta = 1e-5;
+    SimResults simResults = Trajectory(initialState);
+    int numIterations = simResults.time.size();
+    std::vector<dwdp> ts_p(numIterations);
+    
+    Eigen::Vector<double, NUM_STATES> plus;
+    Eigen::Vector<double, NUM_STATES> minus;
+    
+    SimResults plusSimResults;
+    SimResults minusSimResults;
+    std::array<PIDParameters, NUM_PIDS> og_params = m_ctrlParams;
+    
+    for(int i = 0; i < NUM_PARAMETERS; i++) {
+        SystemState testPlusState = initialState;
+        SystemState testMinusState = initialState;
+         
+        m_ctrlParams.at(i).kp = og_params.at(i).kp + delta;
+        plusSimResults = Trajectory(initialState);
+        m_ctrlParams.at(i).kp = og_params.at(i).kp - delta;
+        minusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> minus_kp = trajSens(minusSimResults);
+        m_ctrlParams.at(i).kp = og_params.at(i).kp;    
+
+        m_ctrlParams.at(i).ki = og_params.at(i).ki + delta;
+        plusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> plus_ki = trajSens(plusSimResults);
+        m_ctrlParams.at(i).ki = og_params.at(i).ki - delta;
+        minusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> minus_ki = trajSens(minusSimResults);
+        m_ctrlParams.at(i).ki = og_params.at(i).ki;    
+
+        m_ctrlParams.at(i).kd = og_params.at(i).kd + delta;
+        plusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> plus_kd = trajSens(plusSimResults);
+        m_ctrlParams.at(i).kd = og_params.at(i).kd - delta;
+        minusSimResults = Trajectory(initialState);
+        std::vector<dwdwo> minus_kd = trajSens(minusSimResults);   
+        m_ctrlParams.at(i).kd = og_params.at(i).kd;     
+        
+    }
+    return ts_p;
+}
+
 std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSensTest(SystemState initialState)
 {
     std::chrono::time_point start = std::chrono::steady_clock::now();
@@ -138,6 +184,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParamsTest(SystemState
         m_ctrlParams.at(i).kp = og_params.at(i).kp - delta;
         minusSimResults = Trajectory(initialState);
         std::vector<dwdwo> minus_kp = trajSens(minusSimResults);
+        m_ctrlParams.at(i).kp = og_params.at(i).kp;    
 
         m_ctrlParams.at(i).ki = og_params.at(i).ki + delta;
         plusSimResults = Trajectory(initialState);
@@ -145,6 +192,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParamsTest(SystemState
         m_ctrlParams.at(i).ki = og_params.at(i).ki - delta;
         minusSimResults = Trajectory(initialState);
         std::vector<dwdwo> minus_ki = trajSens(minusSimResults);
+        m_ctrlParams.at(i).ki = og_params.at(i).ki;    
 
         m_ctrlParams.at(i).kd = og_params.at(i).kd + delta;
         plusSimResults = Trajectory(initialState);
@@ -152,6 +200,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParamsTest(SystemState
         m_ctrlParams.at(i).kd = og_params.at(i).kd - delta;
         minusSimResults = Trajectory(initialState);
         std::vector<dwdwo> minus_kd = trajSens(minusSimResults);
+        m_ctrlParams.at(i).kd = og_params.at(i).kd;    
 
         for(int t = 0; t < numIterations; t++)
         {
@@ -302,7 +351,7 @@ void calcController(DroneTrajectory dt, int threadIndex, d2wdwodp & trajSenswodp
 }
 
 
-Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(SystemState initialState, dwdwo ts, dwdp ts_p, G_tp gtp, double endtime)
+Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime)
 {
     std::chrono::time_point start = std::chrono::steady_clock::now();
 
