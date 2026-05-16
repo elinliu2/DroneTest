@@ -20,8 +20,7 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
     SimResults traj = Trajectory(prev_zk_state);
     std::vector<dwdwo> ts = trajSens(traj);
     G_tp gtp = calc_G_tp(ts);
-    std::vector<dwdp> ts_p = trajSensParam(traj, gtp);
-    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test(prev_zk_state, ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, traj.time.at(gtp.tp) + m_simTimestep);
+    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test(prev_zk_state, ts.at(gtp.tp), gtp, traj.time.at(gtp.tp) + m_simTimestep);
     Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
     Eigen::Vector<double, NUM_PARAMETERS> vp = dG.segment(NUM_STATES, NUM_PARAMETERS);
     Eigen::Vector<double, NUM_PARAMETERS> pk = prev.pk + m_algo_alpha*(vz.transpose()*(prev.zk - currState) + gtp.G - m_epsilon)/(vz.transpose()*m_Pinv*vz)*vp;
@@ -56,7 +55,7 @@ Eigen::Vector<double, NUM_STATES> DroneTrajectory::closestZBar(SystemState currS
         std::vector<dwdwo> ts = trajSens(traj);
         G_tp gtp = calc_G_tp(ts);
         std::vector<dwdp> ts_p = trajSensParam(traj, gtp);
-        Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)}, ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, traj.time.at(gtp.tp));
+        Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)}, ts.at(gtp.tp), gtp, traj.time.at(gtp.tp));
         Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
 
         zk_prev = zk;

@@ -309,13 +309,13 @@ class DroneTrajectory
         std::vector<dwdwo> trajSens(SimResults const & simResults);
         std::vector<dwdwo> trajSensTest(SystemState initialState);
         std::vector<dwdp> trajSensParam(SimResults const & simResults, G_tp gtp);
-        std::vector<dwdp> trajSensParamTest(SimResults const & simResults);
+        std::vector<dwdp> trajSensParamTest(SystemState initialState);
         std::vector<d2wdwo2> secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts);
         std::vector<d2wdwo2> secondOrdertrajSensTest(SystemState initialState);
         std::vector<d2wdwodp> secondOrdertrajSensParamsTest(SystemState initialState);
 
         G_tp calc_G_tp(std::vector<dwdwo> trajSens);
-        Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, dwdp ts_p, G_tp gtp, double endtime);
+        Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime);
 
         zkpk theGigaAlgo(SystemState currState);
         zkpk updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> currState);
