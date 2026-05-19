@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(crazyflie_cpp VERSION 0.0.1)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ffast-math")
+# add_compile_options(-fno-fast-math -ffp-contract=off)
+add_compile_options(-fno-fast-math)
+add_compile_options(-mfpmath=sse -msse2)
 
 find_library(USB_LIB usb-1.0)
 

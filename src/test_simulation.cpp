@@ -164,10 +164,13 @@ int main()
     Logger log("./build/log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    double finalTime = 10;
-    double simTimestep = 1e-3;
-    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTimestep);
+    DroneTrajectory droneTrajectory(log, dist, ref);
     std::chrono::time_point start = std::chrono::steady_clock::now();
+    SimResults simResults = droneTrajectory.Trajectory(initializeState());
+    std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
+    G_tp gtp = droneTrajectory.calc_G_tp(ts);
+    // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), gtp, gtp.tp*1e-3);
+
     // SystemState initialState = initializeState();
     // Eigen::Vector<double, NUM_STATES> z0;
     // z0 << initialState.plant, initialState.alge;
@@ -179,18 +182,16 @@ int main()
     std::chrono::time_point end = std::chrono::steady_clock::now();
     std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     log << "Elapsed Time ERA algo: " << elapsed.count() << " us" << std::endl;
-    for(int i = 0; i < NUM_PARAMETERS; i++)
-    {
-        log << i << ": " << optimal.pk(i) << std::endl;
-    }
+    for(int i = 0; i < NUM_PARAMETERS; i++) { log << i << ": " << optimal.pk(i) << std::endl; }
 
-
-    // SimResults simResults = droneTrajectory.Trajectory(initializeState());
-    // log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
-    // log << "INFO - time size: " << simResults.time.size() << std::endl;
+    simResults = droneTrajectory.Trajectory(initializeState());
+    log << "stable? " << simResults.stable << std::endl;
+    log << "converged? " << simResults.converged << std::endl;
+    log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
+    log << "INFO - time size: " << simResults.time.size() << std::endl;
     
-    // Logger splot("splot.txt");
-    // splotTrajectory(simResults, splot);
+    Logger splot("./build/splot.txt");
+    splotTrajectory(simResults, splot);
     // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
     
     // log << "INFO - trajSens size: " << ts.size() << std::endl;
