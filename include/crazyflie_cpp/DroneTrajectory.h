@@ -240,7 +240,7 @@ class DroneTrajectory
     double m_alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/m_thrustBase;    
 
     // For ERA algo gradient ascent step
-    double m_algo_alpha = 0.5;
+    double m_algo_alpha = 0.05;
     // For ERA algo Weighting Matrix
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> m_Pinv = Eigen::Matrix<double, NUM_STATES, NUM_STATES>::Identity();
     // For ERA algo numerical tolerances for 
@@ -255,6 +255,7 @@ class DroneTrajectory
     Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, double time);
     bool isConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
     bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
+    void printInconvergence(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
 
     // On the off chance that someone ever reads this, just know that I hate this too, but I'm lazy
     // and these are class functions because the parameter values are part of the class 
@@ -300,7 +301,7 @@ class DroneTrajectory
             Logger & log, 
             std::array<double(*)(double), NUM_DIST_STATES> const& dist,
             std::array<double(*)(double), NUM_REF_STATES> const& ref,
-            double finalTime = 10, double simTimestep = 1e-3,
+            double finalTime = 100, double simTimestep = 1e-3,
             std::array<PIDParameters, NUM_PIDS> ctrlParams = defaultPIDParameters(),
             DroneParameters droneParameters = {},
             double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);

@@ -1,4 +1,6 @@
 #include "DroneTrajectory.h"
+#include "Splotting.h"
+
 zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
 {
     Eigen::Vector<double, NUM_STATES> z0;
@@ -11,6 +13,7 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
         pk_prev = curr.pk;
         curr = updateStep(curr, z0);
     }
+    m_logger << "m_finalTime: " << m_finalTime << std::endl;
     return curr;
 }
 
@@ -21,6 +24,7 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
     std::vector<dwdwo> ts = trajSens(traj);
     G_tp gtp = calc_G_tp(ts);
     Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test(prev_zk_state, ts.at(gtp.tp), gtp, traj.time.at(gtp.tp) + m_simTimestep);
+    // for(int i = 0; i < NUM_STATES+NUM_PARAMETERS; i++) {m_logger << dG(i) << std::endl;} m_logger << std::endl;
     Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
     Eigen::Vector<double, NUM_PARAMETERS> vp = dG.segment(NUM_STATES, NUM_PARAMETERS);
     Eigen::Vector<double, NUM_PARAMETERS> pk = prev.pk + m_algo_alpha*(vz.transpose()*(prev.zk - currState) + gtp.G - m_epsilon)/(vz.transpose()*m_Pinv*vz)*vp;
@@ -28,7 +32,7 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
     Eigen::Vector<double, NUM_STATES> zk = (m_Pinv*vz*vz.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.zk-currState) + (m_Pinv*vz*vp.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.pk-pk) + currState - (m_Pinv*vz)/(vz.transpose()*m_Pinv*vz)*(gtp.G-m_epsilon);
     double backtrack = 0.5;
     traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
-    while(!traj.stable && (pk-prev.pk).cwiseAbs().sum() > 1e-8)
+    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-8)
     {
         pk = prev.pk + backtrack*(pk-prev.pk);
         setParams(pk);
@@ -36,9 +40,18 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
         traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
         backtrack /= 2;
     }
-    if(!traj.stable){
+    if(!traj.stable || !traj.converged){
+        // SimResults traj = Trajectory(prev_zk_state);
+        // m_logger << "traj converge?: " << traj.converged << " stable?: " << traj.stable << std::endl;
+        // SystemState z0_state = {currState.segment(0, NUM_PLANT_STATES), currState.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)};
+        // SimResults z0_state_traj = Trajectory(z0_state);
+        // m_logger << "z0_state traj converge?: " << z0_state_traj.converged << " stable?: " << z0_state_traj.stable << std::endl;
         return prev;
     } else {
+        // m_logger << "traj converge?: " << traj.converged << " stable?: " << traj.stable << std::endl;
+        // SystemState z0_state = {currState.segment(0, NUM_PLANT_STATES), currState.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)};
+        // SimResults z0_state_traj = Trajectory(z0_state);
+        // m_logger << "z0_state traj converge?: " << z0_state_traj.converged << " stable?: " << z0_state_traj.stable << std::endl;
         return {zk, pk};
     }
 }

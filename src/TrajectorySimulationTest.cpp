@@ -249,7 +249,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParamsTest(SystemState
     return ts2;
 }
 
-void calcStatesDG(DroneTrajectory dt, int threadIndex, int numStates, d2wdwo2 & trajSenswo2, SystemState initialState, int tp)
+void calcStatesDG(DroneTrajectory dt, int threadIndex, int numStates, d2wdwo2 & trajSenswo2, SystemState initialState, int tp, Logger & log)
 {
     double delta = 1e-5;
     for(int i = 0; i < numStates; i++) {
@@ -268,7 +268,6 @@ void calcStatesDG(DroneTrajectory dt, int threadIndex, int numStates, d2wdwo2 & 
 
         std::vector<dwdwo> plus_ts = dt.trajSens(plusSimResults);
         std::vector<dwdwo> minus_ts = dt.trajSens(minusSimResults);
-
         Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX = (plus_ts.at(tp).dxdwo - minus_ts.at(tp).dxdwo) / (2.0 * delta);
         Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY = (plus_ts.at(tp).dydwo - minus_ts.at(tp).dydwo) / (2.0 * delta);
         Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ = (plus_ts.at(tp).dzdwo - minus_ts.at(tp).dzdwo) / (2.0 * delta);
@@ -353,7 +352,7 @@ void calcController(DroneTrajectory dt, int threadIndex, d2wdwodp & trajSenswodp
 
 Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime)
 {
-    std::chrono::time_point start = std::chrono::steady_clock::now();
+    // std::chrono::time_point start = std::chrono::steady_clock::now();
 
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> dwdwo_matrix;
     dwdwo_matrix << ts.dxdwo, ts.dzdwo, ts.dydwo;
@@ -368,7 +367,7 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
     std::vector<std::thread> threads;
     for (int threadIndex = 0; threadIndex < num_threads; threadIndex++)
     {
-        threads.push_back(std::thread(calcStatesDG, *this, threadIndex, NUM_STATES/num_threads, std::ref(trajSenswo2), initialState, gtp.tp));
+        threads.push_back(std::thread(calcStatesDG, *this, threadIndex, NUM_STATES/num_threads, std::ref(trajSenswo2), initialState, gtp.tp, std::ref(m_logger)));
     }
 
     for (auto& t : threads) {
@@ -415,9 +414,9 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
     }
     
     dG = -1 * std::pow(gtp.G, 2) * dG;
-    std::chrono::time_point end = std::chrono::steady_clock::now();
-    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    m_logger << "Elapsed Time dG: " << elapsed.count() << " us" << std::endl;
+    // std::chrono::time_point end = std::chrono::steady_clock::now();
+    // std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    // m_logger << "Elapsed Time dG: " << elapsed.count() << " us" << std::endl;
     m_finalTime = OG_finalTime;
     return dG;
 }
