@@ -12,8 +12,9 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
     {
         pk_prev = curr.pk;
         curr = updateStep(curr, z0);
+        count++;
     }
-    m_logger << "m_finalTime: " << m_finalTime << std::endl;
+    m_logger << "count: " << count << std::endl;
     return curr;
 }
 
@@ -30,15 +31,46 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
     Eigen::Vector<double, NUM_PARAMETERS> pk = prev.pk + m_algo_alpha*(vz.transpose()*(prev.zk - currState) + gtp.G - m_epsilon)/(vz.transpose()*m_Pinv*vz)*vp;
     setParams(pk);
     Eigen::Vector<double, NUM_STATES> zk = (m_Pinv*vz*vz.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.zk-currState) + (m_Pinv*vz*vp.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.pk-pk) + currState - (m_Pinv*vz)/(vz.transpose()*m_Pinv*vz)*(gtp.G-m_epsilon);
-    double backtrack = 0.5;
+    double backtrack = m_backtrack;
     traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
-    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-8)
+    int backtrackingCount = 0;
+    std::chrono::time_point start = std::chrono::steady_clock::now();
+    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-12)
     {
         pk = prev.pk + backtrack*(pk-prev.pk);
         setParams(pk);
         zk = prev.zk + backtrack*(zk-prev.zk);
         traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
         backtrack /= 2;
+        backtrackingCount++;
+        // m_logger << "sim time length: " << traj.time.size() << std::endl;
+        // if (traj.stable && traj.converged)
+        // {
+        //     m_logger << "final state: " << std::endl;
+        //     m_logger << "x: " << traj.stateProgression.at(traj.time.size()-1).plant(x) <<
+        //                 " y: " << traj.stateProgression.at(traj.time.size()-1).plant(y) <<
+        //                 " z: " << traj.stateProgression.at(traj.time.size()-1).plant(z) <<
+        //                 " phi: " << traj.stateProgression.at(traj.time.size()-1).plant(phi) <<
+        //                 " theta: " << traj.stateProgression.at(traj.time.size()-1).plant(theta) <<
+        //                 " psi: " << traj.stateProgression.at(traj.time.size()-1).plant(psi) <<
+        //                 " xdot: " << traj.stateProgression.at(traj.time.size()-1).plant(xdot) <<
+        //                 " ydot: " << traj.stateProgression.at(traj.time.size()-1).plant(ydot) <<
+        //                 " zdot: " << traj.stateProgression.at(traj.time.size()-1).plant(zdot) <<
+        //                 " p: " << traj.stateProgression.at(traj.time.size()-1).plant(p) <<
+        //                 " q: " << traj.stateProgression.at(traj.time.size()-1).plant(q) <<
+        //                 " r: " << traj.stateProgression.at(traj.time.size()-1).plant(r) << std::endl;
+        // }
+    }
+    if(backtrackingCount > 0)
+    {
+        std::chrono::time_point end = std::chrono::steady_clock::now();
+        std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        m_logger << "backtracking time: " << elapsed.count() << " us" << std::endl;
+        m_logger << "backtracking count: " << backtrackingCount << std::endl;
+        if(backtrackingCount > 2)
+        {
+            m_backtrack = backtrack;
+        }
     }
     if(!traj.stable || !traj.converged){
         // SimResults traj = Trajectory(prev_zk_state);

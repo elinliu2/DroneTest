@@ -240,11 +240,12 @@ class DroneTrajectory
     double m_alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/m_thrustBase;    
 
     // For ERA algo gradient ascent step
-    double m_algo_alpha = 0.05;
+    double m_algo_alpha = 0.5;
     // For ERA algo Weighting Matrix
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> m_Pinv = Eigen::Matrix<double, NUM_STATES, NUM_STATES>::Identity();
     // For ERA algo numerical tolerances for 
     double m_epsilon = 1e-12;
+    double m_backtrack = 1.0/2.0;
 
     Eigen::Vector<double, NUM_ALGE_STATES> CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, 
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
@@ -253,7 +254,7 @@ class DroneTrajectory
     Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep);
     Eigen::MatrixX<double> DH(SystemState state, double timestep);
     Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, double time);
-    bool isConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
+    bool isConverging(SimResults const& simResults, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
     bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
     void printInconvergence(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
 
