@@ -40,7 +40,7 @@ DroneTrajectory::DroneTrajectory(
        
     }
 
-SimResults DroneTrajectory::Trajectory(SystemState initialState, bool checkConverge)
+SimResults DroneTrajectory::Trajectory(SystemState initialState, bool checkConverge) const
 {
     SimResults simResults;
     simResults.stateProgression.push_back(initialState);
@@ -96,7 +96,7 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState, bool checkConve
     return simResults;
 }
 
-Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double timestep)
+Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double timestep) const
 {
     double tol = 1e-12;
     SystemState guess = prev;
@@ -152,14 +152,14 @@ Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double
     return {guess, true};
 }
 
-Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep)
+Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep) const
 {
     Eigen::Vector<double, NUM_PLANT_STATES> fprev = f(prev, time-timestep);
     Eigen::Vector<double, NUM_PLANT_STATES> fguess = f({guess, prev.alge}, time);
     return prev.plant - guess + timestep/2*(fprev + fguess);
 }
 
-Eigen::MatrixX<double> DroneTrajectory::DH(SystemState state, double timestep)
+Eigen::MatrixX<double> DroneTrajectory::DH(SystemState state, double timestep) const
 {
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dh = -1*Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES>::Identity();
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx_plus = dfdx(state);
@@ -167,7 +167,7 @@ Eigen::MatrixX<double> DroneTrajectory::DH(SystemState state, double timestep)
 }
 
 // dynamics and updated control state
-Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::f(SystemState state, double time)
+Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::f(SystemState state, double time) const
 {
     Eigen::Vector<double, NUM_PLANT_STATES> dot = Eigen::Vector<double, NUM_PLANT_STATES>::Zero();
     dot(x) = state.plant(xdot);
@@ -196,6 +196,10 @@ Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::f(SystemState state, do
                 (std::cos(state.plant(phi)) * std::cos(state.plant(theta))) 
                 + m_dist.at(Fwz)(time) /  m_droneParams.mass;
 
+    // dot(xdot) -= state.plant(xdot) * m_droneParams.kd/m_droneParams.mass;    
+    // dot(ydot) -= state.plant(ydot) * m_droneParams.kd/m_droneParams.mass;    
+    // dot(zdot) -= state.plant(zdot) * m_droneParams.kd/m_droneParams.mass;            
+
     dot(p) = (m_droneParams.Iy-m_droneParams.Iz)/m_droneParams.Ix*state.plant(r)*state.plant(q) 
             + (state.alge(tx) + m_dist.at(Twx)(time))/m_droneParams.Ix;
     dot(q) = (m_droneParams.Iz-m_droneParams.Ix)/m_droneParams.Iy*state.plant(p)*state.plant(r)
@@ -211,7 +215,7 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     Eigen::Vector<double, NUM_PLANT_STATES> plantState,
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
     Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates,
-    double time, double timestep)
+    double time, double timestep) const
 {
     Eigen::Vector<double, NUM_ALGE_STATES> algeStates = Eigen::Vector<double, NUM_ALGE_STATES>::Zero();
 
@@ -489,7 +493,7 @@ double capAngle(double angle)
 }
 
 // Check if drone has been near ball around ref for 0.1s
-bool DroneTrajectory::isConverging(SimResults const& simResults, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time)
+bool DroneTrajectory::isConverging(SimResults const& simResults, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time) const
 {
     double posTol = 0.1;
     double angleTol = 0.0872665; // 5 degrees
@@ -512,9 +516,9 @@ bool DroneTrajectory::isConverging(SimResults const& simResults, std::array<doub
     return false;
 }   
 
-bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time)
+bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time) const
 {
-    double posDist = 500;
+    double posDist = 100;
     double angleDist = 90;
     // double pidStateLimit = 1e7;
 

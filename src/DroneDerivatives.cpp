@@ -1,7 +1,7 @@
 #include "DroneTrajectory.h"
 typedef Eigen::Triplet<double> T;
 
-Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> DroneTrajectory::dfdx(SystemState state)
+Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> DroneTrajectory::dfdx(SystemState state) const
 {
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx = Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES>::Zero();
     Eigen::Vector<double, NUM_PLANT_STATES> plant = state.plant;
@@ -48,7 +48,7 @@ Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> DroneTrajectory::dfdx(
     return dfdx;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dfdz(SystemState state)
+Eigen::SparseMatrix<double> DroneTrajectory::dfdz(SystemState state) const
 {
     std::vector<T> dfdz;
     dfdz.reserve(6);
@@ -73,7 +73,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dfdz(SystemState state)
     return dfdz_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dgdx(SystemState state)
+Eigen::SparseMatrix<double> DroneTrajectory::dgdx(SystemState state) const
 {
     std::vector<T> dgdx;
     dgdx.reserve(6);
@@ -92,7 +92,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dgdx(SystemState state)
     return dgdx_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dgdz(SystemState state)
+Eigen::SparseMatrix<double> DroneTrajectory::dgdz(SystemState state) const
 {
     std::vector<T> dgdz;
     dgdz.reserve(6);
@@ -130,7 +130,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dgdp(SystemState state)
     return dgdp_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dhdxPlus(SystemState state, double time, double timestep)
+Eigen::SparseMatrix<double> DroneTrajectory::dhdxPlus(SystemState state, double time, double timestep) const
 {
     std::vector<T> dhdx;
     dhdx.reserve(67);
@@ -209,7 +209,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdxPlus(SystemState state, double 
     return dhdx_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dhdxCurr(SystemState prev, double timestep)
+Eigen::SparseMatrix<double> DroneTrajectory::dhdxCurr(SystemState prev, double timestep) const
 {
     std::vector<T> dhdx;
     dhdx.reserve(30);
@@ -249,7 +249,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdxCurr(SystemState prev, double t
     return dhdx_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double timestep)
+Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double timestep) const
 {
     std::vector<T> dhdz;
     dhdz.reserve(75);
@@ -340,7 +340,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double 
     return dhdz_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr()
+Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr() const
 {
     std::vector<T> dhdz;
     dhdz.reserve(26);
@@ -373,7 +373,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr()
     return dhdz_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dhdy(double timestep)
+Eigen::SparseMatrix<double> DroneTrajectory::dhdy(double timestep) const
 {
     std::vector<T> dhdy;
     dhdy.reserve(4);

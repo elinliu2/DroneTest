@@ -24,7 +24,9 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
     SimResults traj = Trajectory(prev_zk_state);
     std::vector<dwdwo> ts = trajSens(traj);
     G_tp gtp = calc_G_tp(ts);
+    m_logger << "tp: " << gtp.tp << std::endl;
     Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test(prev_zk_state, ts.at(gtp.tp), gtp, traj.time.at(gtp.tp) + m_simTimestep);
+    // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS>::Zero();
     // for(int i = 0; i < NUM_STATES+NUM_PARAMETERS; i++) {m_logger << dG(i) << std::endl;} m_logger << std::endl;
     Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
     Eigen::Vector<double, NUM_PARAMETERS> vp = dG.segment(NUM_STATES, NUM_PARAMETERS);

@@ -5,7 +5,7 @@
 
 double windDist(double time)
 {
-    if(time < 1.003){
+    if(time < 0.001){
         return 0.7;
     }
     return 0;
@@ -53,6 +53,74 @@ SystemState initializeState()
     SystemState initialState;
     initialState.plant = Eigen::Vector<double, NUM_PLANT_STATES>::Zero();
     initialState.alge = Eigen::Vector<double, NUM_ALGE_STATES>::Zero();
+    return initialState;
+}
+
+SystemState stateCloseToRoABoundary()
+{
+    SystemState initialState;
+
+    initialState.plant(0) = 9.42579;
+    initialState.plant(1) = 1.04072;
+    initialState.plant(2) = -0.0206441;
+    initialState.plant(3) = 0.311541;
+    initialState.plant(4) = -0.369181;
+    initialState.plant(5) = -0.00404734;
+    initialState.plant(6) = 17.9918;
+    initialState.plant(7) = 1.23546;
+    initialState.plant(8) = -0.00804218;
+    initialState.plant(9) = 0.423235;
+    initialState.plant(10) = 0.00129618;
+    initialState.plant(11) = -0.00170205;
+    initialState.alge(0) = -2.23041;
+    initialState.alge(1) = -17.9819;
+    initialState.alge(2) = -16.8511;
+    initialState.alge(3) = 0.655264;
+    initialState.alge(4) = -1.32267;
+    initialState.alge(5) = -0.149645;
+    initialState.alge(6) = 0.0114291;
+    initialState.alge(7) = 0.00800204;
+    initialState.alge(8) = 0.0470027;
+    initialState.alge(9) = -13.9088;
+    initialState.alge(10) = -6.52761;
+    initialState.alge(11) = 0.408604;
+    initialState.alge(12) = 3.29112;
+    initialState.alge(13) = 0.0452016;
+    initialState.alge(14) = 0.0802768;
+    initialState.alge(15) = 38054.1;
+    initialState.alge(16) = 3.17203;
+    initialState.alge(17) = -24.3563;
+    initialState.alge(18) = 22.4164;
+    initialState.alge(19) = -2.36685;
+    initialState.alge(20) = -0.100059;
+    initialState.alge(21) = -0.185315;
+    initialState.alge(22) = -1.08001;
+    initialState.alge(23) = 0.0776442;
+    initialState.alge(24) = 0.338539;
+    initialState.alge(25) = 1437.5;
+    initialState.alge(26) = 1446.75;
+    initialState.alge(27) = -21.6226;
+    initialState.alge(28) = -21.666;
+    initialState.alge(29) = -0.173573;
+    initialState.alge(30) = 161.226;
+    initialState.alge(31) = -142.028;
+    initialState.alge(32) = 0.145901;
+    initialState.alge(33) = -2.41442;
+    initialState.alge(34) = 2.01932;
+    initialState.alge(35) = -0.0718121;
+    initialState.alge(36) = -4.1235;
+    initialState.alge(37) = 51.1278;
+    initialState.alge(38) = 1587.72;
+    initialState.alge(39) = 1583.39;
+    initialState.alge(40) = 1581.73;
+    initialState.alge(41) = 1577.57;
+    initialState.alge(42) = 0.372691;
+    initialState.alge(43) = -4.52449e-05;
+    initialState.alge(44) = 7.04058e-07;
+    initialState.alge(45) = 2.08106e-06;
+    initialState.alge(46) = 20;
+    initialState.alge(47) = -20;
+
     return initialState;
 }
 
@@ -182,13 +250,13 @@ int main()
 {
     // std::cout << "cwd: " << std::filesystem::current_path() << std::endl;
     Logger log("./build/log.txt");
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {windDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    double finalTime = 500;
+    double finalTime = 100;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(initializeState(), true);
+    SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
     // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
     // G_tp gtp = droneTrajectory.calc_G_tp(ts);
     // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), gtp, gtp.tp*1e-3);
@@ -198,32 +266,39 @@ int main()
     // z0 << initialState.plant, initialState.alge;
     // Eigen::Vector<double, NUM_STATES> old_zk = droneTrajectory.closestZBar(initializeState());
     // log << "initial zbar dist " << (z0 - old_zk).norm() << std::endl; 
-    // zkpk optimal = droneTrajectory.theGigaAlgo(initializeState());
+    zkpk optimal = droneTrajectory.theGigaAlgo(stateCloseToRoABoundary());
     // Eigen::Vector<double, NUM_STATES> new_zk = droneTrajectory.closestZBar(initializeState());
     // log << "new zbar dist " << (z0 - new_zk).norm() << std::endl; 
-    // std::chrono::time_point end = std::chrono::steady_clock::now();
-    // std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    // log << "Elapsed Time ERA algo: " << elapsed.count() << " us" << std::endl;
+    std::chrono::time_point end = std::chrono::steady_clock::now();
+    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    log << "Elapsed Time ERA algo: " << elapsed.count() << " us" << std::endl;
     // for(int i = 0; i < NUM_PARAMETERS; i++) { log << i << ": " << optimal.pk(i) << std::endl; }
 
-    // simResults = droneTrajectory.Trajectory(initializeState());
+    simResults = droneTrajectory.Trajectory(initializeState());
     log << "stable? " << simResults.stable << std::endl;
     log << "converged? " << simResults.converged << std::endl;
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
     log << "INFO - time size: " << simResults.time.size() << std::endl;
 
-    log <<       "x: " << simResults.stateProgression.at(simResults.time.size()-1).plant(x) <<
-                " y: " << simResults.stateProgression.at(simResults.time.size()-1).plant(y) <<
-                " z: " << simResults.stateProgression.at(simResults.time.size()-1).plant(z) <<
-                " phi: " << simResults.stateProgression.at(simResults.time.size()-1).plant(phi) <<
-                " theta: " << simResults.stateProgression.at(simResults.time.size()-1).plant(theta) <<
-                " psi: " << simResults.stateProgression.at(simResults.time.size()-1).plant(psi) <<
-                " xdot: " << simResults.stateProgression.at(simResults.time.size()-1).plant(xdot) <<
-                " ydot: " << simResults.stateProgression.at(simResults.time.size()-1).plant(ydot) <<
-                " zdot: " << simResults.stateProgression.at(simResults.time.size()-1).plant(zdot) <<
-                " p: " << simResults.stateProgression.at(simResults.time.size()-1).plant(p) <<
-                " q: " << simResults.stateProgression.at(simResults.time.size()-1).plant(q) <<
-                " r: " << simResults.stateProgression.at(simResults.time.size()-1).plant(r) << std::endl;
+    // double timeIndex = 1001;
+    // log <<       "x: " << simResults.stateProgression.at(timeIndex).plant(x) <<
+    //             " y: " << simResults.stateProgression.at(timeIndex).plant(y) <<
+    //             " z: " << simResults.stateProgression.at(timeIndex).plant(z) <<
+    //             " phi: " << simResults.stateProgression.at(timeIndex).plant(phi) <<
+    //             " theta: " << simResults.stateProgression.at(timeIndex).plant(theta) <<
+    //             " psi: " << simResults.stateProgression.at(timeIndex).plant(psi) <<
+    //             " xdot: " << simResults.stateProgression.at(timeIndex).plant(xdot) <<
+    //             " ydot: " << simResults.stateProgression.at(timeIndex).plant(ydot) <<
+    //             " zdot: " << simResults.stateProgression.at(timeIndex).plant(zdot) <<
+    //             " p: " << simResults.stateProgression.at(timeIndex).plant(p) <<
+    //             " q: " << simResults.stateProgression.at(timeIndex).plant(q) <<
+    //             " r: " << simResults.stateProgression.at(timeIndex).plant(r) << std::endl;
+
+    // for(int i = 0; i < NUM_PLANT_STATES; i++)
+    // { log << "initialState.plant(" << i << ") = " << simResults.stateProgression.at(timeIndex).plant(i) << ";" << std::endl; }
+
+    // for(int i = 0; i < NUM_ALGE_STATES; i++)
+    // { log << "initialState.alge(" << i << ") = " << simResults.stateProgression.at(timeIndex).alge(i) << ";" << std::endl; }
     
     Logger splot("./build/splot.txt");
     splotTrajectory(simResults, splot);
