@@ -60,6 +60,11 @@ struct DroneParameters
     // these are in degrees
     double pid_vel_roll_max = 20.0; 
     double pid_vel_pitch_max = 20.0;
+
+    // translational drag coefficients
+    // https://www.proquest.com/docview/1786690441?pq-origsite=gscholar&fromopenview=true&sourcetype=Dissertations%20&%20Theses
+    double kd = 1e-9;
+
 };
 
 struct SystemState
@@ -249,13 +254,13 @@ class DroneTrajectory
 
     Eigen::Vector<double, NUM_ALGE_STATES> CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, 
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
-    Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates, double time, double timestep);
-    Timestep simulateTimestep(SystemState prev, double time, double timestep);
-    Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep);
-    Eigen::MatrixX<double> DH(SystemState state, double timestep);
-    Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, double time);
-    bool isConverging(SimResults const& simResults, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
-    bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
+    Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates, double time, double timestep) const;
+    Timestep simulateTimestep(SystemState prev, double time, double timestep) const;
+    Eigen::Vector<double, NUM_PLANT_STATES> H(SystemState prev, Eigen::Vector<double, NUM_PLANT_STATES> guess, double time, double timestep) const;
+    Eigen::MatrixX<double> DH(SystemState state, double timestep) const;
+    Eigen::Vector<double, NUM_PLANT_STATES> f(SystemState state, double time) const;
+    bool isConverging(SimResults const& simResults, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time) const;
+    bool isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time) const;
     void printInconvergence(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time);
 
     // On the off chance that someone ever reads this, just know that I hate this too, but I'm lazy
@@ -263,16 +268,16 @@ class DroneTrajectory
     // so here we have a giga file with a bajillion functions that don't technically need to be here
     // and yes i could fix it but i have other stuff to do
     // don't get mad at me tho go look at the string class and be outraged at that instead
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx(SystemState state);
-    Eigen::SparseMatrix<double> dfdz(SystemState state);
-    Eigen::SparseMatrix<double> dgdx(SystemState state);
-    Eigen::SparseMatrix<double> dgdz(SystemState state);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx(SystemState state) const;
+    Eigen::SparseMatrix<double> dfdz(SystemState state) const;
+    Eigen::SparseMatrix<double> dgdx(SystemState state) const;
+    Eigen::SparseMatrix<double> dgdz(SystemState state) const;
     Eigen::SparseMatrix<double> dgdp(SystemState state);
-    Eigen::SparseMatrix<double> dhdxPlus(SystemState state, double time, double timestep);
-    Eigen::SparseMatrix<double> dhdxCurr(SystemState prev, double timestep);
-    Eigen::SparseMatrix<double> dhdzPlus(SystemState state, double timestep);
-    Eigen::SparseMatrix<double> dhdzCurr();
-    Eigen::SparseMatrix<double> dhdy(double timestep);
+    Eigen::SparseMatrix<double> dhdxPlus(SystemState state, double time, double timestep) const;
+    Eigen::SparseMatrix<double> dhdxCurr(SystemState prev, double timestep) const;
+    Eigen::SparseMatrix<double> dhdzPlus(SystemState state, double timestep) const;
+    Eigen::SparseMatrix<double> dhdzCurr() const;
+    Eigen::SparseMatrix<double> dhdy(double timestep) const;
     Eigen::SparseMatrix<double> dhdp(SystemState state, double time);
 
     Eigen::SparseMatrix<double> d2fdx2(SystemState state); 
@@ -307,8 +312,8 @@ class DroneTrajectory
             DroneParameters droneParameters = {},
             double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);
         
-        SimResults Trajectory(SystemState initialState, bool checkConverge = true); 
-        std::vector<dwdwo> trajSens(SimResults const & simResults);
+        SimResults Trajectory(SystemState initialState, bool checkConverge = true) const; 
+        std::vector<dwdwo> trajSens(SimResults const & simResults) const;
         std::vector<dwdwo> trajSensTest(SystemState initialState);
         std::vector<dwdp> trajSensParam(SimResults const & simResults, G_tp gtp);
         std::vector<dwdp> trajSensParamTest(SystemState initialState);

@@ -249,7 +249,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParamsTest(SystemState
     return ts2;
 }
 
-void calcStatesDG(DroneTrajectory dt, int threadIndex, int numStates, d2wdwo2 & trajSenswo2, SystemState initialState, int tp, Logger & log)
+void calcStatesDG(DroneTrajectory const& dt, int threadIndex, int numStates, d2wdwo2 & trajSenswo2, SystemState initialState, int tp, Logger & log)
 {
     double delta = 1e-5;
     for(int i = 0; i < numStates; i++) {
@@ -365,14 +365,16 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
     d2wdwo2 trajSenswo2;
     int num_threads = 12;
     std::vector<std::thread> threads;
+    m_logger << "calc dG test" << std::endl;
     for (int threadIndex = 0; threadIndex < num_threads; threadIndex++)
     {
-        threads.push_back(std::thread(calcStatesDG, *this, threadIndex, NUM_STATES/num_threads, std::ref(trajSenswo2), initialState, gtp.tp, std::ref(m_logger)));
+        threads.push_back(std::thread(calcStatesDG, std::ref(*this), threadIndex, NUM_STATES/num_threads, std::ref(trajSenswo2), initialState, gtp.tp, std::ref(m_logger)));
     }
 
     for (auto& t : threads) {
         t.join();
     }
+    m_logger << "plantStates" << std::endl;
     
     threads.clear();
     d2wdwodp trajSenswodp;
@@ -385,6 +387,7 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
         t.join();
     }
     
+    m_logger << "controlStates" << std::endl;
     Eigen::Tensor<double, 3> tmp1 = trajSenswo2.d2xdwo2.concatenate(trajSenswo2.d2ydwo2, 0);
     Eigen::Tensor<double, 3> secondOrderTraj = tmp1.concatenate(trajSenswo2.d2zdwo2, 0);
     Eigen::Tensor<double, 3> tmp2 = trajSenswodp.d2xdwodp.concatenate(trajSenswodp.d2ydwodp, 0);

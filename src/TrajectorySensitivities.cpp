@@ -1,7 +1,7 @@
 #include "DroneTrajectory.h"
 #include <chrono>
 
-std::vector<dwdwo> DroneTrajectory::trajSens(SimResults const & simResults)
+std::vector<dwdwo> DroneTrajectory::trajSens(SimResults const & simResults) const
 {
     // std::chrono::time_point start = std::chrono::steady_clock::now();
 
