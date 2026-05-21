@@ -352,7 +352,7 @@ void calcController(DroneTrajectory dt, int threadIndex, d2wdwodp & trajSenswodp
 
 Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime)
 {
-    // std::chrono::time_point start = std::chrono::steady_clock::now();
+    std::chrono::time_point start = std::chrono::steady_clock::now();
 
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> dwdwo_matrix;
     dwdwo_matrix << ts.dxdwo, ts.dzdwo, ts.dydwo;
@@ -414,9 +414,9 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
     }
     
     dG = -1 * std::pow(gtp.G, 2) * dG;
-    // std::chrono::time_point end = std::chrono::steady_clock::now();
-    // std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    // m_logger << "Elapsed Time dG: " << elapsed.count() << " us" << std::endl;
+    std::chrono::time_point end = std::chrono::steady_clock::now();
+    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    m_logger << "Elapsed Time dG: " << elapsed.count() << " us" << std::endl;
     m_finalTime = OG_finalTime;
     return dG;
 }

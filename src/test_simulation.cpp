@@ -5,8 +5,8 @@
 
 double windDist(double time)
 {
-    if(time < 1){
-        return 1;
+    if(time < 1.003){
+        return 0.7;
     }
     return 0;
 }
@@ -158,17 +158,39 @@ std::pair<double, int> diffdzdwo(std::vector<dwdwo> const & tsA, std::vector<dwd
     }
     return {maxDiff, index};
 }
+
+std::array<PIDParameters, NUM_PIDS> initialParameters(){
+    PIDParameters posXpid = {1, 0, 0};
+    PIDParameters posYpid = {1, 0, 0};
+    PIDParameters posZpid = {1, 0, 0};
+
+    PIDParameters velXpid = {1, 0, 0};
+    PIDParameters velYpid = {1, 0, 0};
+    PIDParameters velZpid = {1, 0, 0};
+
+    PIDParameters rollpid  = {10, 0, 0, 20.0};
+    PIDParameters pitchpid = {10, 0, 0, 20.0};
+    PIDParameters yawpid   = {10, 0, 0, 360.0};
+
+    PIDParameters rollRatepid  = {10, 0, 0, 33.3, true};
+    PIDParameters pitchRatepid = {10, 0, 0, 33.3, true};
+    PIDParameters yawRatepid   = {10, 0, 0, 166.7};
+    return {posXpid, posYpid, posZpid, velXpid, velYpid, velZpid, rollpid, pitchpid, yawpid, rollRatepid, pitchRatepid, yawRatepid};
+}
+
 int main()
 {
     // std::cout << "cwd: " << std::filesystem::current_path() << std::endl;
     Logger log("./build/log.txt");
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {windDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    DroneTrajectory droneTrajectory(log, dist, ref);
+    double finalTime = 500;
+    double simTime = 1e-3;
+    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(initializeState());
-    std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
-    G_tp gtp = droneTrajectory.calc_G_tp(ts);
+    SimResults simResults = droneTrajectory.Trajectory(initializeState(), true);
+    // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
+    // G_tp gtp = droneTrajectory.calc_G_tp(ts);
     // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), gtp, gtp.tp*1e-3);
 
     // SystemState initialState = initializeState();
@@ -176,23 +198,42 @@ int main()
     // z0 << initialState.plant, initialState.alge;
     // Eigen::Vector<double, NUM_STATES> old_zk = droneTrajectory.closestZBar(initializeState());
     // log << "initial zbar dist " << (z0 - old_zk).norm() << std::endl; 
-    zkpk optimal = droneTrajectory.theGigaAlgo(initializeState());
+    // zkpk optimal = droneTrajectory.theGigaAlgo(initializeState());
     // Eigen::Vector<double, NUM_STATES> new_zk = droneTrajectory.closestZBar(initializeState());
     // log << "new zbar dist " << (z0 - new_zk).norm() << std::endl; 
-    std::chrono::time_point end = std::chrono::steady_clock::now();
-    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    log << "Elapsed Time ERA algo: " << elapsed.count() << " us" << std::endl;
-    for(int i = 0; i < NUM_PARAMETERS; i++) { log << i << ": " << optimal.pk(i) << std::endl; }
+    // std::chrono::time_point end = std::chrono::steady_clock::now();
+    // std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    // log << "Elapsed Time ERA algo: " << elapsed.count() << " us" << std::endl;
+    // for(int i = 0; i < NUM_PARAMETERS; i++) { log << i << ": " << optimal.pk(i) << std::endl; }
 
-    simResults = droneTrajectory.Trajectory(initializeState());
+    // simResults = droneTrajectory.Trajectory(initializeState());
     log << "stable? " << simResults.stable << std::endl;
     log << "converged? " << simResults.converged << std::endl;
     log << "INFO - simResults size: " << simResults.stateProgression.size() << std::endl;
     log << "INFO - time size: " << simResults.time.size() << std::endl;
+
+    log <<       "x: " << simResults.stateProgression.at(simResults.time.size()-1).plant(x) <<
+                " y: " << simResults.stateProgression.at(simResults.time.size()-1).plant(y) <<
+                " z: " << simResults.stateProgression.at(simResults.time.size()-1).plant(z) <<
+                " phi: " << simResults.stateProgression.at(simResults.time.size()-1).plant(phi) <<
+                " theta: " << simResults.stateProgression.at(simResults.time.size()-1).plant(theta) <<
+                " psi: " << simResults.stateProgression.at(simResults.time.size()-1).plant(psi) <<
+                " xdot: " << simResults.stateProgression.at(simResults.time.size()-1).plant(xdot) <<
+                " ydot: " << simResults.stateProgression.at(simResults.time.size()-1).plant(ydot) <<
+                " zdot: " << simResults.stateProgression.at(simResults.time.size()-1).plant(zdot) <<
+                " p: " << simResults.stateProgression.at(simResults.time.size()-1).plant(p) <<
+                " q: " << simResults.stateProgression.at(simResults.time.size()-1).plant(q) <<
+                " r: " << simResults.stateProgression.at(simResults.time.size()-1).plant(r) << std::endl;
     
     Logger splot("./build/splot.txt");
     splotTrajectory(simResults, splot);
     // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
+
+    Logger xPlot("./build/x.txt");
+    splotPlantState(simResults, xPlot, x);
+
+    Logger yPlot("./build/y.txt");
+    splotPlantState(simResults, yPlot, y);
     
     // log << "INFO - trajSens size: " << ts.size() << std::endl;
     

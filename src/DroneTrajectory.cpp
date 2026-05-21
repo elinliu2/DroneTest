@@ -57,7 +57,7 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState, bool checkConve
 
         if(checkConverge)
         {
-            if (isConverging(state1.state, m_ref, time)){
+            if (isConverging(simResults, m_ref, time)){
                 // m_logger << "converging :D" << std::endl;
                 simResults.converged = true;
                 return simResults;
@@ -182,16 +182,19 @@ Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::f(SystemState state, do
     dot(psi) = state.plant(r) * std::cos(state.plant(phi)) / std::cos(state.plant(theta)) 
                 + state.plant(q) * std::sin(state.plant(phi)) / std::cos(state.plant(theta));
 
-    dot(xdot) = (state.alge(ft) + m_dist.at(Fwx)(time)) / m_droneParams.mass * 
+    dot(xdot) = (state.alge(ft)) / m_droneParams.mass * 
                 (std::sin(state.plant(phi)) * std::sin(state.plant(psi)) 
-               + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)));
+               + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)))  
+               + m_dist.at(Fwx)(time)/m_droneParams.mass ;
 
-    dot(ydot) = (state.alge(ft) + m_dist.at(Fwy)(time)) / m_droneParams.mass * 
+    dot(ydot) = (state.alge(ft)) / m_droneParams.mass * 
                 (std::cos(state.plant(phi))*std::sin(state.plant(psi))*std::sin(state.plant(theta)) 
-               - std::cos(state.plant(psi))*std::sin(state.plant(phi)));
+               - std::cos(state.plant(psi))*std::sin(state.plant(phi)))  
+               + m_dist.at(Fwy)(time) / m_droneParams.mass;
 
-    dot(zdot) = - m_droneParams.g + (state.alge(ft) + m_dist.at(Fwz)(time))/m_droneParams.mass * 
-                (std::cos(state.plant(phi)) * std::cos(state.plant(theta)));
+    dot(zdot) = - m_droneParams.g + (state.alge(ft) )/m_droneParams.mass * 
+                (std::cos(state.plant(phi)) * std::cos(state.plant(theta))) 
+                + m_dist.at(Fwz)(time) /  m_droneParams.mass;
 
     dot(p) = (m_droneParams.Iy-m_droneParams.Iz)/m_droneParams.Ix*state.plant(r)*state.plant(q) 
             + (state.alge(tx) + m_dist.at(Twx)(time))/m_droneParams.Ix;
@@ -485,28 +488,35 @@ double capAngle(double angle)
   return result;
 }
 
-bool DroneTrajectory::isConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time)
+// Check if drone has been near ball around ref for 0.1s
+bool DroneTrajectory::isConverging(SimResults const& simResults, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time)
 {
-    double posTol = 5e-1;
-    double angleTol = 0.05;
-    double velTol = 1e-2;
-
-    double ftTol = 1e-2;
-    double hover = m_droneParams.mass * m_droneParams.g;
-    double torqueTol = 1e-6;
-    return  std::abs(state.plant(x) - ref.at(refx)(time)) < posTol && std::abs(state.plant(y) - ref.at(refy)(time)) < posTol &&  std::abs(state.plant(z) - ref.at(refz)(time)) < posTol && 
+    double posTol = 0.1;
+    double angleTol = 0.0872665; // 5 degrees
+    double timeInterval = 0.1;
+    int count = simResults.time.size()-1;
+    double finalTime = simResults.time.at(count);
+    
+    if (finalTime > timeInterval)
+    {
+        bool converging = true;
+        while(simResults.time.at(count) > finalTime - timeInterval && converging){
+            SystemState state = simResults.stateProgression.at(count);
+            converging = converging && std::abs(state.plant(x) - ref.at(refx)(time)) < posTol && std::abs(state.plant(y) - ref.at(refy)(time)) < posTol &&  std::abs(state.plant(z) - ref.at(refz)(time)) < posTol && 
             // Assuming the reference is a fixed set point - if it becomes a trajectory, then we need to calculate how much the angle and velocities should be
-            std::abs(state.plant(phi)) < angleTol && std::abs(state.plant(theta)) < angleTol &&  std::abs(state.plant(psi) - ref.at(refyaw)(time)) < angleTol && 
-            std::abs(state.plant(xdot)) < velTol && std::abs(state.plant(ydot)) < velTol &&  std::abs(state.plant(zdot)) < velTol && 
-            std::abs(state.plant(p)) < velTol && std::abs(state.plant(q)) < velTol &&  std::abs(state.plant(r)) < velTol &&
-            std::abs(state.alge(ft) - hover) < ftTol && std::abs(state.alge(tx)) < torqueTol && std::abs(state.alge(ty)) < torqueTol && std::abs(state.alge(tz)) < torqueTol;
+            std::abs(state.plant(phi)) < angleTol && std::abs(state.plant(theta)) < angleTol &&  std::abs(state.plant(psi) - ref.at(refyaw)(time)) < angleTol;
+            count--;
+        }
+        return converging;
+    }
+    return false;
 }   
 
 bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time)
 {
-    double posDist = 100;
+    double posDist = 500;
     double angleDist = 90;
-    double pidStateLimit = 1e7;
+    // double pidStateLimit = 1e7;
 
     bool notConverging = std::abs(state.plant(x) - ref.at(refx)(time)) > posDist ||std::abs(state.plant(y) - ref.at(refy)(time)) > posDist || std::abs(state.plant(z) - ref.at(refz)(time)) > posDist ||
             // Assuming the reference is a fixed set point - if it becomes a trajectory, then we need to calculate how much the angle and velocities should be
