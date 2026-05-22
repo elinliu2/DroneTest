@@ -96,6 +96,17 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState, bool checkConve
     return simResults;
 }
 
+SystemState DroneTrajectory::Trajectory(SystemState initialState, int finalTimestep) const
+{
+    SystemState prev = initialState;
+    for(int i = 0; i <= finalTimestep; i++)
+    {
+        Timestep curr = simulateTimestep(prev, i*m_simTimestep, m_simTimestep);
+        prev = curr.state;
+    }
+    return prev;
+}
+
 Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double timestep) const
 {
     double tol = 1e-12;
