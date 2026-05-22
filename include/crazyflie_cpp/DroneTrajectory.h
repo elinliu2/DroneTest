@@ -313,7 +313,10 @@ class DroneTrajectory
             double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);
         
         SimResults Trajectory(SystemState initialState, bool checkConverge = true) const; 
+        SystemState Trajectory(SystemState initialState, int finalTimestep) const; 
+
         std::vector<dwdwo> trajSens(SimResults const & simResults) const;
+        dwdwo trajSens(SimResults const & simResults, int tp) const;
         std::vector<dwdwo> trajSensTest(SystemState initialState);
         std::vector<dwdp> trajSensParam(SimResults const & simResults, G_tp gtp);
         std::vector<dwdp> trajSensParamTest(SystemState initialState);

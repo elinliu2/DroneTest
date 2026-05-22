@@ -266,11 +266,12 @@ void calcStatesDG(DroneTrajectory const& dt, int threadIndex, int numStates, d2w
         SimResults plusSimResults = dt.Trajectory(testPlusState, false);
         SimResults minusSimResults = dt.Trajectory(testMinusState, false);
 
-        std::vector<dwdwo> plus_ts = dt.trajSens(plusSimResults);
-        std::vector<dwdwo> minus_ts = dt.trajSens(minusSimResults);
-        Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX = (plus_ts.at(tp).dxdwo - minus_ts.at(tp).dxdwo) / (2.0 * delta);
-        Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY = (plus_ts.at(tp).dydwo - minus_ts.at(tp).dydwo) / (2.0 * delta);
-        Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ = (plus_ts.at(tp).dzdwo - minus_ts.at(tp).dzdwo) / (2.0 * delta);
+        dwdwo plus_ts = dt.trajSens(plusSimResults, tp);
+        dwdwo minus_ts = dt.trajSens(minusSimResults, tp);
+        
+        Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX = (plus_ts.dxdwo - minus_ts.dxdwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY = (plus_ts.dydwo - minus_ts.dydwo) / (2.0 * delta);
+        Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ = (plus_ts.dzdwo - minus_ts.dzdwo) / (2.0 * delta);
         
         Eigen::TensorMap<Eigen::Tensor<double, 2>> resultX_tensor(resultX.data(), NUM_PLANT_STATES, NUM_STATES);
         Eigen::TensorMap<Eigen::Tensor<double, 2>> resultY_tensor(resultY.data(), NUM_Y_STATES, NUM_STATES);
@@ -290,39 +291,39 @@ void calcController(DroneTrajectory dt, int threadIndex, d2wdwodp & trajSenswodp
   
     dt.m_ctrlParams.at(threadIndex).kp = og_params.at(threadIndex).kp + delta;
     plusSimResults = dt.Trajectory(initialState, false);
-    std::vector<dwdwo> plus_kp = dt.trajSens(plusSimResults);
+    dwdwo plus_kp = dt.trajSens(plusSimResults, tp);
     dt.m_ctrlParams.at(threadIndex).kp = og_params.at(threadIndex).kp - delta;
     minusSimResults = dt.Trajectory(initialState, false);
-    std::vector<dwdwo> minus_kp = dt.trajSens(minusSimResults);
+    dwdwo minus_kp = dt.trajSens(minusSimResults, tp);
     dt.m_ctrlParams.at(threadIndex).kp = og_params.at(threadIndex).kp;
 
     dt.m_ctrlParams.at(threadIndex).ki = og_params.at(threadIndex).ki + delta;
     plusSimResults = dt.Trajectory(initialState, false);
-    std::vector<dwdwo> plus_ki = dt.trajSens(plusSimResults);
+    dwdwo plus_ki = dt.trajSens(plusSimResults, tp);
     dt.m_ctrlParams.at(threadIndex).ki = og_params.at(threadIndex).ki - delta;
     minusSimResults = dt.Trajectory(initialState, false);
-    std::vector<dwdwo> minus_ki = dt.trajSens(minusSimResults);
+    dwdwo minus_ki = dt.trajSens(minusSimResults, tp);
     dt.m_ctrlParams.at(threadIndex).ki = og_params.at(threadIndex).ki;
 
     dt.m_ctrlParams.at(threadIndex).kd = og_params.at(threadIndex).kd + delta;
     plusSimResults = dt.Trajectory(initialState, false);
-    std::vector<dwdwo> plus_kd = dt.trajSens(plusSimResults);
+    dwdwo plus_kd = dt.trajSens(plusSimResults, tp);
     dt.m_ctrlParams.at(threadIndex).kd = og_params.at(threadIndex).kd - delta;
     minusSimResults = dt.Trajectory(initialState, false);
-    std::vector<dwdwo> minus_kd = dt.trajSens(minusSimResults);
+    dwdwo minus_kd = dt.trajSens(minusSimResults, tp);
     dt.m_ctrlParams.at(threadIndex).kd = og_params.at(threadIndex).kd;
 
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_kp = (plus_kp.at(tp).dxdwo - minus_kp.at(tp).dxdwo) / (2.0 * delta);
-    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY_kp = (plus_kp.at(tp).dydwo - minus_kp.at(tp).dydwo) / (2.0 * delta);
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ_kp = (plus_kp.at(tp).dzdwo - minus_kp.at(tp).dzdwo) / (2.0 * delta);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_kp = (plus_kp.dxdwo - minus_kp.dxdwo) / (2.0 * delta);
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY_kp = (plus_kp.dydwo - minus_kp.dydwo) / (2.0 * delta);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ_kp = (plus_kp.dzdwo - minus_kp.dzdwo) / (2.0 * delta);
 
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_ki = (plus_ki.at(tp).dxdwo - minus_ki.at(tp).dxdwo) / (2.0 * delta);
-    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY_ki = (plus_ki.at(tp).dydwo - minus_ki.at(tp).dydwo) / (2.0 * delta);
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ_ki = (plus_ki.at(tp).dzdwo - minus_ki.at(tp).dzdwo) / (2.0 * delta);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_ki = (plus_ki.dxdwo - minus_ki.dxdwo) / (2.0 * delta);
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY_ki = (plus_ki.dydwo - minus_ki.dydwo) / (2.0 * delta);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ_ki = (plus_ki.dzdwo - minus_ki.dzdwo) / (2.0 * delta);
 
-    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_kd = (plus_kd.at(tp).dxdwo - minus_kd.at(tp).dxdwo) / (2.0 * delta);
-    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY_kd = (plus_kd.at(tp).dydwo - minus_kd.at(tp).dydwo) / (2.0 * delta);
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ_kd = (plus_kd.at(tp).dzdwo - minus_kd.at(tp).dzdwo) / (2.0 * delta);
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX_kd = (plus_kd.dxdwo - minus_kd.dxdwo) / (2.0 * delta);
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> resultY_kd = (plus_kd.dydwo - minus_kd.dydwo) / (2.0 * delta);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> resultZ_kd = (plus_kd.dzdwo - minus_kd.dzdwo) / (2.0 * delta);
 
     Eigen::TensorMap<Eigen::Tensor<double, 2>> resultX_kp_tensor(resultX_kp.data(), NUM_PLANT_STATES, NUM_STATES);
     Eigen::TensorMap<Eigen::Tensor<double, 2>> resultY_kp_tensor(resultY_kp.data(), NUM_Y_STATES, NUM_STATES);
