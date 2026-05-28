@@ -308,6 +308,9 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> d2ty_dz_plus2(SystemState state);
     Eigen::SparseMatrix<double> d2tz_dz_plus2(SystemState state);
 
+    Eigen::SparseMatrix<double> d2desRolldx2(SystemState state) const;
+    Eigen::SparseMatrix<double> d2desPitchdx2(SystemState state) const;
+
     Eigen::Vector<double, NUM_ALGE_STATES> h(Eigen::Vector<double, NUM_PLANT_STATES> plantState,
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
     Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates,
