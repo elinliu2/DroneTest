@@ -271,7 +271,7 @@ std::vector<dwdp> DroneTrajectory::trajSensParam(SimResults const & simResults, 
     
 }
 
-std::vector<d2wdwo2>  DroneTrajectory::secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts)
+std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts)
 {
     // std::chrono::time_point start = std::chrono::steady_clock::now();
 
@@ -342,6 +342,8 @@ std::vector<d2wdwo2>  DroneTrajectory::secondOrdertrajSens(SimResults const & si
         Eigen::Tensor<double, 3> a6_B_tensor = d2xdwo2_curr + timestep/2*(a1+a2+a3+a4+a5);
         Eigen::TensorMap<Eigen::Tensor<double, 2>> a6_A_tensor(a6_A_matrix.data(), NUM_PLANT_STATES, NUM_PLANT_STATES);
         d2xdwo2_plus = a6_A_tensor.contract(a6_B_tensor, contract_dims).eval();
+
+        
     }
 
     // std::chrono::time_point end = std::chrono::steady_clock::now();
