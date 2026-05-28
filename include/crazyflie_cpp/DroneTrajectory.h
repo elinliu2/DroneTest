@@ -287,6 +287,27 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> d2hdz2_plus_mult_dzdwo(Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo);
     Eigen::Tensor<double, 3> dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3> const& d2zdwo2);
 
+    Eigen::SparseMatrix<double> d2edx_dx_curr2(SystemState prev, double timestep);
+    Eigen::SparseMatrix<double> d2edy_dx_curr2(SystemState prev, double timestep);
+    Eigen::SparseMatrix<double> d2edxdot_dx_curr2(SystemState prev, double timestep);
+    Eigen::SparseMatrix<double> d2edydot_dx_curr2(SystemState prev, double timestep);
+
+    Eigen::SparseMatrix<double> d2eix_dx_plus2(SystemState state, double time, double timestep);
+    Eigen::SparseMatrix<double> d2eiy_dx_plus2(SystemState state, double time, double timestep);
+    Eigen::SparseMatrix<double> d2edx_dx_plus2(SystemState state, double timestep);
+    Eigen::SparseMatrix<double> d2edy_dx_plus2(SystemState state, double timestep);
+    Eigen::SparseMatrix<double> d2eixdot_dx_plus2(SystemState state, double time, double timestep);
+    Eigen::SparseMatrix<double> d2eiydot_dx_plus2(SystemState state, double time, double timestep);
+    Eigen::SparseMatrix<double> d2edxdot_dx_plus2(SystemState state, double timestep);
+    Eigen::SparseMatrix<double> d2edydot_dx_plus2(SystemState state, double timestep);
+    Eigen::SparseMatrix<double> d2desVelx_dx_plus2(SystemState state, double time, double timestep);
+    Eigen::SparseMatrix<double> d2desVely_dx_plus2(SystemState state, double time, double timestep);
+
+    Eigen::SparseMatrix<double> d2ft_dz_plus2(SystemState state);
+    Eigen::SparseMatrix<double> d2tx_dz_plus2(SystemState state);
+    Eigen::SparseMatrix<double> d2ty_dz_plus2(SystemState state);
+    Eigen::SparseMatrix<double> d2tz_dz_plus2(SystemState state);
+
     Eigen::Vector<double, NUM_ALGE_STATES> h(Eigen::Vector<double, NUM_PLANT_STATES> plantState,
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
     Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates,
