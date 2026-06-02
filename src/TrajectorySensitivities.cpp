@@ -273,27 +273,27 @@ std::vector<dwdp> DroneTrajectory::trajSensParam(SimResults const & simResults, 
 
 std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts)
 {
-    // std::chrono::time_point start = std::chrono::steady_clock::now();
+    std::chrono::time_point start = std::chrono::steady_clock::now();
 
     const int iterations = simResults.time.size();
     m_logger << "iterations: " << iterations << std::endl;
     std::vector<d2wdwo2> ts2;
     ts2.reserve(iterations);
 
-    Eigen::Tensor<double, 3> init_d2xdwo2;
+    Eigen::Tensor<double, 3> init_d2xdwo2(NUM_PLANT_STATES, NUM_STATES, NUM_STATES);
     init_d2xdwo2.setZero();
-    Eigen::Tensor<double, 3> init_d2zdwo2;
+    Eigen::Tensor<double, 3> init_d2zdwo2(NUM_Z_STATES, NUM_STATES, NUM_STATES);
     init_d2zdwo2.setZero();
-    Eigen::Tensor<double, 3> init_d2ydwo2;
+    Eigen::Tensor<double, 3> init_d2ydwo2(NUM_Y_STATES, NUM_STATES, NUM_STATES);
     init_d2ydwo2.setZero();
 
     ts2.emplace_back(init_d2xdwo2, init_d2zdwo2, init_d2ydwo2);
 
-    Eigen::Tensor<double, 3> d2xdwo2_curr;
-    Eigen::Tensor<double, 3> d2zdwo2_curr;
-    Eigen::Tensor<double, 3> d2xdwo2_plus;
-    Eigen::Tensor<double, 3> d2ydwo2_plus;
-    Eigen::Tensor<double, 3> d2zdwo2_plus;
+    Eigen::Tensor<double, 3> d2xdwo2_curr(NUM_PLANT_STATES, NUM_STATES, NUM_STATES);
+    Eigen::Tensor<double, 3> d2zdwo2_curr(NUM_Z_STATES, NUM_STATES, NUM_STATES);
+    Eigen::Tensor<double, 3> d2xdwo2_plus(NUM_PLANT_STATES, NUM_STATES, NUM_STATES);
+    Eigen::Tensor<double, 3> d2ydwo2_plus(NUM_Y_STATES, NUM_STATES, NUM_STATES);
+    Eigen::Tensor<double, 3> d2zdwo2_plus(NUM_Z_STATES, NUM_STATES, NUM_STATES);
 
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo_curr;
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo_plus;
@@ -342,6 +342,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
 
     for(int i = 1; i < iterations; i++)
     {
+        m_logger << i << std::endl;
         double timestep = simResults.time[i] - simResults.time[i-1];
 
         d2xdwo2_curr = ts2[i-1].d2xdwo2;
@@ -395,7 +396,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
         Eigen::TensorMap<Eigen::Tensor<double, 2>> b1_edydot_tensor( b1_edydot_matrix.data(), NUM_STATES, NUM_STATES);
         b1.chip(edydot, 0) = b1_edydot_tensor;
 
-        dhdx_curr = dhdzCurr().toDense();
+        dhdx_curr = dhdxCurr(simResults.stateProgression[i-1], timestep).toDense();
         Eigen::TensorMap<Eigen::Tensor<double, 2>> b2_A_tensor(dhdx_curr.data(), NUM_Z_STATES, NUM_PLANT_STATES);
         Eigen::Tensor<double, 3> b2 = b2_A_tensor.contract(d2xdwo2_curr, contract_dims).eval();
 
@@ -485,7 +486,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
 
         // d2zdwo2_plus after y
         dhdy_plus = dhdy(timestep);
-        Eigen::TensorMap<Eigen::Tensor<double, 2>> b7_A_tensor(dhdy_plus.data(), NUM_Z_STATES, NUM_PLANT_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2>> b7_A_tensor(dhdy_plus.data(), NUM_Z_STATES, NUM_Y_STATES);
         Eigen::Tensor<double, 3> b7 = b7_A_tensor.contract(d2ydwo2_plus, contract_dims).eval();
         d2zdwo2_plus+= b7;
 
@@ -516,7 +517,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
         Eigen::TensorMap<Eigen::Tensor<double, 2>> b8_tz_tensor( b8_tz_matrix.data(), NUM_STATES, NUM_STATES);
         d2zdwo2_plus.chip(tz, 0) += b8_tz_tensor;
 
-        ts2.emplace_back(d2xdwo2_plus, d2xdwo2_plus, d2zdwo2_plus);
+        ts2.emplace_back(d2xdwo2_plus, d2zdwo2_plus, d2ydwo2_plus);
 
     }
 

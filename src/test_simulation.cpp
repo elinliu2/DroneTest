@@ -257,7 +257,7 @@ int main()
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
-    // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
+    std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
     // G_tp gtp = droneTrajectory.calc_G_tp(ts);
     // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), gtp, gtp.tp*1e-3);
 
@@ -266,13 +266,13 @@ int main()
     // z0 << initialState.plant, initialState.alge;
     // Eigen::Vector<double, NUM_STATES> old_zk = droneTrajectory.closestZBar(initializeState());
     // log << "initial zbar dist " << (z0 - old_zk).norm() << std::endl; 
-    zkpk optimal = droneTrajectory.theGigaAlgo(stateCloseToRoABoundary());
+    // zkpk optimal = droneTrajectory.theGigaAlgo(stateCloseToRoABoundary());
     // Eigen::Vector<double, NUM_STATES> new_zk = droneTrajectory.closestZBar(initializeState());
     // log << "new zbar dist " << (z0 - new_zk).norm() << std::endl; 
-    std::chrono::time_point end = std::chrono::steady_clock::now();
-    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    log << "Elapsed Time ERA algo: " << elapsed.count() << " us" << std::endl;
-    for(int i = 0; i < NUM_PARAMETERS; i++) { log << i << ": " << optimal.pk(i) << std::endl; }
+    // std::chrono::time_point end = std::chrono::steady_clock::now();
+    // std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    // log << "Elapsed Time ERA algo: " << elapsed.count() << " us" << std::endl;
+    // for(int i = 0; i < NUM_PARAMETERS; i++) { log << i << ": " << optimal.pk(i) << std::endl; }
 
     // simResults = droneTrajectory.Trajectory(initializeState());
     // log << "stable? " << simResults.stable << std::endl;
@@ -287,15 +287,15 @@ int main()
     // for(int i = 0; i < NUM_ALGE_STATES; i++)
     // { log << "initialState.alge(" << i << ") = " << simResults.stateProgression.at(timeIndex).alge(i) << ";" << std::endl; }
     
-    Logger splot("./build/splot.txt");
-    splotTrajectory(simResults, splot);
+    // Logger splot("./build/splot.txt");
+    // splotTrajectory(simResults, splot);
     // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
 
-    Logger xPlot("./build/x.txt");
-    splotPlantState(simResults, xPlot, x);
+    // Logger xPlot("./build/x.txt");
+    // splotPlantState(simResults, xPlot, x);
 
-    Logger yPlot("./build/y.txt");
-    splotPlantState(simResults, yPlot, y);
+    // Logger yPlot("./build/y.txt");
+    // splotPlantState(simResults, yPlot, y);
     
     // log << "INFO - trajSens size: " << ts.size() << std::endl;
     
@@ -306,7 +306,7 @@ int main()
     // log << "max diff: " << diff.first <<  std::endl;
 
     // std::vector<dwdp> ts_p = droneTrajectory.trajSensParam(simResults, gtp);
-    // std::vector<d2wdwo2> ts2Test = droneTrajectory.secondOrdertrajSensTest(initializeState());
+    std::vector<d2wdwo2> ts2Test = droneTrajectory.secondOrdertrajSens(simResults, ts);
     // std::vector<d2wdwodp> ts2ParamsTest = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
     // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, simResults.time.at(gtp.tp));
     

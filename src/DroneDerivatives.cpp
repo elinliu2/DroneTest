@@ -685,18 +685,18 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2hdz2_plus_mult_dzdwo(Eigen::Matri
 
 Eigen::Tensor<double, 3> DroneTrajectory::dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3> const& d2zdwo2)
 {
-    Eigen::Tensor<double, 3> result;
+    Eigen::Tensor<double, 3> result(NUM_PLANT_STATES, NUM_STATES, NUM_STATES);
     result.setZero();
    
-    result.chip(xdot, 2) += (1.0/m_droneParams.mass * (std::sin(state.plant(phi)) * std::sin(state.plant(psi)) 
-                             + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)))) * d2zdwo2.chip(ft, 2);
-    result.chip(ydot, 2) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi))*std::sin(state.plant(psi))*std::sin(state.plant(theta)) 
-                             - std::cos(state.plant(psi))*std::sin(state.plant(phi)))) * d2zdwo2.chip(ft, 2);
-    result.chip(zdot, 2) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi)) * std::cos(state.plant(theta)))) * d2zdwo2.chip(ft, 2);
+    result.chip(xdot, 0) += (1.0/m_droneParams.mass * (std::sin(state.plant(phi)) * std::sin(state.plant(psi)) 
+                             + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)))) * d2zdwo2.chip(ft, 0);
+    result.chip(ydot, 0) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi))*std::sin(state.plant(psi))*std::sin(state.plant(theta)) 
+                             - std::cos(state.plant(psi))*std::sin(state.plant(phi)))) * d2zdwo2.chip(ft, 0);
+    result.chip(zdot, 0) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi)) * std::cos(state.plant(theta)))) * d2zdwo2.chip(ft, 0);
 
-    result.chip(p, 2) += 1.0/m_droneParams.Ix * d2zdwo2.chip(tx, 2);
-    result.chip(q, 2) += 1.0/m_droneParams.Iy * d2zdwo2.chip(ty, 2);
-    result.chip(r, 2) += 1.0/m_droneParams.Iz * d2zdwo2.chip(tz, 2);
+    result.chip(p, 0) += 1.0/m_droneParams.Ix * d2zdwo2.chip(tx, 0);
+    result.chip(q, 0) += 1.0/m_droneParams.Iy * d2zdwo2.chip(ty, 0);
+    result.chip(r, 0) += 1.0/m_droneParams.Iz * d2zdwo2.chip(tz, 0);
 
     return result;
 }
@@ -712,7 +712,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edx_dx_curr2(SystemState prev, do
     d2hdx2_curr.emplace_back(T(psi, y, cos(prev.plant(psi))/timestep ));
     d2hdx2_curr.emplace_back(T(psi, psi, -(prev.plant(x)*cos(prev.plant(psi)) + prev.plant(y)*sin(prev.plant(psi)))/timestep ));
 
-    Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_curr_mat.setFromTriplets(d2hdx2_curr.begin(), d2hdx2_curr.end());
     return d2hdx2_curr_mat;
 }
@@ -728,7 +728,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edy_dx_curr2(SystemState prev, do
     d2hdx2_curr.emplace_back(T(psi, y, -sin(prev.plant(psi))/timestep ));
     d2hdx2_curr.emplace_back(T(psi, psi, -(prev.plant(y)*cos(prev.plant(psi)) - prev.plant(x)*sin(prev.plant(psi)))/timestep ));
 
-    Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_curr_mat.setFromTriplets(d2hdx2_curr.begin(), d2hdx2_curr.end());
     return d2hdx2_curr_mat;
 }
@@ -743,7 +743,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edxdot_dx_curr2(SystemState prev,
     d2hdx2_curr.emplace_back(T(psi, ydot, cos(prev.plant(psi))/timestep ));
     d2hdx2_curr.emplace_back(T(psi, psi, -(prev.plant(xdot)*cos(prev.plant(psi)) + prev.plant(ydot)*sin(prev.plant(psi)))/timestep ));
 
-    Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_curr_mat.setFromTriplets(d2hdx2_curr.begin(), d2hdx2_curr.end());
     return d2hdx2_curr_mat;
 }
@@ -758,7 +758,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edydot_dx_curr2(SystemState prev,
     d2hdx2_curr.emplace_back(T(psi, ydot, -sin(prev.plant(psi))/timestep ));
     d2hdx2_curr.emplace_back(T(psi, psi, -(prev.plant(ydot)*cos(prev.plant(psi)) - prev.plant(xdot)*sin(prev.plant(psi)))/timestep ));
 
-    Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_curr_mat.setFromTriplets(d2hdx2_curr.begin(), d2hdx2_curr.end());
     return d2hdx2_curr_mat;
 }
@@ -774,7 +774,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2eix_dx_plus2(SystemState state, d
     d2hdx2_plus.emplace_back(T(psi, y, -timestep*cos(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, -timestep*(cos(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)) + sin(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y))) ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -789,7 +789,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2eiy_dx_plus2(SystemState state, d
     d2hdx2_plus.emplace_back(T(psi, y, timestep*sin(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, -timestep*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -x)) ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -804,7 +804,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edx_dx_plus2(SystemState state, d
     d2hdx2_plus.emplace_back(T(psi, y, -1/timestep*cos(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, (state.plant(x)*cos(state.plant(psi)) + state.plant(y)*sin(state.plant(psi)))/timestep ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -819,7 +819,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edy_dx_plus2(SystemState state, d
     d2hdx2_plus.emplace_back(T(psi, y, 1/timestep*sin(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, (state.plant(y)*cos(state.plant(psi)) - state.plant(x)*sin(state.plant(psi)))/timestep ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -834,7 +834,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2eixdot_dx_plus2(SystemState state
     d2hdx2_plus.emplace_back(T(psi, ydot, -timestep*cos(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, timestep*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi))) ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -849,7 +849,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2eiydot_dx_plus2(SystemState state
     d2hdx2_plus.emplace_back(T(psi, ydot, timestep*sin(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, timestep*(state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi))) ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -864,7 +864,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edxdot_dx_plus2(SystemState state
     d2hdx2_plus.emplace_back(T(psi, ydot, -1/timestep*cos(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, (state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)))/timestep ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -879,7 +879,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edydot_dx_plus2(SystemState state
     d2hdx2_plus.emplace_back(T(psi, ydot, 1/timestep*sin(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, (state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)))/timestep ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -894,7 +894,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2desVelx_dx_plus2(SystemState stat
     d2hdx2_plus.emplace_back(T(psi, y, -m_ctrlParams.at(posX).kp*cos(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, -m_ctrlParams.at(posX).kp*(cos(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)) + sin(state.plant(psi))*(m_ref.at(refy)(time) - state.plant(y))) ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -909,7 +909,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2desVely_dx_plus2(SystemState stat
     d2hdx2_plus.emplace_back(T(psi, y, m_ctrlParams.at(posY).kp*sin(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, psi, -m_ctrlParams.at(posY).kp*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x))) ));
 
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES, NUM_PLANT_STATES);
+    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
     return d2hdx2_plus_mat;
 }
@@ -977,11 +977,11 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2desRolldx2(SystemState state) con
     d2gdx2.reserve(6);
 
     if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
-        d2gdx2.push_back(T(xdot, psi -m_ctrlParams.at(velY).kp*cos(state.plant(psi))));
+        d2gdx2.push_back(T(xdot, psi, -m_ctrlParams.at(velY).kp*cos(state.plant(psi))));
         d2gdx2.push_back(T(ydot, psi, -m_ctrlParams.at(velY).kp*sin(state.plant(psi))));
-        d2gdx2.push_back(T(psi, xdot -m_ctrlParams.at(velY).kp*cos(state.plant(psi)) ));
-        d2gdx2.push_back(T(psi, ydot -m_ctrlParams.at(velY).kp*sin(state.plant(psi))));
-        d2gdx2.push_back(T(psi, psi -m_ctrlParams.at(velY).kp*(-state.plant(xdot)*sin(state.plant(psi)) + state.plant(ydot)*cos(state.plant(psi)))));
+        d2gdx2.push_back(T(psi, xdot, -m_ctrlParams.at(velY).kp*cos(state.plant(psi)) ));
+        d2gdx2.push_back(T(psi, ydot, -m_ctrlParams.at(velY).kp*sin(state.plant(psi))));
+        d2gdx2.push_back(T(psi, psi, -m_ctrlParams.at(velY).kp*(-state.plant(xdot)*sin(state.plant(psi)) + state.plant(ydot)*cos(state.plant(psi)))));
     }
     
     Eigen::SparseMatrix<double> d2gdx2_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
