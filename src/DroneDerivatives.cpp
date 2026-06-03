@@ -441,309 +441,268 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdp(SystemState state, double time
 
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::d2fdx2(SystemState state)
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2fdx2(SystemState state)
 {
     Eigen::Vector<double, NUM_PLANT_STATES> plant = state.plant;
     Eigen::Vector<double, NUM_ALGE_STATES> alge = state.alge;
-    std::vector<T> d2fdx2;
-    d2fdx2.reserve(59);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2fdx2_tensor(NUM_PLANT_STATES, NUM_PLANT_STATES, NUM_PLANT_STATES);
+    d2fdx2_tensor.setZero();
 
-    d2fdx2.emplace_back(T(39, 3,  - plant(r)*cos(plant(phi))*tan(plant(theta)) - plant(q)*sin(plant(phi))*tan(plant(theta)) ));
-    d2fdx2.emplace_back(T(39, 4,  plant(q)*cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1) - plant(r)*sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1)));
-    d2fdx2.emplace_back(T(39, 10,  cos(plant(phi))*tan(plant(theta))));
-    d2fdx2.emplace_back(T(39, 11,  -sin(plant(phi))*tan(plant(theta))));
-    d2fdx2.emplace_back(T(40, 3,  plant(q)*cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1) - plant(r)*sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1)));
-    d2fdx2.emplace_back(T(40, 4,  2*plant(r)*cos(plant(phi))*tan(plant(theta))*(std::pow(tan(plant(theta)), 2) + 1) + 2*plant(q)*sin(plant(phi))*tan(plant(theta))*(std::pow(tan(plant(theta)), 2) + 1)));
-    d2fdx2.emplace_back(T(40, 10,  sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1)));
-    d2fdx2.emplace_back(T(40, 11,  cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1)));
-    d2fdx2.emplace_back(T(46, 3,  cos(plant(phi))*tan(plant(theta))));
-    d2fdx2.emplace_back(T(46, 4,  sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1)));
-    d2fdx2.emplace_back(T(47, 3,  -sin(plant(phi))*tan(plant(theta))));
-    d2fdx2.emplace_back(T(47, 4,  cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1)));
-    d2fdx2.emplace_back(T(51, 3,  plant(r)*sin(plant(phi)) - plant(q)*cos(plant(phi))));
-    d2fdx2.emplace_back(T(51, 10,  -sin(plant(phi))));
-    d2fdx2.emplace_back(T(51, 11,  -cos(plant(phi))));
-    d2fdx2.emplace_back(T(58, 3,  -sin(plant(phi))));
-    d2fdx2.emplace_back(T(59, 3,  -cos(plant(phi))));
-    d2fdx2.emplace_back(T(63, 3,  - (plant(r)*cos(plant(phi)))/cos(plant(theta)) - (plant(q)*sin(plant(phi)))/cos(plant(theta))));
-    d2fdx2.emplace_back(T(63, 4,  (plant(q)*cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2) - (plant(r)*sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2)));
-    d2fdx2.emplace_back(T(63, 10,  cos(plant(phi))/cos(plant(theta))));
-    d2fdx2.emplace_back(T(63, 11,  -sin(plant(phi))/cos(plant(theta))));
-    d2fdx2.emplace_back(T(64, 3,  (plant(q)*cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2) - (plant(r)*sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2)));
-    d2fdx2.emplace_back(T(64, 4,  (plant(r)*cos(plant(phi)))/cos(plant(theta)) + (plant(q)*sin(plant(phi)))/cos(plant(theta)) + std::pow((2*plant(r)*cos(plant(phi))*std::pow(sin(plant(theta)), 2))/cos(plant(theta)), 3) + std::pow((2*plant(q)*sin(plant(phi))*std::pow(sin(plant(theta)), 2))/cos(plant(theta)), 3)));
-    d2fdx2.emplace_back(T(64, 10,  (sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2)));
-    d2fdx2.emplace_back(T(64, 11,  (cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2)));
-    d2fdx2.emplace_back(T(70, 3,  cos(plant(phi))/cos(plant(theta))));
-    d2fdx2.emplace_back(T(70, 4,  (sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2)));
-    d2fdx2.emplace_back(T(71, 3,  -sin(plant(phi))/cos(plant(theta))));
-    d2fdx2.emplace_back(T(71, 4,  (cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2)));
-    d2fdx2.emplace_back(T(75, 3,  -(alge(ft)*(sin(plant(phi))*sin(plant(psi)) + cos(plant(phi))*cos(plant(psi))*sin(plant(theta))))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(75, 4,  -(alge(ft)*cos(plant(psi))*cos(plant(theta))*sin(plant(phi)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(75, 5,  (alge(ft)*(cos(plant(phi))*cos(plant(psi)) + sin(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(76, 3,  -(alge(ft)*cos(plant(psi))*cos(plant(theta))*sin(plant(phi)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(76, 4,  -(alge(ft)*cos(plant(phi))*cos(plant(psi))*sin(plant(theta)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(76, 5,  -(alge(ft)*cos(plant(phi))*cos(plant(theta))*sin(plant(psi)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(77, 3,  (alge(ft)*(cos(plant(phi))*cos(plant(psi)) + sin(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(77, 4,  -(alge(ft)*cos(plant(phi))*cos(plant(theta))*sin(plant(psi)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(77, 5,  -(alge(ft)*(sin(plant(phi))*sin(plant(psi)) + cos(plant(phi))*cos(plant(psi))*sin(plant(theta))))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(87, 3,  (alge(ft)*(cos(plant(psi))*sin(plant(phi)) - cos(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(87, 4,  -(alge(ft)*cos(plant(theta))*sin(plant(phi))*sin(plant(psi)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(87, 5,  (alge(ft)*(cos(plant(phi))*sin(plant(psi)) - cos(plant(psi))*sin(plant(phi))*sin(plant(theta))))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(88, 3,  -(alge(ft)*cos(plant(theta))*sin(plant(phi))*sin(plant(psi)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(88, 4,  -(alge(ft)*cos(plant(phi))*sin(plant(psi))*sin(plant(theta)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(88, 5,  (alge(ft)*cos(plant(phi))*cos(plant(psi))*cos(plant(theta)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(89, 3,  (alge(ft)*(cos(plant(phi))*sin(plant(psi)) - cos(plant(psi))*sin(plant(phi))*sin(plant(theta))))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(89, 4,  (alge(ft)*cos(plant(phi))*cos(plant(psi))*cos(plant(theta)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(89, 5,  (alge(ft)*(cos(plant(psi))*sin(plant(phi)) - cos(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(99, 3,  -(alge(ft)*cos(plant(phi))*cos(plant(theta)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(99, 4,  (alge(ft)*sin(plant(phi))*sin(plant(theta)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(100, 3,  (alge(ft)*sin(plant(phi))*sin(plant(theta)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(100, 4,  -(alge(ft)*cos(plant(phi))*cos(plant(theta)))/m_droneParams.mass));
-    d2fdx2.emplace_back(T(118, 11,  (m_droneParams.Iy - m_droneParams.Iz)/m_droneParams.Ix));
-    d2fdx2.emplace_back(T(119, 10,  (m_droneParams.Iy - m_droneParams.Iz)/m_droneParams.Ix));
-    d2fdx2.emplace_back(T(129, 11,  -(m_droneParams.Ix - m_droneParams.Iz)/m_droneParams.Iy));
-    d2fdx2.emplace_back(T(131, 9,  -(m_droneParams.Ix - m_droneParams.Iz)/m_droneParams.Iy));
-    d2fdx2.emplace_back(T(141, 10,  (m_droneParams.Ix - m_droneParams.Iy)/m_droneParams.Iz));
-    d2fdx2.emplace_back(T(142, 9,  (m_droneParams.Ix - m_droneParams.Iy)/m_droneParams.Iz));
+    d2fdx2_tensor(3, 3, 3) = - plant(r)*cos(plant(phi))*tan(plant(theta)) - plant(q)*sin(plant(phi))*tan(plant(theta));
+    d2fdx2_tensor(3, 3, 4) = plant(q)*cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1) - plant(r)*sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2_tensor(3, 3, 10) = cos(plant(phi))*tan(plant(theta));
+    d2fdx2_tensor(3, 3, 11) = -sin(plant(phi))*tan(plant(theta));
+    d2fdx2_tensor(3, 4, 3) = plant(q)*cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1) - plant(r)*sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2_tensor(3, 4, 4) = 2*plant(r)*cos(plant(phi))*tan(plant(theta))*(std::pow(tan(plant(theta)), 2) + 1) + 2*plant(q)*sin(plant(phi))*tan(plant(theta))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2_tensor(3, 4, 10) = sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2_tensor(3, 4, 11) = cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2_tensor(3, 10, 3) = cos(plant(phi))*tan(plant(theta));
+    d2fdx2_tensor(3, 10, 4) = sin(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2_tensor(3, 11, 3) = -sin(plant(phi))*tan(plant(theta));
+    d2fdx2_tensor(3, 11, 4) = cos(plant(phi))*(std::pow(tan(plant(theta)), 2) + 1);
+    d2fdx2_tensor(4, 3, 3) = plant(r)*sin(plant(phi)) - plant(q)*cos(plant(phi));
+    d2fdx2_tensor(4, 3, 10) = -sin(plant(phi));
+    d2fdx2_tensor(4, 3, 11) = -cos(plant(phi));
+    d2fdx2_tensor(4, 10, 3) = -sin(plant(phi));
+    d2fdx2_tensor(4, 11, 3) = -cos(plant(phi));
+    d2fdx2_tensor(5, 3, 3) = - (plant(r)*cos(plant(phi)))/cos(plant(theta)) - (plant(q)*sin(plant(phi)))/cos(plant(theta));
+    d2fdx2_tensor(5, 3, 4) = (plant(q)*cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2) - (plant(r)*sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2_tensor(5, 3, 10) = cos(plant(phi))/cos(plant(theta));
+    d2fdx2_tensor(5, 3, 11) = -sin(plant(phi))/cos(plant(theta));
+    d2fdx2_tensor(5, 4, 3) = (plant(q)*cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2) - (plant(r)*sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2_tensor(5, 4, 4) = (plant(r)*cos(plant(phi)))/cos(plant(theta)) + (plant(q)*sin(plant(phi)))/cos(plant(theta)) + (2*plant(r)*cos(plant(phi))*std::pow(sin(plant(theta)), 2))/std::pow(cos(plant(theta)), 3) + (2*plant(q)*sin(plant(phi))*std::pow(sin(plant(theta)), 2))/std::pow(cos(plant(theta)), 3);
+    d2fdx2_tensor(5, 4, 10) = (sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2_tensor(5, 4, 11) = (cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2_tensor(5, 10, 3) = cos(plant(phi))/cos(plant(theta));
+    d2fdx2_tensor(5, 10, 4) = (sin(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2_tensor(5, 11, 3) = -sin(plant(phi))/cos(plant(theta));
+    d2fdx2_tensor(5, 11, 4) = (cos(plant(phi))*sin(plant(theta)))/std::pow(cos(plant(theta)), 2);
+    d2fdx2_tensor(6, 3, 3) = -(alge(ft)*(sin(plant(phi))*sin(plant(psi)) + cos(plant(phi))*cos(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2_tensor(6, 3, 4) = -(alge(ft)*cos(plant(psi))*cos(plant(theta))*sin(plant(phi)))/m_droneParams.mass;
+    d2fdx2_tensor(6, 3, 5) = (alge(ft)*(cos(plant(phi))*cos(plant(psi)) + sin(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2_tensor(6, 4, 3) = -(alge(ft)*cos(plant(psi))*cos(plant(theta))*sin(plant(phi)))/m_droneParams.mass;
+    d2fdx2_tensor(6, 4, 4) = -(alge(ft)*cos(plant(phi))*cos(plant(psi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdx2_tensor(6, 4, 5) = -(alge(ft)*cos(plant(phi))*cos(plant(theta))*sin(plant(psi)))/m_droneParams.mass;
+    d2fdx2_tensor(6, 5, 3) = (alge(ft)*(cos(plant(phi))*cos(plant(psi)) + sin(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2_tensor(6, 5, 4) = -(alge(ft)*cos(plant(phi))*cos(plant(theta))*sin(plant(psi)))/m_droneParams.mass;
+    d2fdx2_tensor(6, 5, 5) = -(alge(ft)*(sin(plant(phi))*sin(plant(psi)) + cos(plant(phi))*cos(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2_tensor(7, 3, 3) = (alge(ft)*(cos(plant(psi))*sin(plant(phi)) - cos(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2_tensor(7, 3, 4) = -(alge(ft)*cos(plant(theta))*sin(plant(phi))*sin(plant(psi)))/m_droneParams.mass;
+    d2fdx2_tensor(7, 3, 5) = (alge(ft)*(cos(plant(phi))*sin(plant(psi)) - cos(plant(psi))*sin(plant(phi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2_tensor(7, 4, 3) = -(alge(ft)*cos(plant(theta))*sin(plant(phi))*sin(plant(psi)))/m_droneParams.mass;
+    d2fdx2_tensor(7, 4, 4) = -(alge(ft)*cos(plant(phi))*sin(plant(psi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdx2_tensor(7, 4, 5) = (alge(ft)*cos(plant(phi))*cos(plant(psi))*cos(plant(theta)))/m_droneParams.mass;
+    d2fdx2_tensor(7, 5, 3) = (alge(ft)*(cos(plant(phi))*sin(plant(psi)) - cos(plant(psi))*sin(plant(phi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2_tensor(7, 5, 4) = (alge(ft)*cos(plant(phi))*cos(plant(psi))*cos(plant(theta)))/m_droneParams.mass;
+    d2fdx2_tensor(7, 5, 5) = (alge(ft)*(cos(plant(psi))*sin(plant(phi)) - cos(plant(phi))*sin(plant(psi))*sin(plant(theta))))/m_droneParams.mass;
+    d2fdx2_tensor(8, 3, 3) = -(alge(ft)*cos(plant(phi))*cos(plant(theta)))/m_droneParams.mass;
+    d2fdx2_tensor(8, 3, 4) = (alge(ft)*sin(plant(phi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdx2_tensor(8, 4, 3) = (alge(ft)*sin(plant(phi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdx2_tensor(8, 4, 4) = -(alge(ft)*cos(plant(phi))*cos(plant(theta)))/m_droneParams.mass;
+    d2fdx2_tensor(9, 10, 11) = (m_droneParams.Iy - m_droneParams.Iz)/m_droneParams.Ix;
+    d2fdx2_tensor(9, 11, 10) = (m_droneParams.Iy - m_droneParams.Iz)/m_droneParams.Ix;
+    d2fdx2_tensor(10, 9, 11) = -(m_droneParams.Ix - m_droneParams.Iz)/m_droneParams.Iy;
+    d2fdx2_tensor(10, 11, 9) = -(m_droneParams.Ix - m_droneParams.Iz)/m_droneParams.Iy;
+    d2fdx2_tensor(11, 9, 10) = (m_droneParams.Ix - m_droneParams.Iy)/m_droneParams.Iz;
+    d2fdx2_tensor(11, 10, 9) = (m_droneParams.Ix - m_droneParams.Iy)/m_droneParams.Iz;
 
-    Eigen::SparseMatrix<double> d2fdx2_mat(NUM_PLANT_STATES*NUM_PLANT_STATES, NUM_PLANT_STATES);
-    d2fdx2_mat.setFromTriplets(d2fdx2.begin(), d2fdx2.end());
-    return d2fdx2_mat;
+    return d2fdx2_tensor;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::d2fdxdz(SystemState state)
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2fdxdz(SystemState state)
 {
     Eigen::Vector<double, NUM_PLANT_STATES> plant = state.plant;
     Eigen::Vector<double, NUM_ALGE_STATES> alge = state.alge;
-    std::vector<T> d2fdxdz;
-    d2fdxdz.reserve(8);
 
-    d2fdxdz.emplace_back(T(6*NUM_PLANT_STATES + 3, ft, ((std::cos(plant(phi))*std::sin(plant(psi)) - std::cos(plant(psi))*std::sin(plant(phi))*std::sin(plant(theta))))/m_droneParams.mass));
-    d2fdxdz.emplace_back(T(6*NUM_PLANT_STATES + 4, ft,  ( std::cos(plant(phi))*std::cos(plant(psi))*std::cos(plant(theta)))/m_droneParams.mass));
-    d2fdxdz.emplace_back(T(6*NUM_PLANT_STATES + 5, ft, ((std::cos(plant(psi))*std::sin(plant(phi)) - std::cos(plant(phi))*std::sin(plant(psi))*std::sin(plant(theta))))/m_droneParams.mass));
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2fdxdz_tensor(NUM_PLANT_STATES, NUM_PLANT_STATES, NUM_Z_STATES);
+    d2fdxdz_tensor.setZero();
 
-    d2fdxdz.emplace_back(T(7*NUM_PLANT_STATES + 3, ft, -((std::cos(plant(phi))*std::cos(plant(psi)) + std::sin(plant(phi))*std::sin(plant(psi))*std::sin(plant(theta))))/m_droneParams.mass));
-    d2fdxdz.emplace_back(T(7*NUM_PLANT_STATES + 4, ft, (std::cos(plant(phi))*std::cos(plant(theta))*std::sin(plant(psi)))/m_droneParams.mass));
-    d2fdxdz.emplace_back(T(7*NUM_PLANT_STATES + 5, ft, ((std::sin(plant(phi))*std::sin(plant(psi)) + std::cos(plant(phi))*std::cos(plant(psi))*std::sin(plant(theta))))/m_droneParams.mass));
+    d2fdxdz_tensor(6 , 3, ft) = ((std::cos(plant(phi))*std::sin(plant(psi)) - std::cos(plant(psi))*std::sin(plant(phi))*std::sin(plant(theta))))/m_droneParams.mass;
+    d2fdxdz_tensor(6 , 4, ft) =  ( std::cos(plant(phi))*std::cos(plant(psi))*std::cos(plant(theta)))/m_droneParams.mass;
+    d2fdxdz_tensor(6 , 5, ft) = ((std::cos(plant(psi))*std::sin(plant(phi)) - std::cos(plant(phi))*std::sin(plant(psi))*std::sin(plant(theta))))/m_droneParams.mass;
 
-    d2fdxdz.emplace_back(T(8*NUM_PLANT_STATES + 3, ft, -(std::cos(plant(theta))*std::sin(plant(phi)))/m_droneParams.mass));
-    d2fdxdz.emplace_back(T(8*NUM_PLANT_STATES + 4, ft, -(std::cos(plant(phi))*std::sin(plant(theta)))/m_droneParams.mass));
+    d2fdxdz_tensor(7 , 3, ft) = -((std::cos(plant(phi))*std::cos(plant(psi)) + std::sin(plant(phi))*std::sin(plant(psi))*std::sin(plant(theta))))/m_droneParams.mass;
+    d2fdxdz_tensor(7 , 4, ft) = (std::cos(plant(phi))*std::cos(plant(theta))*std::sin(plant(psi)))/m_droneParams.mass;
+    d2fdxdz_tensor(7 , 5, ft) = ((std::sin(plant(phi))*std::sin(plant(psi)) + std::cos(plant(phi))*std::cos(plant(psi))*std::sin(plant(theta))))/m_droneParams.mass;
 
-    Eigen::SparseMatrix<double> d2fdxdz_mat(NUM_PLANT_STATES*NUM_PLANT_STATES, NUM_Z_STATES);
-    d2fdxdz_mat.setFromTriplets(d2fdxdz.begin(), d2fdxdz.end());
-    return d2fdxdz_mat;
+    d2fdxdz_tensor(8 , 3, ft) = -(std::cos(plant(theta))*std::sin(plant(phi)))/m_droneParams.mass;
+    d2fdxdz_tensor(8 , 4, ft) = -(std::cos(plant(phi))*std::sin(plant(theta)))/m_droneParams.mass;
+
+    return d2fdxdz_tensor;
 }
-Eigen::SparseMatrix<double> DroneTrajectory::d2fdzdx(SystemState state)
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2fdzdx(SystemState state)
 {
     Eigen::Vector<double, NUM_PLANT_STATES> plant = state.plant;
     Eigen::Vector<double, NUM_ALGE_STATES> alge = state.alge;
-    std::vector<T> d2fdzdx;
-    d2fdzdx.reserve(8);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2fdzdx_tensor(NUM_PLANT_STATES, NUM_Z_STATES, NUM_PLANT_STATES);
+    d2fdzdx_tensor.setZero();
 
-    d2fdzdx.emplace_back(T(xdot*NUM_PLANT_STATES + ft, phi, (cos(plant(phi))*sin(plant(psi)) - cos(plant(psi))*sin(plant(phi))*sin(plant(theta)))/m_droneParams.mass));
-    d2fdzdx.emplace_back(T(xdot*NUM_PLANT_STATES + ft, theta, (cos(plant(phi))*cos(plant(psi))*cos(plant(theta)))/m_droneParams.mass));
-    d2fdzdx.emplace_back(T(xdot*NUM_PLANT_STATES + ft, psi, (cos(plant(psi))*sin(plant(phi)) - cos(plant(phi))*sin(plant(psi))*sin(plant(theta)))/m_droneParams.mass));
+    d2fdzdx_tensor(xdot , ft, phi)= (cos(plant(phi))*sin(plant(psi)) - cos(plant(psi))*sin(plant(phi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdzdx_tensor(xdot , ft, theta)= (cos(plant(phi))*cos(plant(psi))*cos(plant(theta)))/m_droneParams.mass;
+    d2fdzdx_tensor(xdot , ft, psi)= (cos(plant(psi))*sin(plant(phi)) - cos(plant(phi))*sin(plant(psi))*sin(plant(theta)))/m_droneParams.mass;
 
-    d2fdzdx.emplace_back(T(ydot*NUM_PLANT_STATES + ft, phi, -(cos(plant(phi))*cos(plant(psi)) + sin(plant(phi))*sin(plant(psi))*sin(plant(theta)))/m_droneParams.mass));
-    d2fdzdx.emplace_back(T(ydot*NUM_PLANT_STATES + ft, theta, (cos(plant(phi))*cos(plant(theta))*sin(plant(psi)))/m_droneParams.mass));
-    d2fdzdx.emplace_back(T(ydot*NUM_PLANT_STATES + ft, psi, (sin(plant(phi))*sin(plant(psi)) + cos(plant(phi))*cos(plant(psi))*sin(plant(theta)))/m_droneParams.mass));
+    d2fdzdx_tensor(ydot , ft, phi)= -(cos(plant(phi))*cos(plant(psi)) + sin(plant(phi))*sin(plant(psi))*sin(plant(theta)))/m_droneParams.mass;
+    d2fdzdx_tensor(ydot , ft, theta)= (cos(plant(phi))*cos(plant(theta))*sin(plant(psi)))/m_droneParams.mass;
+    d2fdzdx_tensor(ydot , ft, psi)= (sin(plant(phi))*sin(plant(psi)) + cos(plant(phi))*cos(plant(psi))*sin(plant(theta)))/m_droneParams.mass;
 
-    d2fdzdx.emplace_back(T(zdot*NUM_PLANT_STATES + ft, phi, -(cos(plant(theta))*sin(plant(phi)))/m_droneParams.mass));
-    d2fdzdx.emplace_back(T(zdot*NUM_PLANT_STATES + ft, theta, -(cos(plant(phi))*sin(plant(theta)))/m_droneParams.mass));
+    d2fdzdx_tensor(zdot , ft, phi)= -(cos(plant(theta))*sin(plant(phi)))/m_droneParams.mass;
+    d2fdzdx_tensor(zdot , ft, theta)= -(cos(plant(phi))*sin(plant(theta)))/m_droneParams.mass;
    
-    Eigen::SparseMatrix<double> d2fdzdx_mat(NUM_PLANT_STATES*NUM_Z_STATES, NUM_PLANT_STATES);
-    d2fdzdx_mat.setFromTriplets(d2fdzdx.begin(), d2fdzdx.end());
-    return d2fdzdx_mat;
+    return d2fdzdx_tensor;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::d2gdx2_mult_dxdwo(SystemState state, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo)
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2gdx2(SystemState state)
 {
-    std::vector<T> d2gdx2;
-    d2gdx2.reserve(3*NUM_STATES*2);
+    
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdx2_tensor(NUM_Y_STATES, NUM_PLANT_STATES, NUM_PLANT_STATES);
+    d2gdx2_tensor.setZero();
+
     if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
-        for (int i = 0; i < NUM_STATES; i++)
-        {
-            d2gdx2.emplace_back(T(xdot, i, -m_ctrlParams.at(velY).kp*cos(state.plant(psi))*dxdwo(psi, i) ));
-            d2gdx2.emplace_back(T(ydot, i, -m_ctrlParams.at(velY).kp*sin(state.plant(psi))*dxdwo(psi, i) ));
-            d2gdx2.emplace_back(T(psi, i, -m_ctrlParams.at(velY).kp*cos(state.plant(psi))*dxdwo(xdot, i) ));
-            d2gdx2.emplace_back(T(psi, i, -m_ctrlParams.at(velY).kp*sin(state.plant(psi))*dxdwo(ydot, i) ));
-            d2gdx2.emplace_back(T(psi, i,  -m_ctrlParams.at(velY).kp*(state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)))*dxdwo(psi, i) ));
-        }
-        
+            d2gdx2_tensor(0, xdot, psi)= -m_ctrlParams.at(velY).kp*cos(state.plant(psi)) ;
+            d2gdx2_tensor(0, ydot, psi)= -m_ctrlParams.at(velY).kp*sin(state.plant(psi)) ;
+            d2gdx2_tensor(0, psi, xdot)= -m_ctrlParams.at(velY).kp*cos(state.plant(psi)) ;
+            d2gdx2_tensor(0, psi, ydot)= -m_ctrlParams.at(velY).kp*sin(state.plant(psi)) ;
+            d2gdx2_tensor(0, psi, psi)=  -m_ctrlParams.at(velY).kp*(state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi))) ;
     }
     if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
-        for(int i = 0; i < NUM_STATES; i++)
-        {
-            d2gdx2.emplace_back(T(NUM_PLANT_STATES + xdot, i,  m_ctrlParams.at(velX).kp*sin(state.plant(psi))*dxdwo(psi, i) ));
-            d2gdx2.emplace_back(T(NUM_PLANT_STATES + ydot, i, -m_ctrlParams.at(velX).kp*cos(state.plant(psi))*dxdwo(psi, i) ));
-            d2gdx2.emplace_back(T(NUM_PLANT_STATES + psi, i,   m_ctrlParams.at(velX).kp*sin(state.plant(psi))*dxdwo(xdot, i) ));
-            d2gdx2.emplace_back(T(NUM_PLANT_STATES + psi, i,  -m_ctrlParams.at(velX).kp*cos(state.plant(psi))*dxdwo(ydot, i) ));
-            d2gdx2.emplace_back(T(NUM_PLANT_STATES + psi, i,   m_ctrlParams.at(velX).kp*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)))*dxdwo(psi, i) ));
-        }
+            d2gdx2_tensor(1, xdot, psi)=  m_ctrlParams.at(velX).kp*sin(state.plant(psi));
+            d2gdx2_tensor(1, ydot, psi)= -m_ctrlParams.at(velX).kp*cos(state.plant(psi));
+            d2gdx2_tensor(1, psi, xdot)=   m_ctrlParams.at(velX).kp*sin(state.plant(psi));
+            d2gdx2_tensor(1, psi, ydot)=  -m_ctrlParams.at(velX).kp*cos(state.plant(psi));
+            d2gdx2_tensor(1, psi, psi)=   m_ctrlParams.at(velX).kp*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)));
+        
     }
 
-    Eigen::SparseMatrix<double> d2gdx2_mat(NUM_Y_STATES*NUM_PLANT_STATES, NUM_STATES);
-    d2gdx2_mat.setFromTriplets(d2gdx2.begin(), d2gdx2.end());
-    return d2gdx2_mat;
+    return d2gdx2_tensor;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::d2hdx2_plus_mult_dxdwo(SystemState state, double time, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo)
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2hdx2_plus(SystemState state, double time, double timestep )
 {
-    std::vector<T> d2hdx2_plus;
-    d2hdx2_plus.reserve(10*NUM_STATES);
-
-    for(int i = 0; i < NUM_STATES; i ++)
-    {
-        d2hdx2_plus.emplace_back(T(eix*NUM_PLANT_STATES+x, i, timestep*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(eix*NUM_PLANT_STATES+y, i, -timestep*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(eix*NUM_PLANT_STATES+psi, i, timestep*sin(state.plant(psi))*dxdwo(x, i) ));
-        d2hdx2_plus.emplace_back(T(eix*NUM_PLANT_STATES+psi, i, -timestep*cos(state.plant(psi))*dxdwo(y, i) ));
-        d2hdx2_plus.emplace_back(T(eix*NUM_PLANT_STATES+psi, i, -timestep*(cos(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)) + sin(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)))*dxdwo(psi, i) ));
-
-        d2hdx2_plus.emplace_back(T(edx*NUM_PLANT_STATES+x, i, 1/timestep*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(edx*NUM_PLANT_STATES+y, i, -1/timestep*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(edx*NUM_PLANT_STATES+psi, i, 1/timestep*sin(state.plant(psi))*dxdwo(x, i) ));
-        d2hdx2_plus.emplace_back(T(edx*NUM_PLANT_STATES+psi, i, -1/timestep*cos(state.plant(psi))*dxdwo(y, i) ));
-        d2hdx2_plus.emplace_back(T(edx*NUM_PLANT_STATES+psi, i, (state.plant(x)*cos(state.plant(psi)) + state.plant(y)*sin(state.plant(psi)))/timestep*dxdwo(psi, i) ));
-
-        d2hdx2_plus.emplace_back(T(desVelX*NUM_PLANT_STATES+x, i, m_ctrlParams.at(posX).kp*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(desVelX*NUM_PLANT_STATES+y, i, -m_ctrlParams.at(posX).kp*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(desVelX*NUM_PLANT_STATES+psi, i, m_ctrlParams.at(posX).kp*sin(state.plant(psi))*dxdwo(x, i) ));
-        d2hdx2_plus.emplace_back(T(desVelX*NUM_PLANT_STATES+psi, i, -m_ctrlParams.at(posX).kp*cos(state.plant(psi))*dxdwo(y, i) ));
-        d2hdx2_plus.emplace_back(T(desVelX*NUM_PLANT_STATES+psi, i, -m_ctrlParams.at(posX).kp*(cos(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)) + sin(state.plant(psi))*(m_ref.at(refy)(time) - state.plant(y)))*dxdwo(psi, i) ));
-
-        d2hdx2_plus.emplace_back(T(eiy*NUM_PLANT_STATES+x, i, timestep*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(eiy*NUM_PLANT_STATES+y, i, timestep*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(eiy*NUM_PLANT_STATES+psi, i, timestep*cos(state.plant(psi))*dxdwo(x, i) ));
-        d2hdx2_plus.emplace_back(T(eiy*NUM_PLANT_STATES+psi, i, timestep*sin(state.plant(psi))*dxdwo(y, i) ));
-        d2hdx2_plus.emplace_back(T(eiy*NUM_PLANT_STATES+psi, i, -timestep*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -x))*dxdwo(psi, i) ));
-
-        d2hdx2_plus.emplace_back(T(edy*NUM_PLANT_STATES+x, i, 1/timestep*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(edy*NUM_PLANT_STATES+y, i, 1/timestep*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(edy*NUM_PLANT_STATES+psi, i, 1/timestep*cos(state.plant(psi))*dxdwo(x, i) ));
-        d2hdx2_plus.emplace_back(T(edy*NUM_PLANT_STATES+psi, i, 1/timestep*sin(state.plant(psi))*dxdwo(y, i) ));
-        d2hdx2_plus.emplace_back(T(edy*NUM_PLANT_STATES+psi, i, (state.plant(y)*cos(state.plant(psi)) - state.plant(x)*sin(state.plant(psi)))/timestep*dxdwo(psi, i) ));
-
-        d2hdx2_plus.emplace_back(T(desVelY*NUM_PLANT_STATES+x, i, m_ctrlParams.at(posY).kp*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(desVelY*NUM_PLANT_STATES+y, i, m_ctrlParams.at(posY).kp*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(desVelY*NUM_PLANT_STATES+psi, i, m_ctrlParams.at(posY).kp*cos(state.plant(psi))*dxdwo(x, i) ));
-        d2hdx2_plus.emplace_back(T(desVelY*NUM_PLANT_STATES+psi, i, m_ctrlParams.at(posY).kp*sin(state.plant(psi))*dxdwo(y, i) ));
-        d2hdx2_plus.emplace_back(T(desVelY*NUM_PLANT_STATES+psi, i, -m_ctrlParams.at(posY).kp*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)))*dxdwo(psi, i) ));
-
-        d2hdx2_plus.emplace_back(T(eixdot*NUM_PLANT_STATES+xdot, i, timestep*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(eixdot*NUM_PLANT_STATES+ydot, i, -timestep*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(eixdot*NUM_PLANT_STATES+psi, i, timestep*sin(state.plant(psi))*dxdwo(x, i) ));
-        d2hdx2_plus.emplace_back(T(eixdot*NUM_PLANT_STATES+psi, i, -timestep*cos(state.plant(psi))*dxdwo(y, i) ));
-        d2hdx2_plus.emplace_back(T(eixdot*NUM_PLANT_STATES+psi, i, timestep*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)))*dxdwo(psi, i) ));
-
-        d2hdx2_plus.emplace_back(T(edxdot*NUM_PLANT_STATES+xdot, i, 1/timestep*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(edxdot*NUM_PLANT_STATES+ydot, i, -1/timestep*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(edxdot*NUM_PLANT_STATES+psi, i, 1/timestep*sin(state.plant(psi))*dxdwo(xdot, i) ));
-        d2hdx2_plus.emplace_back(T(edxdot*NUM_PLANT_STATES+psi, i, -1/timestep*cos(state.plant(psi))*dxdwo(ydot, i) ));
-        d2hdx2_plus.emplace_back(T(edxdot*NUM_PLANT_STATES+psi, i, (state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)))/timestep*dxdwo(psi, i) ));
-
-        d2hdx2_plus.emplace_back(T(eiydot*NUM_PLANT_STATES+xdot, i, timestep*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(eiydot*NUM_PLANT_STATES+ydot, i, timestep*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(eiydot*NUM_PLANT_STATES+psi, i, timestep*cos(state.plant(psi))*dxdwo(xdot, i) ));
-        d2hdx2_plus.emplace_back(T(eiydot*NUM_PLANT_STATES+psi, i, timestep*sin(state.plant(psi))*dxdwo(ydot, i) ));
-        d2hdx2_plus.emplace_back(T(eiydot*NUM_PLANT_STATES+psi, i, timestep*(state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)))*dxdwo(psi, i) ));
-
-        d2hdx2_plus.emplace_back(T(edydot*NUM_PLANT_STATES+xdot, i, 1/timestep*cos(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(edydot*NUM_PLANT_STATES+ydot, i, 1/timestep*sin(state.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_plus.emplace_back(T(edydot*NUM_PLANT_STATES+psi, i, 1/timestep*cos(state.plant(psi))*dxdwo(xdot, i) ));
-        d2hdx2_plus.emplace_back(T(edydot*NUM_PLANT_STATES+psi, i, 1/timestep*sin(state.plant(psi))*dxdwo(ydot, i) ));
-        d2hdx2_plus.emplace_back(T(edydot*NUM_PLANT_STATES+psi, i, (state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)))/timestep*dxdwo(psi, i) ));
-    }
-  
-    Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_Z_STATES*NUM_PLANT_STATES, NUM_STATES);
-    d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
-    return d2hdx2_plus_mat;
-}
-
-Eigen::SparseMatrix<double> DroneTrajectory::d2hdx2_curr_mult_dxdwo(SystemState prev, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo)
-{
-    std::vector<T> d2hdx2_curr;
-    d2hdx2_curr.reserve(4*NUM_STATES);
     
-    for (int i = 0; i < NUM_STATES; i++)
-    {
-        d2hdx2_curr.emplace_back(T(edx*NUM_PLANT_STATES + x, i, -1/timestep*sin(prev.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_curr.emplace_back(T(edx*NUM_PLANT_STATES + y, i, 1/timestep*cos(prev.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_curr.emplace_back(T(edx*NUM_PLANT_STATES + psi, i, -sin(prev.plant(psi))/timestep*dxdwo(x, i) ));
-        d2hdx2_curr.emplace_back(T(edx*NUM_PLANT_STATES + psi, i, cos(prev.plant(psi))/timestep*dxdwo(y, i) ));
-        d2hdx2_curr.emplace_back(T(edx*NUM_PLANT_STATES + psi, i, -(prev.plant(x)*cos(prev.plant(psi)) + prev.plant(y)*sin(prev.plant(psi)))/timestep*dxdwo(psi, i) ));
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdx2_tensor(NUM_Z_STATES, NUM_PLANT_STATES, NUM_PLANT_STATES);
+    d2hdx2_tensor.setZero();
 
-        d2hdx2_curr.emplace_back(T(edy*NUM_PLANT_STATES + x, i, -1/timestep*cos(prev.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_curr.emplace_back(T(edy*NUM_PLANT_STATES + y, i, -1/timestep*sin(prev.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_curr.emplace_back(T(edy*NUM_PLANT_STATES + psi, i, -cos(prev.plant(psi))/timestep*dxdwo(x, i) ));
-        d2hdx2_curr.emplace_back(T(edy*NUM_PLANT_STATES + psi, i, -sin(prev.plant(psi))/timestep*dxdwo(y, i) ));
-        d2hdx2_curr.emplace_back(T(edy*NUM_PLANT_STATES + psi, i, -(prev.plant(y)*cos(prev.plant(psi)) - prev.plant(x)*sin(prev.plant(psi)))/timestep*dxdwo(psi, i) ));
+    d2hdx2_tensor(eix, x, psi)= timestep*sin(state.plant(psi));
+    d2hdx2_tensor(eix, y, psi)= -timestep*cos(state.plant(psi));
+    d2hdx2_tensor(eix, psi, x)= timestep*sin(state.plant(psi));
+    d2hdx2_tensor(eix, psi, y)= -timestep*cos(state.plant(psi));
+    d2hdx2_tensor(eix, psi, psi)= -timestep*(cos(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)) + sin(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)));
 
-        d2hdx2_curr.emplace_back(T(edxdot*NUM_PLANT_STATES + xdot, i, -1/timestep*sin(prev.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_curr.emplace_back(T(edxdot*NUM_PLANT_STATES + ydot, i, 1/timestep*cos(prev.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_curr.emplace_back(T(edxdot*NUM_PLANT_STATES + psi, i, -sin(prev.plant(psi))/timestep*dxdwo(xdot, i) ));
-        d2hdx2_curr.emplace_back(T(edxdot*NUM_PLANT_STATES + psi, i, cos(prev.plant(psi))/timestep*dxdwo(ydot, i) ));
-        d2hdx2_curr.emplace_back(T(edxdot*NUM_PLANT_STATES + psi, i, -(prev.plant(xdot)*cos(prev.plant(psi)) + prev.plant(ydot)*sin(prev.plant(psi)))/timestep*dxdwo(psi, i) ));
+    d2hdx2_tensor(edx, x, psi)= 1/timestep*sin(state.plant(psi));
+    d2hdx2_tensor(edx, y, psi)= -1/timestep*cos(state.plant(psi));
+    d2hdx2_tensor(edx, psi, x)= 1/timestep*sin(state.plant(psi));
+    d2hdx2_tensor(edx, psi, y)= -1/timestep*cos(state.plant(psi));
+    d2hdx2_tensor(edx, psi, psi)= (state.plant(x)*cos(state.plant(psi)) + state.plant(y)*sin(state.plant(psi)))/timestep;
 
-        d2hdx2_curr.emplace_back(T(edydot*NUM_PLANT_STATES + xdot, i, -1/timestep*cos(prev.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_curr.emplace_back(T(edydot*NUM_PLANT_STATES + ydot, i, -1/timestep*sin(prev.plant(psi))*dxdwo(psi, i) ));
-        d2hdx2_curr.emplace_back(T(edydot*NUM_PLANT_STATES + psi, i, -cos(prev.plant(psi))/timestep*dxdwo(xdot, i) ));
-        d2hdx2_curr.emplace_back(T(edydot*NUM_PLANT_STATES + psi, i, -sin(prev.plant(psi))/timestep*dxdwo(ydot, i) ));
-        d2hdx2_curr.emplace_back(T(edydot*NUM_PLANT_STATES + psi, i, -(prev.plant(ydot)*cos(prev.plant(psi)) - prev.plant(xdot)*sin(prev.plant(psi)))/timestep*dxdwo(psi, i) ));
-    }
-    Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_Z_STATES*NUM_PLANT_STATES, NUM_STATES);
-    d2hdx2_curr_mat.setFromTriplets(d2hdx2_curr.begin(), d2hdx2_curr.end());
-    return d2hdx2_curr_mat;
+    d2hdx2_tensor(desVelX,x, psi)= m_ctrlParams.at(posX).kp*sin(state.plant(psi));
+    d2hdx2_tensor(desVelX,y, psi)= -m_ctrlParams.at(posX).kp*cos(state.plant(psi));
+    d2hdx2_tensor(desVelX,psi, x)= m_ctrlParams.at(posX).kp*sin(state.plant(psi));
+    d2hdx2_tensor(desVelX,psi, y)= -m_ctrlParams.at(posX).kp*cos(state.plant(psi));
+    d2hdx2_tensor(desVelX,psi, psi)= -m_ctrlParams.at(posX).kp*(cos(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)) + sin(state.plant(psi))*(m_ref.at(refy)(time) - state.plant(y)));
+
+    d2hdx2_tensor(eiy,x, psi)= timestep*cos(state.plant(psi));
+    d2hdx2_tensor(eiy,y, psi)= timestep*sin(state.plant(psi));
+    d2hdx2_tensor(eiy,psi, x)= timestep*cos(state.plant(psi));
+    d2hdx2_tensor(eiy,psi, y)= timestep*sin(state.plant(psi));
+    d2hdx2_tensor(eiy,psi, psi)= -timestep*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -x));
+
+    d2hdx2_tensor(edy,x, psi)= 1/timestep*cos(state.plant(psi));
+    d2hdx2_tensor(edy,y, psi)= 1/timestep*sin(state.plant(psi));
+    d2hdx2_tensor(edy,psi, x)= 1/timestep*cos(state.plant(psi));
+    d2hdx2_tensor(edy,psi, y)= 1/timestep*sin(state.plant(psi));
+    d2hdx2_tensor(edy,psi, psi)= (state.plant(y)*cos(state.plant(psi)) - state.plant(x)*sin(state.plant(psi)))/timestep;
+
+    d2hdx2_tensor(desVelY,x, psi)= m_ctrlParams.at(posY).kp*cos(state.plant(psi));
+    d2hdx2_tensor(desVelY,y, psi)= m_ctrlParams.at(posY).kp*sin(state.plant(psi));
+    d2hdx2_tensor(desVelY,psi, x)= m_ctrlParams.at(posY).kp*cos(state.plant(psi));
+    d2hdx2_tensor(desVelY,psi, y)= m_ctrlParams.at(posY).kp*sin(state.plant(psi));
+    d2hdx2_tensor(desVelY,psi, psi)= -m_ctrlParams.at(posY).kp*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x)));
+
+    d2hdx2_tensor(eixdot,xdot, psi)= timestep*sin(state.plant(psi));
+    d2hdx2_tensor(eixdot,ydot, psi)= -timestep*cos(state.plant(psi));
+    d2hdx2_tensor(eixdot,psi, xdot)= timestep*sin(state.plant(psi));
+    d2hdx2_tensor(eixdot,psi, ydot)= -timestep*cos(state.plant(psi));
+    d2hdx2_tensor(eixdot,psi, psi)= timestep*(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)));
+
+    d2hdx2_tensor(edxdot,xdot, psi)= 1/timestep*sin(state.plant(psi));
+    d2hdx2_tensor(edxdot,ydot, psi)= -1/timestep*cos(state.plant(psi));
+    d2hdx2_tensor(edxdot,psi, xdot)= 1/timestep*sin(state.plant(psi));
+    d2hdx2_tensor(edxdot,psi, ydot)= -1/timestep*cos(state.plant(psi));
+    d2hdx2_tensor(edxdot,psi, psi)= (state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)))/timestep;
+
+    d2hdx2_tensor(eiydot,xdot, psi)= timestep*cos(state.plant(psi));
+    d2hdx2_tensor(eiydot,ydot, psi)= timestep*sin(state.plant(psi));
+    d2hdx2_tensor(eiydot,psi, xdot)= timestep*cos(state.plant(psi));
+    d2hdx2_tensor(eiydot,psi, ydot)= timestep*sin(state.plant(psi));
+    d2hdx2_tensor(eiydot,psi, psi)= timestep*(state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)));
+
+    d2hdx2_tensor(edydot,xdot, psi)= 1/timestep*cos(state.plant(psi));
+    d2hdx2_tensor(edydot,ydot, psi)= 1/timestep*sin(state.plant(psi));
+    d2hdx2_tensor(edydot,psi, xdot)= 1/timestep*cos(state.plant(psi));
+    d2hdx2_tensor(edydot,psi, ydot)= 1/timestep*sin(state.plant(psi));
+    d2hdx2_tensor(edydot,psi, psi)= (state.plant(ydot)*cos(state.plant(psi)) - state.plant(xdot)*sin(state.plant(psi)))/timestep;
+
+    return d2hdx2_tensor;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::d2hdz2_plus_mult_dzdwo(Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo)
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2hdx2_curr(SystemState prev, double timestep)
 {
-    std::vector<T> d2hdz2_plus;
-    d2hdz2_plus.reserve(4*NUM_STATES*4);
-    for(int i = 0; i < NUM_STATES; i++) {
-        d2hdz2_plus.emplace_back(T(ft*NUM_Z_STATES + w1, i, m_droneParams.kf * 2 * dzdwo(w1, i) ));
-        d2hdz2_plus.emplace_back(T(ft*NUM_Z_STATES + w2, i, m_droneParams.kf * 2 * dzdwo(w2, i) ));
-        d2hdz2_plus.emplace_back(T(ft*NUM_Z_STATES + w3, i, m_droneParams.kf * 2 * dzdwo(w3, i) ));
-        d2hdz2_plus.emplace_back(T(ft*NUM_Z_STATES + w4, i, m_droneParams.kf * 2 * dzdwo(w4, i) )) ;
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdx2_tensor(NUM_Z_STATES, NUM_PLANT_STATES, NUM_PLANT_STATES);
+    d2hdx2_tensor.setZero();
+    
+    d2hdx2_tensor(edx,x, psi)= -1/timestep*sin(prev.plant(psi));
+    d2hdx2_tensor(edx,y, psi)= 1/timestep*cos(prev.plant(psi));
+    d2hdx2_tensor(edx,psi, x)= -sin(prev.plant(psi))/timestep;
+    d2hdx2_tensor(edx,psi, y)= cos(prev.plant(psi))/timestep;
+    d2hdx2_tensor(edx,psi, psi)= -(prev.plant(x)*cos(prev.plant(psi)) + prev.plant(y)*sin(prev.plant(psi)))/timestep;
 
-        d2hdz2_plus.emplace_back(T(tx*NUM_Z_STATES + w1, i, - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * dzdwo(w1,i) ));
-        d2hdz2_plus.emplace_back(T(tx*NUM_Z_STATES + w2, i, - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * dzdwo(w2,i) ));
-        d2hdz2_plus.emplace_back(T(tx*NUM_Z_STATES + w3, i,   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * dzdwo(w3,i) ));
-        d2hdz2_plus.emplace_back(T(tx*NUM_Z_STATES + w4, i,   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * dzdwo(w4,i) ));
+    d2hdx2_tensor(edy,x, psi)= -1/timestep*cos(prev.plant(psi));
+    d2hdx2_tensor(edy,y, psi)= -1/timestep*sin(prev.plant(psi));
+    d2hdx2_tensor(edy,psi, x)= -cos(prev.plant(psi))/timestep;
+    d2hdx2_tensor(edy,psi, y)= -sin(prev.plant(psi))/timestep;
+    d2hdx2_tensor(edy,psi, psi)= -(prev.plant(y)*cos(prev.plant(psi)) - prev.plant(x)*sin(prev.plant(psi)))/timestep;
 
-        d2hdz2_plus.emplace_back(T(ty*NUM_Z_STATES + w1, i,   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * dzdwo(w1, i) ));
-        d2hdz2_plus.emplace_back(T(ty*NUM_Z_STATES + w2, i, - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * dzdwo(w2, i) ));
-        d2hdz2_plus.emplace_back(T(ty*NUM_Z_STATES + w3, i, - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * dzdwo(w3, i) ));
-        d2hdz2_plus.emplace_back(T(ty*NUM_Z_STATES + w4, i,   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) * dzdwo(w4, i) ));
+    d2hdx2_tensor(edxdot,xdot, psi)= -1/timestep*sin(prev.plant(psi));
+    d2hdx2_tensor(edxdot,ydot, psi)= 1/timestep*cos(prev.plant(psi));
+    d2hdx2_tensor(edxdot,psi, xdot)= -sin(prev.plant(psi))/timestep;
+    d2hdx2_tensor(edxdot,psi, ydot)= cos(prev.plant(psi))/timestep;
+    d2hdx2_tensor(edxdot,psi, psi)= -(prev.plant(xdot)*cos(prev.plant(psi)) + prev.plant(ydot)*sin(prev.plant(psi)))/timestep;
 
-        d2hdz2_plus.emplace_back(T(tz*NUM_Z_STATES + w1, i,    m_droneParams.km * 2 * dzdwo(w1, i) )) ;
-        d2hdz2_plus.emplace_back(T(tz*NUM_Z_STATES + w2, i,  - m_droneParams.km * 2 * dzdwo(w2, i) )) ;
-        d2hdz2_plus.emplace_back(T(tz*NUM_Z_STATES + w3, i,    m_droneParams.km * 2 * dzdwo(w3, i) )) ;
-        d2hdz2_plus.emplace_back(T(tz*NUM_Z_STATES + w4, i,  - m_droneParams.km * 2 * dzdwo(w4, i) )) ;
-    }
+    d2hdx2_tensor(edydot,xdot, psi)= -1/timestep*cos(prev.plant(psi));
+    d2hdx2_tensor(edydot,ydot, psi)= -1/timestep*sin(prev.plant(psi));
+    d2hdx2_tensor(edydot,psi, xdot)= -cos(prev.plant(psi))/timestep;
+    d2hdx2_tensor(edydot,psi, ydot)= -sin(prev.plant(psi))/timestep;
+    d2hdx2_tensor(edydot,psi, psi)= -(prev.plant(ydot)*cos(prev.plant(psi)) - prev.plant(xdot)*sin(prev.plant(psi)))/timestep;
 
-    Eigen::SparseMatrix<double> d2hdz2_plus_mat(NUM_Z_STATES*NUM_Z_STATES, NUM_STATES);
-    d2hdz2_plus_mat.setFromTriplets(d2hdz2_plus.begin(), d2hdz2_plus.end());
-    return d2hdz2_plus_mat;
+    return d2hdx2_tensor;
 }
 
-
-Eigen::Tensor<double, 3> DroneTrajectory::dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3> const& d2zdwo2)
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2hdz2()
 {
-    Eigen::Tensor<double, 3> result(NUM_PLANT_STATES, NUM_STATES, NUM_STATES);
-    result.setZero();
-   
-    result.chip(xdot, 0) += (1.0/m_droneParams.mass * (std::sin(state.plant(phi)) * std::sin(state.plant(psi)) 
-                             + std::cos(state.plant(phi))*std::cos(state.plant(psi))*std::sin(state.plant(theta)))) * d2zdwo2.chip(ft, 0);
-    result.chip(ydot, 0) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi))*std::sin(state.plant(psi))*std::sin(state.plant(theta)) 
-                             - std::cos(state.plant(psi))*std::sin(state.plant(phi)))) * d2zdwo2.chip(ft, 0);
-    result.chip(zdot, 0) += (1.0/m_droneParams.mass * (std::cos(state.plant(phi)) * std::cos(state.plant(theta)))) * d2zdwo2.chip(ft, 0);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdz2_plus_tensor(NUM_Z_STATES, NUM_Z_STATES, NUM_Z_STATES);
+    d2hdz2_plus_tensor.setZero();
 
-    result.chip(p, 0) += 1.0/m_droneParams.Ix * d2zdwo2.chip(tx, 0);
-    result.chip(q, 0) += 1.0/m_droneParams.Iy * d2zdwo2.chip(ty, 0);
-    result.chip(r, 0) += 1.0/m_droneParams.Iz * d2zdwo2.chip(tz, 0);
+    d2hdz2_plus_tensor(ft, w1, w1)= m_droneParams.kf * 2 ;
+    d2hdz2_plus_tensor(ft, w2, w2)= m_droneParams.kf * 2 ;
+    d2hdz2_plus_tensor(ft, w3, w3)= m_droneParams.kf * 2 ;
+    d2hdz2_plus_tensor(ft, w4, w4)= m_droneParams.kf * 2 ;
 
-    return result;
+    d2hdz2_plus_tensor(tx, w1, w1)= - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdz2_plus_tensor(tx, w2, w2)= - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdz2_plus_tensor(tx, w3, w3)=   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdz2_plus_tensor(tx, w4, w4)=   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+
+    d2hdz2_plus_tensor(ty, w1, w1)=   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdz2_plus_tensor(ty, w2, w2)= - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdz2_plus_tensor(ty, w3, w3)= - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdz2_plus_tensor(ty, w4, w4)=   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+
+    d2hdz2_plus_tensor(tz, w1, w1)=    m_droneParams.km * 2  ;
+    d2hdz2_plus_tensor(tz, w2, w2)=  - m_droneParams.km * 2  ;
+    d2hdz2_plus_tensor(tz, w3, w3)=    m_droneParams.km * 2  ;
+    d2hdz2_plus_tensor(tz, w4, w4)=  - m_droneParams.km * 2  ;
+
+    return d2hdz2_plus_tensor;
 }
 
 Eigen::SparseMatrix<double> DroneTrajectory::d2edx_dx_curr2(SystemState prev, double timestep)
@@ -767,11 +726,11 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edy_dx_curr2(SystemState prev, do
     std::vector<T> d2hdx2_curr;
     d2hdx2_curr.reserve(5);
     
-    d2hdx2_curr.emplace_back(T(x, psi, -1/timestep*cos(prev.plant(psi))));
-    d2hdx2_curr.emplace_back(T(y, psi, -1/timestep*sin(prev.plant(psi))));
-    d2hdx2_curr.emplace_back(T(psi, x, -cos(prev.plant(psi))/timestep ));
-    d2hdx2_curr.emplace_back(T(psi, y, -sin(prev.plant(psi))/timestep ));
-    d2hdx2_curr.emplace_back(T(psi, psi, -(prev.plant(y)*cos(prev.plant(psi)) - prev.plant(x)*sin(prev.plant(psi)))/timestep ));
+   d2hdx2_curr.emplace_back(T(x, psi, -1/timestep*cos(prev.plant(psi))));
+   d2hdx2_curr.emplace_back(T(y, psi, -1/timestep*sin(prev.plant(psi))));
+   d2hdx2_curr.emplace_back(T(psi, x, -cos(prev.plant(psi))/timestep ));
+   d2hdx2_curr.emplace_back(T(psi, y, -sin(prev.plant(psi))/timestep ));
+   d2hdx2_curr.emplace_back(T(psi, psi, -(prev.plant(y)*cos(prev.plant(psi)) - prev.plant(x)*sin(prev.plant(psi)))/timestep ));
 
     Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_curr_mat.setFromTriplets(d2hdx2_curr.begin(), d2hdx2_curr.end());
@@ -782,11 +741,11 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2edxdot_dx_curr2(SystemState prev,
     std::vector<T> d2hdx2_curr;
     d2hdx2_curr.reserve(5);
     
-    d2hdx2_curr.emplace_back(T(xdot, psi, -1/timestep*sin(prev.plant(psi)) ));
-    d2hdx2_curr.emplace_back(T(ydot, psi, 1/timestep*cos(prev.plant(psi)) ));
-    d2hdx2_curr.emplace_back(T(psi, xdot, -sin(prev.plant(psi))/timestep ));
-    d2hdx2_curr.emplace_back(T(psi, ydot, cos(prev.plant(psi))/timestep ));
-    d2hdx2_curr.emplace_back(T(psi, psi, -(prev.plant(xdot)*cos(prev.plant(psi)) + prev.plant(ydot)*sin(prev.plant(psi)))/timestep ));
+   d2hdx2_curr.emplace_back(T(xdot, psi, -1/timestep*sin(prev.plant(psi)) ));
+   d2hdx2_curr.emplace_back(T(ydot, psi, 1/timestep*cos(prev.plant(psi)) ));
+   d2hdx2_curr.emplace_back(T(psi, xdot, -sin(prev.plant(psi))/timestep ));
+   d2hdx2_curr.emplace_back(T(psi, ydot, cos(prev.plant(psi))/timestep ));
+   d2hdx2_curr.emplace_back(T(psi, psi, -(prev.plant(xdot)*cos(prev.plant(psi)) + prev.plant(ydot)*sin(prev.plant(psi)))/timestep ));
 
     Eigen::SparseMatrix<double> d2hdx2_curr_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_curr_mat.setFromTriplets(d2hdx2_curr.begin(), d2hdx2_curr.end());

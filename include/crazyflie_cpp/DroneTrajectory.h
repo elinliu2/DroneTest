@@ -280,14 +280,13 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> dhdy(double timestep) const;
     Eigen::SparseMatrix<double> dhdp(SystemState state, double time);
 
-    Eigen::SparseMatrix<double> d2fdx2(SystemState state); 
-    Eigen::SparseMatrix<double> d2fdxdz(SystemState state); 
-    Eigen::SparseMatrix<double> d2fdzdx(SystemState state); 
-    Eigen::SparseMatrix<double> d2gdx2_mult_dxdwo(SystemState state, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
-    Eigen::SparseMatrix<double> d2hdx2_plus_mult_dxdwo(SystemState state, double time, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
-    Eigen::SparseMatrix<double> d2hdx2_curr_mult_dxdwo(SystemState state, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
-    Eigen::SparseMatrix<double> d2hdz2_plus_mult_dzdwo(Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo);
-    Eigen::Tensor<double, 3> dfdz_mult_d2zdwo2(SystemState state, Eigen::Tensor<double, 3> const& d2zdwo2);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2fdx2(SystemState state); 
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2fdxdz(SystemState state); 
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2fdzdx(SystemState state); 
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdx2(SystemState state);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdx2_plus(SystemState state, double time, double timestep);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdx2_curr(SystemState state, double timestep);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdz2();
 
     Eigen::SparseMatrix<double> d2edx_dx_curr2(SystemState prev, double timestep);
     Eigen::SparseMatrix<double> d2edy_dx_curr2(SystemState prev, double timestep);
