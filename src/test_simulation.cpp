@@ -283,30 +283,16 @@ int main()
     // double timeIndex = 801;
     // for(int i = 0; i < NUM_PLANT_STATES; i++)
     // { log << "initialState.plant(" << i << ") = " << simResults.stateProgression.at(timeIndex).plant(i) << ";" << std::endl; }
-
     // for(int i = 0; i < NUM_ALGE_STATES; i++)
     // { log << "initialState.alge(" << i << ") = " << simResults.stateProgression.at(timeIndex).alge(i) << ";" << std::endl; }
     
     // Logger splot("./build/splot.txt");
     // splotTrajectory(simResults, splot);
-    // std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
-
-    // Logger xPlot("./build/x.txt");
-    // splotPlantState(simResults, xPlot, x);
-
-    // Logger yPlot("./build/y.txt");
-    // splotPlantState(simResults, yPlot, y);
-    
-    // log << "INFO - trajSens size: " << ts.size() << std::endl;
-    
-    // G_tp gtp = droneTrajectory.calc_G_tp(ts);
-
-    // std::vector<dwdwo> tsTest = droneTrajectory.trajSensTest(initializeState());
-    // std::pair<double, int> diff = diffTrajSens(ts, tsTest);
-    // log << "max diff: " << diff.first <<  std::endl;
 
     // std::vector<dwdp> ts_p = droneTrajectory.trajSensParam(simResults, gtp);
-    std::vector<d2wdwo2> ts2Test = droneTrajectory.secondOrdertrajSens(simResults, ts);
+    std::vector<d2wdwo2> ts2 = droneTrajectory.secondOrdertrajSens(simResults, ts);
+    std::vector<d2wdwo2> ts2test = droneTrajectory.secondOrdertrajSensTest(initializeState());
+    log << ts2[1].d2xdwo2 - ts2test[1].d2xdwo2 << std::endl;
     // std::vector<d2wdwodp> ts2ParamsTest = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
     // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, simResults.time.at(gtp.tp));
     

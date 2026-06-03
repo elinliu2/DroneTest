@@ -281,6 +281,8 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> dhdp(SystemState state, double time);
 
     Eigen::SparseMatrix<double> d2fdx2(SystemState state); 
+    Eigen::SparseMatrix<double> d2fdxdz(SystemState state); 
+    Eigen::SparseMatrix<double> d2fdzdx(SystemState state); 
     Eigen::SparseMatrix<double> d2gdx2_mult_dxdwo(SystemState state, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
     Eigen::SparseMatrix<double> d2hdx2_plus_mult_dxdwo(SystemState state, double time, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
     Eigen::SparseMatrix<double> d2hdx2_curr_mult_dxdwo(SystemState state, double timestep, Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo);
