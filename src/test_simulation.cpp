@@ -292,7 +292,7 @@ int main()
     // std::vector<dwdp> ts_p = droneTrajectory.trajSensParam(simResults, gtp);
     std::vector<d2wdwo2> ts2 = droneTrajectory.secondOrdertrajSens(simResults, ts);
     std::vector<d2wdwo2> ts2test = droneTrajectory.secondOrdertrajSensTest(initializeState());
-    log << ts2[1].d2xdwo2 - ts2test[1].d2xdwo2 << std::endl;
+    log << (ts2[1].d2xdwo2 - ts2test[1].d2xdwo2).abs().maximum() << std::endl;
     // std::vector<d2wdwodp> ts2ParamsTest = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
     // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), ts_p.at(gtp.tp), gtp, simResults.time.at(gtp.tp));
     
