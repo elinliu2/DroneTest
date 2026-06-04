@@ -293,6 +293,24 @@ int main()
     std::vector<d2wdwo2> ts2 = droneTrajectory.secondOrdertrajSens(simResults, ts);
     std::vector<d2wdwo2> ts2test = droneTrajectory.secondOrdertrajSensTest(initializeState());
 
+    double max = 0;
+    for (int i = 0; i < simResults.time.size(); i++){
+        Eigen::Tensor<double, 0> max_tensor = (ts2[i].d2xdwo2 - ts2test[i].d2xdwo2)
+        .abs()
+        .maximum();
+        double temp_max = max_tensor();
+        if (temp_max > max) { max = temp_max; }
+        max_tensor = (ts2[i].d2ydwo2 - ts2test[i].d2ydwo2)
+        .abs()
+        .maximum();
+        temp_max = max_tensor();
+        if (temp_max > max) { max = temp_max; }
+        max_tensor = (ts2[i].d2zdwo2 - ts2test[i].d2zdwo2)
+        .abs()
+        .maximum();
+        temp_max = max_tensor();
+        if (temp_max > max) { max = temp_max; }
+    }
     log << (ts2[1].d2xdwo2 - ts2test[1].d2xdwo2).abs().maximum() << std::endl;
     log << (ts2[1].d2ydwo2 - ts2test[1].d2ydwo2).abs().maximum() << std::endl;
     log << (ts2[1].d2zdwo2 - ts2test[1].d2zdwo2).abs().maximum() << std::endl;
