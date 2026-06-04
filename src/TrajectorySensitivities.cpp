@@ -276,8 +276,6 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
     std::chrono::time_point start = std::chrono::steady_clock::now();
 
     int iterations = simResults.time.size();
-    iterations = 2;
-    m_logger << "iterations: " << iterations << std::endl;
     std::vector<d2wdwo2> ts2;
     ts2.reserve(iterations);
 
@@ -350,7 +348,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
 
     for(int i = 1; i < iterations; i++)
     {
-        m_logger << i << std::endl;
+        // m_logger << i << std::endl;
         double timestep = simResults.time[i] - simResults.time[i-1];
 
         d2xdwo2_curr = ts2[i-1].d2xdwo2;
@@ -486,10 +484,10 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
 
     }
 
-    // std::chrono::time_point end = std::chrono::steady_clock::now();
-    // std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    std::chrono::time_point end = std::chrono::steady_clock::now();
+    std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     
-    // m_logger << "Elapsed Time: " << elapsed.count() << " us" << std::endl;
+    m_logger << "Elapsed Time: " << elapsed.count() << " us" << std::endl;
 
     return ts2;
 }

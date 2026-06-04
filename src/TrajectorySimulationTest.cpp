@@ -98,7 +98,6 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSensTest(SystemState initia
     double delta = 1e-5;
     SimResults simResults = Trajectory(initialState);
     int numIterations = simResults.time.size();
-    numIterations = 2;
     std::vector<d2wdwo2> ts2(numIterations);
 
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> resultX;
@@ -109,7 +108,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSensTest(SystemState initia
     std::vector<std::vector<dwdwo>> minuses;
             
     for(int i = 0; i < NUM_STATES; i++) {
-        m_logger << i << std::endl;
+        // m_logger << i << std::endl;
         SystemState testPlusState = initialState;
         SystemState testMinusState = initialState;
         if (i < NUM_PLANT_STATES){
