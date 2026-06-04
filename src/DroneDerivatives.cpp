@@ -604,7 +604,7 @@ Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2hdx2_plus(SystemSta
     d2hdx2_tensor(eiy,y, psi)= timestep*sin(state.plant(psi));
     d2hdx2_tensor(eiy,psi, x)= timestep*cos(state.plant(psi));
     d2hdx2_tensor(eiy,psi, y)= timestep*sin(state.plant(psi));
-    d2hdx2_tensor(eiy,psi, psi)= -timestep*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -x));
+    d2hdx2_tensor(eiy,psi, psi)= -timestep*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) - state.plant(x)));
 
     d2hdx2_tensor(edy,x, psi)= 1/timestep*cos(state.plant(psi));
     d2hdx2_tensor(edy,y, psi)= 1/timestep*sin(state.plant(psi));
@@ -791,7 +791,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2eiy_dx_plus2(SystemState state, d
     d2hdx2_plus.emplace_back(T(y, psi, timestep*sin(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, x, timestep*cos(state.plant(psi)) ));
     d2hdx2_plus.emplace_back(T(psi, y, timestep*sin(state.plant(psi)) ));
-    d2hdx2_plus.emplace_back(T(psi, psi, -timestep*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -x)) ));
+    d2hdx2_plus.emplace_back(T(psi, psi, -timestep*(cos(state.plant(psi))*(m_ref.at(refy)(time) -state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) -state.plant(x))) ));
 
     Eigen::SparseMatrix<double> d2hdx2_plus_mat(NUM_PLANT_STATES, NUM_PLANT_STATES);
     d2hdx2_plus_mat.setFromTriplets(d2hdx2_plus.begin(), d2hdx2_plus.end());
