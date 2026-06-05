@@ -249,7 +249,6 @@ std::vector<dwdp> DroneTrajectory::trajSensParam(SimResults const & simResults, 
         
         // dydwo
         dydp_plus = dgdz_plus * dzdp_plus + dgdx_plus * dxdp_plus + dgdp_plus;
-        m_logger << dydp_plus << std::endl;
 
         // dzdwo 
         dzdp_plus += dhdy_plus * dydp_plus;
@@ -573,7 +572,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
     Eigen::array<Eigen::IndexPair<int>, 1> contract_dims = {Eigen::IndexPair<int>(1, 0)};
     Eigen::array<Eigen::IndexPair<int>, 1> contract_dims2 = {Eigen::IndexPair<int>(2, 0)};
 
-    for(int i = 1; i < 2; i++)
+    for(int i = 1; i < iterations; i++)
     {
         // m_logger << i << std::endl;
         double timestep = simResults.time[i] - simResults.time[i-1];
