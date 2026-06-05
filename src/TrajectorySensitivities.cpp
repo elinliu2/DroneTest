@@ -249,6 +249,7 @@ std::vector<dwdp> DroneTrajectory::trajSensParam(SimResults const & simResults, 
         
         // dydwo
         dydp_plus = dgdz_plus * dzdp_plus + dgdx_plus * dxdp_plus + dgdp_plus;
+        m_logger << dydp_plus << std::endl;
 
         // dzdwo 
         dzdp_plus += dhdy_plus * dydp_plus;
@@ -436,7 +437,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dgdx_plus_tensor(dgdx_plus.data(), NUM_Y_STATES, NUM_PLANT_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> c1 = dgdx_plus_tensor.contract(d2xdwo2_plus, contract_dims).eval();
 
-        dgdz_plus = dgdz(simResults.stateProgression[i]);
+        dgdz_plus = dgdz(simResults.stateProgression[i]).toDense();
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dgdz_plus_tensor(dgdz_plus.data(), NUM_Y_STATES, NUM_Z_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> c2 = dgdz_plus_tensor.contract(d2zdwo2_plus, contract_dims).eval();
 
@@ -517,6 +518,8 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo_plus;
     Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo_curr;
     Eigen::Matrix<double, NUM_Z_STATES, NUM_STATES> dzdwo_plus;
+    
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> dydwo_plus;
 
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PARAMETERS> dxdp_curr;
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PARAMETERS> dxdp_plus;
@@ -570,7 +573,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
     Eigen::array<Eigen::IndexPair<int>, 1> contract_dims = {Eigen::IndexPair<int>(1, 0)};
     Eigen::array<Eigen::IndexPair<int>, 1> contract_dims2 = {Eigen::IndexPair<int>(2, 0)};
 
-    for(int i = 1; i < iterations; i++)
+    for(int i = 1; i < 2; i++)
     {
         // m_logger << i << std::endl;
         double timestep = simResults.time[i] - simResults.time[i-1];
@@ -581,6 +584,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
         dxdwo_plus = ts[i].dxdwo;
         dzdwo_curr = ts[i-1].dzdwo;
         dzdwo_plus = ts[i].dzdwo;
+        dydwo_plus = ts[i].dydwo;
 
         dxdp_curr = tsp[i-1].dxdp;
         dxdp_plus = tsp[i].dxdp;
@@ -591,6 +595,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dxdwo_plus_tensor(dxdwo_plus.data(), NUM_PLANT_STATES, NUM_STATES);
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dzdwo_curr_tensor(dzdwo_curr.data(), NUM_Z_STATES, NUM_STATES);
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dzdwo_plus_tensor(dzdwo_plus.data(), NUM_Z_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dydwo_plus_tensor(dydwo_plus.data(), NUM_Y_STATES, NUM_STATES);
 
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dxdp_curr_tensor(dxdp_curr.data(), NUM_PLANT_STATES, NUM_PARAMETERS);
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dxdp_plus_tensor(dxdp_plus.data(), NUM_PLANT_STATES, NUM_PARAMETERS);
@@ -680,23 +685,17 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
             d2zdwodp_plus.chip(zBeforey, 0) += tmp1 + tmp3.chip(0, 0);        
         }  
 
-        // d2ydwo2_plus
+        // d2ydwodp_plus
         dgdx_plus = dgdx(simResults.stateProgression[i]).toDense();
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dgdx_plus_tensor(dgdx_plus.data(), NUM_Y_STATES, NUM_PLANT_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> c1 = dgdx_plus_tensor.contract(d2xdwodp_plus, contract_dims).eval();
 
-        dgdz_plus = dgdz(simResults.stateProgression[i]);
+        dgdz_plus = dgdz(simResults.stateProgression[i]).toDense();
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dgdz_plus_tensor(dgdz_plus.data(), NUM_Y_STATES, NUM_Z_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> c2 = dgdz_plus_tensor.contract(d2zdwodp_plus, contract_dims).eval();
 
-        Eigen::Tensor<double, 3, Eigen::ColMajor> c3(NUM_Y_STATES, NUM_STATES, NUM_PARAMETERS);
-        c3.setZero();
-        c3_desRoll_matrix = (d2desRolldx2(simResults.stateProgression[i])*dxdwo_plus).transpose()*dxdp_plus;
-        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> c3_desRoll_tensor( c3_desRoll_matrix.data(), NUM_STATES, NUM_PARAMETERS);
-        c3.chip(0, 0) = c3_desRoll_tensor;
-        c3_desPitch_matrix = (d2desPitchdx2(simResults.stateProgression[i])*dxdwo_plus).transpose()*dxdp_plus;
-        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> c3_desPitch_tensor( c3_desPitch_matrix.data(), NUM_STATES, NUM_PARAMETERS);
-        c3.chip(1, 0) = c3_desPitch_tensor;
+        Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdx2_plus = d2gdx2(simResults.stateProgression[i]);
+        Eigen::Tensor<double, 3, Eigen::ColMajor> c3 = d2gdx2_plus.contract(dxdwo_plus_tensor, contract_dims).eval().contract(dxdp_plus_tensor, contract_dims).eval();
 
         Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdxplusdp = d2gdxplus_dp(simResults.stateProgression[i]);
         Eigen::Tensor<double, 3, Eigen::ColMajor> c4 = d2gdxplusdp.contract(dxdwo_plus_tensor, contract_dims);
@@ -708,11 +707,16 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
 
         d2ydwodp_plus = c1 + c2 + c3 + c6 + c7;
 
-        // d2zdwo2_plus after y
+        // d2zdwodp_plus after y
         dhdy_plus = dhdy(timestep);
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dhdy_plus_tensor(dhdy_plus.data(), NUM_Z_STATES, NUM_Y_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> b7 = dhdy_plus_tensor.contract(d2ydwodp_plus, contract_dims).eval();
-        d2zdwodp_plus+= b7;
+
+        Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdydp_plus = d2hdydp();
+        Eigen::Tensor<double, 3, Eigen::ColMajor> b10 = d2hdydp_plus.contract(dydwo_plus_tensor, contract_dims).eval();
+        Eigen::Tensor<double, 3, Eigen::ColMajor> b11 = b10.shuffle(Eigen::array<int,3>{0,2,1});
+
+        d2zdwodp_plus+= b7 + b11;
 
         for(int zAftery = eiphi; zAftery < NUM_Z_STATES; zAftery ++){
             Eigen::MatrixXd blockMatrix = dhdz_plus.block(zAftery, 0, 1, zAftery);
@@ -730,19 +734,12 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
             d2zdwodp_plus.chip(zAftery, 0) += tmp1 + tmp3.chip(0, 0);    
         }
 
-        b8_ft_matrix = (d2ft_dz_plus2(simResults.stateProgression[i])*dzdwo_plus).transpose()*dzdp_plus;
-        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b8_ft_tensor( b8_ft_matrix.data(), NUM_STATES, NUM_PARAMETERS);
-        d2zdwodp_plus.chip(ft, 0) += b8_ft_tensor;
-        b8_tx_matrix = (d2tx_dz_plus2(simResults.stateProgression[i])*dzdwo_plus).transpose()*dzdp_plus;
-        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b8_tx_tensor( b8_tx_matrix.data(), NUM_STATES, NUM_PARAMETERS);
-        d2zdwodp_plus.chip(tx, 0) += b8_tx_tensor;
-        b8_ty_matrix = (d2ty_dz_plus2(simResults.stateProgression[i])*dzdwo_plus).transpose()*dzdp_plus;
-        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b8_ty_tensor( b8_ty_matrix.data(), NUM_STATES, NUM_PARAMETERS);
-        d2zdwodp_plus.chip(ty, 0) += b8_ty_tensor;
-        b8_tz_matrix = (d2tz_dz_plus2(simResults.stateProgression[i])*dzdwo_plus).transpose()*dzdp_plus;
-        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b8_tz_tensor( b8_tz_matrix.data(), NUM_STATES, NUM_PARAMETERS);
-        d2zdwodp_plus.chip(tz, 0) += b8_tz_tensor;
-
+        Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdz_plus2 = d2hdzplus2(simResults.stateProgression[i]);
+        // Eigen::Tensor<double, 3, Eigen::ColMajor> b12 = d2hdz_plus2.contract(dzdwo_plus_tensor, contract_dims).eval().contract(dzdp_plus_tensor, contract_dims).eval();
+        Eigen::Tensor<double, 3, Eigen::ColMajor> b12 = d2hdz_plus2.contract(dzdp_plus_tensor, contract_dims2).eval().contract(dzdwo_plus_tensor, contract_dims).eval();
+        Eigen::Tensor<double, 3, Eigen::ColMajor> b13 = b12.shuffle(Eigen::array<int,3>{0,2,1});
+        d2zdwodp_plus += b13;
+       
         ts2.emplace_back(d2xdwodp_plus, d2zdwodp_plus, d2ydwodp_plus);
 
     }

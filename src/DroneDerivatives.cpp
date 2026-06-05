@@ -121,9 +121,9 @@ Eigen::SparseMatrix<double> DroneTrajectory::dgdp(SystemState state)
         dgdp.push_back(T(0, kdvy, -state.alge(edydot)));
     }
     if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
-        dgdp.push_back(T(0, kpvz, (state.alge(desVelX) - state.plant(xdot)*std::cos(state.plant(psi)) - state.plant(ydot)*std::sin(state.plant(psi)) ) ));
-        dgdp.push_back(T(0, kivz, state.alge(eixdot)));
-        dgdp.push_back(T(0, kdvz, state.alge(edxdot)));
+        dgdp.push_back(T(1, kpvx, (state.alge(desVelX) - state.plant(xdot)*std::cos(state.plant(psi)) - state.plant(ydot)*std::sin(state.plant(psi)) ) ));
+        dgdp.push_back(T(1, kivx, state.alge(eixdot)));
+        dgdp.push_back(T(1, kdvx, state.alge(edxdot)));
     }
     Eigen::SparseMatrix<double> dgdp_mat(NUM_Y_STATES, NUM_PARAMETERS);
     dgdp_mat.setFromTriplets(dgdp.begin(), dgdp.end());
@@ -1097,4 +1097,40 @@ Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2gdzplus_dp(SystemSt
         d2gdzplus_dp_tensor(1, edxdot, kdvx) = 1;
     }
     return d2gdzplus_dp_tensor;
+}
+
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2hdydp()
+{
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdyplus_dp_tensor(NUM_Z_STATES, NUM_Y_STATES, NUM_PARAMETERS);
+    d2hdyplus_dp_tensor.setZero();
+    d2hdyplus_dp_tensor(desRollRate, 0, kpphi) = 1;
+    d2hdyplus_dp_tensor(desPitchRate, 1, kptheta ) = 1;
+    return d2hdyplus_dp_tensor;
+}
+
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2hdzplus2(SystemState state)
+{
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdzplus2_tensor(NUM_Z_STATES, NUM_Z_STATES, NUM_Z_STATES);
+    d2hdzplus2_tensor.setZero();
+    d2hdzplus2_tensor(ft, w1, w1) = m_droneParams.kf * 2 ;
+    d2hdzplus2_tensor(ft, w2, w2) = m_droneParams.kf * 2 ;
+    d2hdzplus2_tensor(ft, w3, w3) = m_droneParams.kf * 2 ;
+    d2hdzplus2_tensor(ft, w4, w4) = m_droneParams.kf * 2 ;
+
+    d2hdzplus2_tensor(tx, w1, w1) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdzplus2_tensor(tx, w2, w2) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdzplus2_tensor(tx, w3, w3) =   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdzplus2_tensor(tx, w4, w4) =   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+
+    d2hdzplus2_tensor(ty, w1, w1) =   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdzplus2_tensor(ty, w2, w2) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdzplus2_tensor(ty, w3, w3) = - m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+    d2hdzplus2_tensor(ty, w4, w4) =   m_droneParams.kf * m_droneParams.length * 2 * 1/sqrt(2) ;
+
+    d2hdzplus2_tensor(tz, w1, w1) =    m_droneParams.km * 2  ;
+    d2hdzplus2_tensor(tz, w2, w2) =  - m_droneParams.km * 2  ;
+    d2hdzplus2_tensor(tz, w3, w3) =    m_droneParams.km * 2  ;
+    d2hdzplus2_tensor(tz, w4, w4) =  - m_droneParams.km * 2  ;
+
+    return d2hdzplus2_tensor;
 }
