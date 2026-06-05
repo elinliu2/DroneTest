@@ -288,6 +288,11 @@ class DroneTrajectory
     Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdx2_curr(SystemState state, double timestep);
     Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdz2();
 
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdxplus_dp(SystemState state, double time);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdzplus_dp();
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdxplus_dp(SystemState state);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdzplus_dp(SystemState state);
+
     Eigen::SparseMatrix<double> d2edx_dx_curr2(SystemState prev, double timestep);
     Eigen::SparseMatrix<double> d2edy_dx_curr2(SystemState prev, double timestep);
     Eigen::SparseMatrix<double> d2edxdot_dx_curr2(SystemState prev, double timestep);
@@ -343,9 +348,10 @@ class DroneTrajectory
         std::vector<dwdwo> trajSens(SimResults const & simResults) const;
         dwdwo trajSens(SimResults const & simResults, int tp) const;
         std::vector<dwdwo> trajSensTest(SystemState initialState);
-        std::vector<dwdp> trajSensParam(SimResults const & simResults, G_tp gtp);
+        std::vector<dwdp> trajSensParam(SimResults const & simResults, int iterations);
         std::vector<dwdp> trajSensParamTest(SystemState initialState);
         std::vector<d2wdwo2> secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts);
+        std::vector<d2wdwodp> secondOrdertrajSensParams(SimResults const & simResults, std::vector<dwdwo> const & ts, std::vector<dwdp> const & tsp);
         std::vector<d2wdwo2> secondOrdertrajSensTest(SystemState initialState);
         std::vector<d2wdwodp> secondOrdertrajSensParamsTest(SystemState initialState);
 

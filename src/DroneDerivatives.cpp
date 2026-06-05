@@ -1008,3 +1008,93 @@ Eigen::SparseMatrix<double> DroneTrajectory::d2desPitchdx2(SystemState state) co
     d2gdx2_mat.setFromTriplets(d2gdx2.begin(), d2gdx2.end());
     return d2gdx2_mat;
 }
+
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2hdxplus_dp(SystemState state, double time)
+{
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdxplus_dp_tensor(NUM_Z_STATES, NUM_PLANT_STATES, NUM_PARAMETERS);
+    d2hdxplus_dp_tensor.setZero();
+
+    d2hdxplus_dp_tensor(desVelX, x, kppx) = -cos(state.plant(psi));
+    d2hdxplus_dp_tensor(desVelX, y, kppx) =  -sin(state.plant(psi));
+    d2hdxplus_dp_tensor(desVelX, psi, kppx) = cos(state.plant(psi))*(m_ref.at(refy)(time) - state.plant(y)) - sin(state.plant(psi))*(m_ref.at(refx)(time) - state.plant(x));
+    d2hdxplus_dp_tensor(desVelY, x, kppy) = sin(state.plant(psi));
+    d2hdxplus_dp_tensor(desVelY, y, kppy) = -cos(state.plant(psi));
+    d2hdxplus_dp_tensor(desVelY, psi, kppy) = -(cos(state.plant(psi))*(m_ref.at(refx)(time) - state.plant(x)) + sin(state.plant(psi))*(m_ref.at(refy)(time) - state.plant(y))) ;
+    d2hdxplus_dp_tensor(desVelZ, z, kppz) = -1;
+    d2hdxplus_dp_tensor(desThrust, zdot, kpvz) = -m_thrustScale;
+    d2hdxplus_dp_tensor(desRollRate, phi, kpphi) = -180/M_PI;
+    d2hdxplus_dp_tensor(desPitchRate, theta, kptheta) = -180/M_PI;
+    d2hdxplus_dp_tensor(desYawRate, psi, kppsi) = -180/M_PI;
+    d2hdxplus_dp_tensor(desRollOutput, p, kpp) = -180/M_PI;
+    d2hdxplus_dp_tensor(desPitchOutput, q, kpq) = -180/M_PI;
+    d2hdxplus_dp_tensor(desYawOutput, r, kpr) = -180/M_PI;
+
+    return d2hdxplus_dp_tensor;
+}
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2hdzplus_dp()
+{
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdzplus_dp_tensor(NUM_Z_STATES, NUM_Z_STATES, NUM_PARAMETERS);
+    d2hdzplus_dp_tensor.setZero();
+
+    d2hdzplus_dp_tensor(desVelX, eix, kipx) = 1;
+    d2hdzplus_dp_tensor(desVelX, edx, kdpx) = 1;
+    d2hdzplus_dp_tensor(desVelY, eiy, kipy) = 1;
+    d2hdzplus_dp_tensor(desVelY, edy, kdpy) = 1;
+    d2hdzplus_dp_tensor(desVelZ, eiz, kipz) = 1;
+    d2hdzplus_dp_tensor(desVelZ, edz, kdpz) = 1;
+    d2hdzplus_dp_tensor(desThrust, desVelZ, kpvz) = m_thrustScale;
+    d2hdzplus_dp_tensor(desThrust, eizdot, kivz) = m_thrustScale;
+    d2hdzplus_dp_tensor(desThrust, edzdot, kdvz) = m_thrustScale;
+    d2hdzplus_dp_tensor(desRollRate, eiphi, kiphi) = 1;
+    d2hdzplus_dp_tensor(desRollRate, edphi, kdphi) = 1;
+    d2hdzplus_dp_tensor(desPitchRate, eitheta, kitheta) = 1;
+    d2hdzplus_dp_tensor(desPitchRate, edtheta, kdtheta) = 1;
+    d2hdzplus_dp_tensor(desYawRate, eipsi, kipsi) = 1;
+    d2hdzplus_dp_tensor(desYawRate, edpsi, kdpsi) = 1;
+    d2hdzplus_dp_tensor(desRollOutput, desRollRate, kpp ) = 1;
+    d2hdzplus_dp_tensor(desRollOutput, eip, kip) = 1;
+    d2hdzplus_dp_tensor(desRollOutput, edp, kdp) = 1;
+    d2hdzplus_dp_tensor(desPitchOutput, desPitchRate, kpq) = 1;
+    d2hdzplus_dp_tensor(desPitchOutput, eiq, kiq) = 1;
+    d2hdzplus_dp_tensor(desPitchOutput, edq, kdq) = 1;
+    d2hdzplus_dp_tensor(desYawOutput, desYawRate, kpr) = 1;
+    d2hdzplus_dp_tensor(desYawOutput, eir, kir) = 1;
+    d2hdzplus_dp_tensor(desYawOutput, edr, kdr) = 1;
+
+    return d2hdzplus_dp_tensor;
+
+}
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2gdxplus_dp(SystemState state)
+{
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdxplus_dp_tensor(NUM_Y_STATES, NUM_PLANT_STATES, NUM_PARAMETERS);
+    d2gdxplus_dp_tensor.setZero();
+
+    if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
+        d2gdxplus_dp_tensor( 0, xdot, kpvy) = -sin(state.plant(psi));
+        d2gdxplus_dp_tensor( 0, ydot, kpvy) = cos(state.plant(psi));
+        d2gdxplus_dp_tensor( 0, psi, kpvy) = -(state.plant(xdot)*cos(state.plant(psi)) + state.plant(ydot)*sin(state.plant(psi)));
+    }
+    if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
+        d2gdxplus_dp_tensor( 1, xdot, kpvx) = -cos(state.plant(psi));
+        d2gdxplus_dp_tensor( 1, ydot, kpvx) = -sin(state.plant(psi));
+        d2gdxplus_dp_tensor( 1, psi, kpvx) = -(-state.plant(xdot)*sin(state.plant(psi)) + state.plant(ydot)*cos(state.plant(psi)));
+    }
+
+    return d2gdxplus_dp_tensor;
+}
+Eigen::Tensor<double, 3, Eigen::ColMajor> DroneTrajectory::d2gdzplus_dp(SystemState state)
+{
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdzplus_dp_tensor(NUM_Y_STATES, NUM_Z_STATES, NUM_PARAMETERS);
+    d2gdzplus_dp_tensor.setZero();
+    if(state.alge(desRoll) > -20 && state.alge(desRoll) < 20){
+        d2gdzplus_dp_tensor(0, desVelY, kpvy) = -1;
+        d2gdzplus_dp_tensor(0, eiydot, kivy) = -1;
+        d2gdzplus_dp_tensor(0, edydot,kdvy ) = -1;
+    }
+    if(state.alge(desPitch) > -20 && state.alge(desPitch) < 20){
+        d2gdzplus_dp_tensor(1, desVelX, kpvx) = 1;
+        d2gdzplus_dp_tensor(1, eixdot, kivx) = 1;
+        d2gdzplus_dp_tensor(1, edxdot, kdvx) = 1;
+    }
+    return d2gdzplus_dp_tensor;
+}
