@@ -251,7 +251,7 @@ int main()
     // std::cout << "cwd: " << std::filesystem::current_path() << std::endl;
     Logger log("./build/log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {oneHundredthRef, zeroRef, oneRef, zeroRef};
     double finalTime = 100;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
@@ -289,12 +289,13 @@ int main()
     // Logger splot("./build/splot.txt");
     // splotTrajectory(simResults, splot);
 
-    std::vector<dwdp> tsp = droneTrajectory.trajSensParam(simResults, simResults.time.size());
+    std::vector<dwdp> tsp = droneTrajectory.trajSensParam(simResults, 2);
+    std::vector<dwdp> tsptest = droneTrajectory.trajSensParamTest(initializeState());
     // std::vector<d2wdwo2> ts2 = droneTrajectory.secondOrdertrajSens(simResults, ts);
     // std::vector<d2wdwo2> ts2test = droneTrajectory.secondOrdertrajSensTest(initializeState());
 
-    std::vector<d2wdwodp> ts2p = droneTrajectory.secondOrdertrajSensParams(simResults, ts, tsp);
-    std::vector<d2wdwodp> ts2testp = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
+    // std::vector<d2wdwodp> ts2p = droneTrajectory.secondOrdertrajSensParams(simResults, ts, tsp);
+    // std::vector<d2wdwodp> ts2testp = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
     
     double max = 0;
     int index = 0;
@@ -317,7 +318,7 @@ int main()
     // }
 
     // for (int i = 0; i < simResults.time.size(); i++){
-    //     Eigen::Tensor<double, 0> max_tensor = (ts2p[i].d2xdwodp - ts2testp[i].d2xdwodp)
+    //     Eigen::Tensor<double, 0> max_tensor = ((ts2p[i].d2xdwodp - ts2testp[i].d2xdwodp))
     //     .abs()
     //     .maximum();
     //     double temp_max = max_tensor();
@@ -335,11 +336,39 @@ int main()
     // }
     
     // log << max << " " << index << std::endl;
+    index = 1;
+    // log << (tsp[index].dzdp - tsptest[index].dzdp) << std::endl;
+    // log << simResults.stateProgression[index].alge(desRoll) << std::endl;
+    // log << simResults.stateProgression[index].alge(desPitch) << std::endl;
+    // log << ((ts2p[index].d2xdwodp - ts2testp[index].d2xdwodp)).abs().maximum() << std::endl;
+    // log << ((ts2p[index].d2ydwodp - ts2testp[index].d2ydwodp)).abs().maximum() << std::endl;
+    // log << ((ts2p[index].d2zdwodp - ts2testp[index].d2zdwodp)).abs().maximum() << std::endl;
+    log << (tsp[index].dxdp - tsptest[index].dxdp).cwiseAbs().maxCoeff() <<std::endl << std::endl;
+    log << (tsp[index].dydp - tsptest[index].dydp) <<std::endl << std::endl;
+
     for( int i = 0; i < NUM_Z_STATES; i++)
     {
         log << i << std::endl;
-        log << (ts2p[400].d2zdwodp.chip(i, 0) - ts2testp[400].d2zdwodp.chip(i, 0)).abs().maximum() << std::endl;
+        //  log << ((ts2p[index].d2zdwodp.chip(i, 0) - ts2testp[index].d2zdwodp.chip(i, 0))).abs().maximum() << std::endl;
+        log << (tsp[index].dzdp.row(i) - tsptest[index].dzdp.row(i)).cwiseAbs().maxCoeff() <<std::endl;
     }
+    
+
+    // log << "ts2p" << std::endl;
+    // log << (ts2p[index].d2zdwodp.chip(42, 0)) << std::endl;
+    // log << "ts2p" << std::endl;
+    // log << (ts2testp[index].d2zdwodp.chip(42, 0)) << std::endl;
+    // log << "diff" << std::endl;
+    // log << ((ts2p[index].d2zdwodp.chip(42, 0) - ts2testp[index].d2zdwodp.chip(42, 0))) << std::endl;
+
+    // log << "diff%" << std::endl;
+    // log << ((ts2p[index].d2zdwodp.chip(42, 0) - ts2testp[index].d2zdwodp.chip(42, 0))/ts2p[index].d2zdwodp.chip(42, 0)) << std::endl;
+
+    // log << "ts2p" << std::endl;
+    // log << (ts2p[index].d2ydwodp) << std::endl;
+    // log << "diff" << std::endl;
+    // log << ((ts2p[index].d2ydwodp - ts2testp[index].d2ydwodp)) << std::endl;
+
     // log << ts2p[1].d2zdwodp.chip(desThrust, 0) << std::endl << std::endl;
     // log << ts2testp[1].d2zdwodp.chip(desThrust, 0) << std::endl << std::endl;
     // log << (ts2p[1].d2zdwodp.chip(desThrust, 0) - ts2testp[1].d2zdwodp.chip(desThrust, 0)) << std::endl;

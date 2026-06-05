@@ -54,39 +54,69 @@ std::vector<dwdp> DroneTrajectory::trajSensParamTest(SystemState initialState)
     int numIterations = simResults.time.size();
     std::vector<dwdp> ts_p(numIterations);
     
-    Eigen::Vector<double, NUM_STATES> plus;
-    Eigen::Vector<double, NUM_STATES> minus;
+    Eigen::Vector<double, NUM_STATES> pluskp;
+    Eigen::Vector<double, NUM_STATES> minuskp;
+    Eigen::Vector<double, NUM_STATES> pluski;
+    Eigen::Vector<double, NUM_STATES> minuski;
+    Eigen::Vector<double, NUM_STATES> pluskd;
+    Eigen::Vector<double, NUM_STATES> minuskd;
     
-    SimResults plusSimResults;
-    SimResults minusSimResults;
+    SimResults plusSimResultskp;
+    SimResults minusSimResultskp;
+    SimResults plusSimResultski;
+    SimResults minusSimResultski;
+    SimResults plusSimResultskd;
+    SimResults minusSimResultskd;
     std::array<PIDParameters, NUM_PIDS> og_params = m_ctrlParams;
     
-    for(int i = 0; i < NUM_PARAMETERS; i++) {
+    for(int i = 0; i < NUM_PIDS; i++) {
         SystemState testPlusState = initialState;
         SystemState testMinusState = initialState;
          
         m_ctrlParams.at(i).kp = og_params.at(i).kp + delta;
-        plusSimResults = Trajectory(initialState);
+        plusSimResultskp = Trajectory(initialState);
         m_ctrlParams.at(i).kp = og_params.at(i).kp - delta;
-        minusSimResults = Trajectory(initialState);
-        std::vector<dwdwo> minus_kp = trajSens(minusSimResults);
+        minusSimResultskp = Trajectory(initialState);
         m_ctrlParams.at(i).kp = og_params.at(i).kp;    
 
         m_ctrlParams.at(i).ki = og_params.at(i).ki + delta;
-        plusSimResults = Trajectory(initialState);
-        std::vector<dwdwo> plus_ki = trajSens(plusSimResults);
+        plusSimResultski = Trajectory(initialState);
         m_ctrlParams.at(i).ki = og_params.at(i).ki - delta;
-        minusSimResults = Trajectory(initialState);
-        std::vector<dwdwo> minus_ki = trajSens(minusSimResults);
+        minusSimResultski = Trajectory(initialState);
         m_ctrlParams.at(i).ki = og_params.at(i).ki;    
 
         m_ctrlParams.at(i).kd = og_params.at(i).kd + delta;
-        plusSimResults = Trajectory(initialState);
-        std::vector<dwdwo> plus_kd = trajSens(plusSimResults);
+        plusSimResultskd = Trajectory(initialState);
         m_ctrlParams.at(i).kd = og_params.at(i).kd - delta;
-        minusSimResults = Trajectory(initialState);
-        std::vector<dwdwo> minus_kd = trajSens(minusSimResults);   
-        m_ctrlParams.at(i).kd = og_params.at(i).kd;     
+        minusSimResultskd = Trajectory(initialState);
+        m_ctrlParams.at(i).kd = og_params.at(i).kd;  
+        
+        for(int t = 0; t < numIterations; t++)
+        {
+            pluskp << plusSimResultskp.stateProgression.at(t).plant, plusSimResultskp.stateProgression.at(t).alge;
+            minuskp << minusSimResultskp.stateProgression.at(t).plant, minusSimResultskp.stateProgression.at(t).alge;
+            pluski << plusSimResultski.stateProgression.at(t).plant, plusSimResultski.stateProgression.at(t).alge;
+            minuski << minusSimResultski.stateProgression.at(t).plant, minusSimResultski.stateProgression.at(t).alge;
+            pluskd << plusSimResultskd.stateProgression.at(t).plant, plusSimResultskd.stateProgression.at(t).alge;
+            minuskd << minusSimResultskd.stateProgression.at(t).plant, minusSimResultskd.stateProgression.at(t).alge;
+            
+
+            Eigen::Vector<double, NUM_STATES> delta_Trajsenskp = 1/(2*delta)*(pluskp-minuskp);
+            Eigen::Vector<double, NUM_STATES> delta_Trajsenski = 1/(2*delta)*(pluski-minuski);
+            Eigen::Vector<double, NUM_STATES> delta_Trajsenskd = 1/(2*delta)*(pluskd-minuskd); 
+
+            ts_p.at(t).dxdp.col(i*NUM_PID_STATES) = delta_Trajsenskp.segment(0, NUM_PLANT_STATES);
+            ts_p.at(t).dzdp.col(i*NUM_PID_STATES) = delta_Trajsenskp.segment(NUM_PLANT_STATES, NUM_Z_STATES);
+            ts_p.at(t).dydp.col(i*NUM_PID_STATES) = delta_Trajsenskp.segment(NUM_PLANT_STATES+NUM_Z_STATES, NUM_Y_STATES);
+
+            ts_p.at(t).dxdp.col(i*NUM_PID_STATES+1) = delta_Trajsenski.segment(0, NUM_PLANT_STATES);
+            ts_p.at(t).dzdp.col(i*NUM_PID_STATES+1) = delta_Trajsenski.segment(NUM_PLANT_STATES, NUM_Z_STATES);
+            ts_p.at(t).dydp.col(i*NUM_PID_STATES+1) = delta_Trajsenski.segment(NUM_PLANT_STATES+NUM_Z_STATES, NUM_Y_STATES);
+
+            ts_p.at(t).dxdp.col(i*NUM_PID_STATES+2) = delta_Trajsenskd.segment(0, NUM_PLANT_STATES);
+            ts_p.at(t).dzdp.col(i*NUM_PID_STATES+2) = delta_Trajsenskd.segment(NUM_PLANT_STATES, NUM_Z_STATES);
+            ts_p.at(t).dydp.col(i*NUM_PID_STATES+2) = delta_Trajsenskd.segment(NUM_PLANT_STATES+NUM_Z_STATES, NUM_Y_STATES);
+        }
         
     }
     return ts_p;

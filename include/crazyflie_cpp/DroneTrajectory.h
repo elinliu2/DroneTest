@@ -292,6 +292,8 @@ class DroneTrajectory
     Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdzplus_dp();
     Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdxplus_dp(SystemState state);
     Eigen::Tensor<double, 3, Eigen::ColMajor> d2gdzplus_dp(SystemState state);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdydp();
+    Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdzplus2(SystemState state);
 
     Eigen::SparseMatrix<double> d2edx_dx_curr2(SystemState prev, double timestep);
     Eigen::SparseMatrix<double> d2edy_dx_curr2(SystemState prev, double timestep);
