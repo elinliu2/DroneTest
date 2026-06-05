@@ -101,7 +101,7 @@ Eigen::Vector<double, NUM_STATES> DroneTrajectory::closestZBar(SystemState currS
         SimResults traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
         std::vector<dwdwo> ts = trajSens(traj);
         G_tp gtp = calc_G_tp(ts);
-        std::vector<dwdp> ts_p = trajSensParam(traj, gtp);
+        std::vector<dwdp> ts_p = trajSensParam(traj, gtp.tp);
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)}, ts.at(gtp.tp), gtp, traj.time.at(gtp.tp));
         Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
 
