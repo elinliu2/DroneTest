@@ -252,7 +252,7 @@ int main()
     Logger log("./build/log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    double finalTime = 3;
+    double finalTime = 1;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
@@ -303,6 +303,14 @@ int main()
         if (temp_max > max) { max = temp_max; index = i; }
     }
     log << "ts2 diff " << max << " " << index << std::endl;
+    // for(int i = 0; i < NUM_Z_STATES; i++)
+    // {
+    //     log << i << std::endl;
+    //     log << (ts2[index].d2zdwo2.chip(i, 0) - ts2test[index].d2zdwo2.chip(i, 0)).abs().maximum() << std::endl;
+    // }
+    log << (ts2[index].d2zdwo2.chip(25, 0) ) << std::endl << std::endl;
+
+    log << (ts2[index].d2zdwo2.chip(25, 0) - ts2test[index].d2zdwo2.chip(25, 0)) << std::endl;
 
     std::vector<d2wdwodp> ts2p = droneTrajectory.secondOrdertrajSensParams(simResults, ts, tsp);
     std::vector<d2wdwodp> ts2testp = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
