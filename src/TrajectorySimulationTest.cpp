@@ -419,10 +419,10 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG_test(S
     }
     
     m_logger << "controlStates" << std::endl;
-    Eigen::Tensor<double, 3> tmp1 = trajSenswo2.d2xdwo2.concatenate(trajSenswo2.d2ydwo2, 0);
-    Eigen::Tensor<double, 3> secondOrderTraj = tmp1.concatenate(trajSenswo2.d2zdwo2, 0);
-    Eigen::Tensor<double, 3> tmp2 = trajSenswodp.d2xdwodp.concatenate(trajSenswodp.d2ydwodp, 0);
-    Eigen::Tensor<double, 3> secondOrderTrajParams = tmp2.concatenate(trajSenswodp.d2zdwodp, 0);
+    Eigen::Tensor<double, 3> tmp1 = trajSenswo2.d2xdwo2.concatenate(trajSenswo2.d2zdwo2, 0);
+    Eigen::Tensor<double, 3> secondOrderTraj = tmp1.concatenate(trajSenswo2.d2ydwo2, 0);
+    Eigen::Tensor<double, 3> tmp2 = trajSenswodp.d2xdwodp.concatenate(trajSenswodp.d2zdwodp, 0);
+    Eigen::Tensor<double, 3> secondOrderTrajParams = tmp2.concatenate(trajSenswodp.d2ydwodp, 0);
 
     Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS>::Zero();
     for(int j = 0; j < NUM_STATES; j++)
