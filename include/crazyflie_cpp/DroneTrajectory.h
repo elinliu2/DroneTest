@@ -208,6 +208,18 @@ struct d2wdwodp {
     }
 };
 
+struct d2w{
+    d2wdwo2 dwo2;
+    d2wdwodp dwodp;
+
+    d2w(
+        d2wdwo2 dw, 
+        d2wdwodp dp
+    )
+        : dwo2(dw), dwodp(dp)
+    {}
+};
+
 struct G_tp{
     double G;
     int tp;
@@ -358,6 +370,8 @@ class DroneTrajectory
         std::vector<d2wdwodp> secondOrdertrajSensParamsTest(SystemState initialState);
 
         G_tp calc_G_tp(std::vector<dwdwo> trajSens);
+        d2w calc_d2w(SimResults const & simResults, std::vector<dwdwo> const & ts, G_tp gtp);
+        Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG(dwdwo ts, d2w const & d2w, G_tp gtp);
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime);
 
         zkpk theGigaAlgo(SystemState currState);
