@@ -248,7 +248,6 @@ std::array<PIDParameters, NUM_PIDS> initialParameters(){
 
 int main()
 {
-    // std::cout << "cwd: " << std::filesystem::current_path() << std::endl;
     Logger log("./build/log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
@@ -286,7 +285,6 @@ int main()
     }
     log << "tsp diff " << max << " " << index << std::endl;
 
-
     std::vector<d2wdwo2> ts2 = droneTrajectory.secondOrdertrajSens(simResults, ts);
     std::vector<d2wdwo2> ts2test = droneTrajectory.secondOrdertrajSensTest(initializeState());
     max = 0; 
@@ -303,14 +301,6 @@ int main()
         if (temp_max > max) { max = temp_max; index = i; }
     }
     log << "ts2 diff " << max << " " << index << std::endl;
-    // for(int i = 0; i < NUM_Z_STATES; i++)
-    // {
-    //     log << i << std::endl;
-    //     log << (ts2[index].d2zdwo2.chip(i, 0) - ts2test[index].d2zdwo2.chip(i, 0)).abs().maximum() << std::endl;
-    // }
-    log << (ts2[index].d2zdwo2.chip(25, 0) ) << std::endl << std::endl;
-
-    log << (ts2[index].d2zdwo2.chip(25, 0) - ts2test[index].d2zdwo2.chip(25, 0)) << std::endl;
 
     std::vector<d2wdwodp> ts2p = droneTrajectory.secondOrdertrajSensParams(simResults, ts, tsp);
     std::vector<d2wdwodp> ts2testp = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
@@ -328,6 +318,38 @@ int main()
         if (temp_max > max) { max = temp_max; index = i; }
     }
     log << "ts2p diff " << max << " " << index << std::endl;
+    G_tp gtp = droneTrajectory.calc_G_tp(ts);
+    for(int i = 1; i < 500; i++)
+    {
+        gtp.tp = i;
+        d2w testd2w = droneTrajectory.calc_d2w(simResults, ts, gtp, tsp, ts2, ts2p);
+        Eigen::Tensor<double, 0> diff_tensor = (testd2w.dwo2.d2xdwo2 - ts2.at(i).d2xdwo2).abs().maximum();
+        double diff_double = diff_tensor();
+        if ( diff_double > 0 ) { log << "d2xdwo2 " << diff_double << " " << i << std::endl; }
+        diff_tensor = (testd2w.dwo2.d2ydwo2 - ts2.at(i).d2ydwo2).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > 0 ) { log << "d2ydwo2 " << diff_double << " " << i << std::endl; }
+        diff_tensor = (testd2w.dwo2.d2zdwo2 - ts2.at(i).d2zdwo2).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > 0 ) { log << "d2zdwo2 " << diff_double << " " << i << std::endl; }
+
+        diff_tensor = (testd2w.dwodp.d2xdwodp - ts2p.at(i).d2xdwodp).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > 0 ) { log << "d2xdwodp " << diff_double << " " << i << std::endl; }
+        diff_tensor = (testd2w.dwodp.d2ydwodp - ts2p.at(i).d2ydwodp).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > 0 ) { log << "d2xdwodp " << diff_double << " " << i << std::endl; }
+        diff_tensor = (testd2w.dwodp.d2zdwodp - ts2p.at(i).d2zdwodp).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > 0 ) { log << "d2zdwodp " << diff_double << " " << i << std::endl; }
+    }
+    log << "finished comparing d2w" << std::endl;
+    gtp = droneTrajectory.calc_G_tp(ts);
+    d2w d2w = droneTrajectory.calc_d2w(simResults, ts, gtp, tsp, ts2, ts2p);
+    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG(ts.at(gtp.tp), d2w,  gtp);
+    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG_test = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), gtp, finalTime);
+    
+    log << "dG diff " << (dG-dG_test).cwiseAbs().maxCoeff() << std::endl;
        
     std::cout << ":D" << std::endl;
     return 0;
