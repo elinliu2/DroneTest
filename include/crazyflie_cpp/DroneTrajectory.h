@@ -369,8 +369,8 @@ class DroneTrajectory
         std::vector<d2wdwo2> secondOrdertrajSensTest(SystemState initialState);
         std::vector<d2wdwodp> secondOrdertrajSensParamsTest(SystemState initialState);
 
-        G_tp calc_G_tp(std::vector<dwdwo> trajSens);
-        d2w calc_d2w(SimResults const & simResults, std::vector<dwdwo> const & ts, G_tp gtp);
+        G_tp calc_G_tp(std::vector<dwdwo> const& trajSens);
+        d2w calc_d2w(SimResults const & simResults, std::vector<dwdwo> const & ts, G_tp gtp, std::vector<dwdp> const & tsp, std::vector<d2wdwo2> const & ts2, std::vector<d2wdwodp> const & ts2p);
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG(dwdwo ts, d2w const & d2w, G_tp gtp);
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime);
 

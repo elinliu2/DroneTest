@@ -485,7 +485,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
     std::chrono::time_point end = std::chrono::steady_clock::now();
     std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     
-    m_logger << "Elapsed Time: " << elapsed.count() << " us" << std::endl;
+    m_logger << "Elapsed Time ts2: " << elapsed.count() << " us" << std::endl;
 
     return ts2;
 }
@@ -734,10 +734,8 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
         }
 
         Eigen::Tensor<double, 3, Eigen::ColMajor> d2hdz_plus2 = d2hdzplus2(simResults.stateProgression[i]);
-        // Eigen::Tensor<double, 3, Eigen::ColMajor> b12 = d2hdz_plus2.contract(dzdwo_plus_tensor, contract_dims).eval().contract(dzdp_plus_tensor, contract_dims).eval();
-        Eigen::Tensor<double, 3, Eigen::ColMajor> b12 = d2hdz_plus2.contract(dzdp_plus_tensor, contract_dims2).eval().contract(dzdwo_plus_tensor, contract_dims).eval();
-        Eigen::Tensor<double, 3, Eigen::ColMajor> b13 = b12.shuffle(Eigen::array<int,3>{0,2,1});
-        d2zdwodp_plus += b13;
+        Eigen::Tensor<double, 3, Eigen::ColMajor> b12 = d2hdz_plus2.contract(dzdwo_plus_tensor, contract_dims).eval().contract(dzdp_plus_tensor, contract_dims).eval();
+        d2zdwodp_plus += b12;
        
         ts2.emplace_back(d2xdwodp_plus, d2zdwodp_plus, d2ydwodp_plus);
 
@@ -746,13 +744,13 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
     std::chrono::time_point end = std::chrono::steady_clock::now();
     std::chrono::microseconds elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     
-    m_logger << "Elapsed Time: " << elapsed.count() << " us" << std::endl;
+    m_logger << "Elapsed Time ts2p: " << elapsed.count() << " us" << std::endl;
 
     return ts2;
 }
 
 
-G_tp DroneTrajectory::calc_G_tp(std::vector<dwdwo> trajSens)
+G_tp DroneTrajectory::calc_G_tp(std::vector<dwdwo> const& trajSens)
 {
     double G = 0;
     int index = 0;
