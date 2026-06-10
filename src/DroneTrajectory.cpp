@@ -506,7 +506,8 @@ double capAngle(double angle)
 // Check if drone has been near ball around ref for 0.1s
 bool DroneTrajectory::isConverging(SimResults const& simResults, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time) const
 {
-    double posTol = 0.1;
+    double posTol = 1;
+    double finalPosTol = 0.01;
     double angleTol = 0.0872665; // 5 degrees
     double timeInterval = 0.1;
     int count = simResults.time.size()-1;
@@ -515,9 +516,11 @@ bool DroneTrajectory::isConverging(SimResults const& simResults, std::array<doub
     if (finalTime > timeInterval)
     {
         bool converging = true;
+        SystemState startState = simResults.stateProgression.at(count);
         while(simResults.time.at(count) > finalTime - timeInterval && converging){
             SystemState state = simResults.stateProgression.at(count);
             converging = converging && std::abs(state.plant(x) - ref.at(refx)(time)) < posTol && std::abs(state.plant(y) - ref.at(refy)(time)) < posTol &&  std::abs(state.plant(z) - ref.at(refz)(time)) < posTol && 
+            converging && std::abs(state.plant(x) - startState.plant(x)) < posTol && std::abs(state.plant(y) - startState.plant(y)) < posTol &&  std::abs(state.plant(z) - startState.plant(y)) < posTol && 
             // Assuming the reference is a fixed set point - if it becomes a trajectory, then we need to calculate how much the angle and velocities should be
             std::abs(state.plant(phi)) < angleTol && std::abs(state.plant(theta)) < angleTol &&  std::abs(state.plant(psi) - ref.at(refyaw)(time)) < angleTol;
             count--;

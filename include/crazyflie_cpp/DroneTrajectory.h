@@ -354,7 +354,7 @@ class DroneTrajectory
             double finalTime = 100, double simTimestep = 1e-3,
             std::array<PIDParameters, NUM_PIDS> ctrlParams = defaultPIDParameters(),
             DroneParameters droneParameters = {},
-            double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = false);
+            double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);
         
         SimResults Trajectory(SystemState initialState, bool checkConverge = false) const; 
         SystemState Trajectory(SystemState initialState, int finalTimestep) const; 
