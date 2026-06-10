@@ -354,7 +354,7 @@ class DroneTrajectory
             double finalTime = 100, double simTimestep = 1e-3,
             std::array<PIDParameters, NUM_PIDS> ctrlParams = defaultPIDParameters(),
             DroneParameters droneParameters = {},
-            double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);
+            double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = false);
         
         SimResults Trajectory(SystemState initialState, bool checkConverge = false) const; 
         SystemState Trajectory(SystemState initialState, int finalTimestep) const; 
@@ -370,7 +370,7 @@ class DroneTrajectory
         std::vector<d2wdwodp> secondOrdertrajSensParamsTest(SystemState initialState);
 
         G_tp calc_G_tp(std::vector<dwdwo> const& trajSens);
-        d2w calc_d2w(SimResults const & simResults, std::vector<dwdwo> const & ts, G_tp gtp, std::vector<dwdp> const & tsp, std::vector<d2wdwo2> const & ts2, std::vector<d2wdwodp> const & ts2p);
+        d2w calc_d2w(SimResults const & simResults, std::vector<dwdwo> const & ts, G_tp gtp);
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG(dwdwo ts, d2w const & d2w, G_tp gtp);
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime);
 
