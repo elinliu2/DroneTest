@@ -246,12 +246,11 @@ std::array<PIDParameters, NUM_PIDS> initialParameters(){
     return {posXpid, posYpid, posZpid, velXpid, velYpid, velZpid, rollpid, pitchpid, yawpid, rollRatepid, pitchRatepid, yawRatepid};
 }
 
-int main()
+void testTrajSens(Logger & log)
 {
-    Logger log("./build/log.txt");
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    double finalTime = 1;
+    double finalTime = 100;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
@@ -322,7 +321,7 @@ int main()
     for(int i = 1; i < 500; i++)
     {
         gtp.tp = i;
-        d2w testd2w = droneTrajectory.calc_d2w(simResults, ts, gtp, tsp, ts2, ts2p);
+        d2w testd2w = droneTrajectory.calc_d2w(simResults, ts, gtp);
         Eigen::Tensor<double, 0> diff_tensor = (testd2w.dwo2.d2xdwo2 - ts2.at(i).d2xdwo2).abs().maximum();
         double diff_double = diff_tensor();
         if ( diff_double > 0 ) { log << "d2xdwo2 " << diff_double << " " << i << std::endl; }
@@ -345,12 +344,38 @@ int main()
     }
     log << "finished comparing d2w" << std::endl;
     gtp = droneTrajectory.calc_G_tp(ts);
-    d2w d2w = droneTrajectory.calc_d2w(simResults, ts, gtp, tsp, ts2, ts2p);
+    d2w d2w = droneTrajectory.calc_d2w(simResults, ts, gtp);
     Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG(ts.at(gtp.tp), d2w,  gtp);
     Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG_test = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), gtp, finalTime);
     
-    log << "dG diff " << (dG-dG_test).cwiseAbs().maxCoeff() << std::endl;
-       
+    log << "dG diff " << (dG-dG_test) << std::endl;
+
+    for(int i = 0; i < NUM_STATES+NUM_PARAMETERS; i++)
+    {
+        if(dG(i)!= 0){
+            log << "i " << i << "dG diff %" << (dG(i)-dG_test(i))/dG(i) << std::endl;
+        }
+    }
+}
+
+void testERAAlgo(Logger & log)
+{
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
+    double finalTime = 100;
+    double simTime = 1e-3;
+    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
+    std::chrono::time_point start = std::chrono::steady_clock::now();
+    SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+    log << simResults.stable << std::endl;
+    zkpk zkpk = droneTrajectory.theGigaAlgo(stateCloseToRoABoundary());
+
+}
+
+int main()
+{
+    Logger log("./build/log.txt");
+    testERAAlgo(log);
     std::cout << ":D" << std::endl;
     return 0;
 }

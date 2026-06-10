@@ -25,11 +25,12 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
     std::vector<dwdwo> ts = trajSens(traj);
     G_tp gtp = calc_G_tp(ts);
     m_logger << "tp: " << gtp.tp << std::endl;
-    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG_test(prev_zk_state, ts.at(gtp.tp), gtp, traj.time.at(gtp.tp) + m_simTimestep);
-    // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS>::Zero();
-    // for(int i = 0; i < NUM_STATES+NUM_PARAMETERS; i++) {m_logger << dG(i) << std::endl;} m_logger << std::endl;
+    d2w d2w = calc_d2w(traj, ts, gtp);
+    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG(ts.at(gtp.tp), d2w, gtp);
     Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
+    m_logger << "vz " << vz << std::endl;
     Eigen::Vector<double, NUM_PARAMETERS> vp = dG.segment(NUM_STATES, NUM_PARAMETERS);
+    m_logger << "vp " << vp << std::endl;
     Eigen::Vector<double, NUM_PARAMETERS> pk = prev.pk + m_algo_alpha*(vz.transpose()*(prev.zk - currState) + gtp.G - m_epsilon)/(vz.transpose()*m_Pinv*vz)*vp;
     setParams(pk);
     Eigen::Vector<double, NUM_STATES> zk = (m_Pinv*vz*vz.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.zk-currState) + (m_Pinv*vz*vp.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.pk-pk) + currState - (m_Pinv*vz)/(vz.transpose()*m_Pinv*vz)*(gtp.G-m_epsilon);
@@ -39,9 +40,11 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
     std::chrono::time_point start = std::chrono::steady_clock::now();
     while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-12)
     {
+        m_logger << "backtrackingCount " << backtrackingCount << std::endl;
         pk = prev.pk + backtrack*(pk-prev.pk);
         setParams(pk);
         zk = prev.zk + backtrack*(zk-prev.zk);
+        m_logger << "pk " << pk << std::endl;
         traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
         backtrack /= 2;
         backtrackingCount++;

@@ -119,7 +119,7 @@ Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double
         Eigen::Vector<double, NUM_PLANT_STATES> h = H(prev, guess.plant, time, timestep);
         if (!h.allFinite()) {
             stable = false;
-            m_logger.warn(std::string("simulateTimestep: non-finite residual h"));
+            // m_logger.warn(std::string("simulateTimestep: non-finite residual h"));
             break;
         }
         if (h.norm() < tol) {
@@ -128,21 +128,21 @@ Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double
         Eigen::MatrixX<double> dh = DH(guess, timestep);
         if (!dh.allFinite()) {
             stable = false;
-            m_logger.warn(std::string("simulateTimestep: non-finite Jacobian DH"));
+            // m_logger.warn(std::string("simulateTimestep: non-finite Jacobian DH"));
             break;
         }
 
         Eigen::FullPivLU<Eigen::MatrixXd> lu(dh);
         if (!lu.isInvertible()) {
             stable = false;
-            m_logger.warn(std::string("simulateTimestep: DH is singular or ill-conditioned"));
+            // m_logger.warn(std::string("simulateTimestep: DH is singular or ill-conditioned"));
             break;
         }
 
         guess.plant = guess.plant - lu.solve(h);
         if (!guess.plant.allFinite()) {
             stable = false;
-            m_logger.warn(std::string("simulateTimestep: guess.plant became non-finite"));
+            // m_logger.warn(std::string("simulateTimestep: guess.plant became non-finite"));
             break;
         }
     }
