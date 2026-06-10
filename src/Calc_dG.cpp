@@ -171,6 +171,52 @@ d2w DroneTrajectory::calc_d2w(SimResults const & simResults, std::vector<dwdwo> 
     Eigen::Tensor<double, 3, Eigen::ColMajor> b12_dwo2(NUM_STATES, NUM_STATES, NUM_STATES); 
     Eigen::Tensor<double, 3, Eigen::ColMajor> b12_dwodp(NUM_STATES, NUM_STATES, NUM_PARAMETERS);
 
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b1_edx_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b1_edy_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b1_edxdot_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b1_edydot_matrix_dwo2;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b1_edx_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b1_edy_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b1_edxdot_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b1_edydot_matrix_dwodp;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_edx_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_edy_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_edxdot_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_edydot_matrix_dwo2;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_eix_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_eiy_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_eixdot_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_eiydot_matrix_dwo2;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_desVelx_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b3_desVely_matrix_dwo2;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_edx_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_edy_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_edxdot_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_edydot_matrix_dwodp;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_eix_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_eiy_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_eixdot_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_eiydot_matrix_dwodp;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_desVelx_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b3_desVely_matrix_dwodp;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b12_ft_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b12_tx_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b12_ty_matrix_dwo2;
+    Eigen::Matrix<double, NUM_STATES, NUM_STATES> b12_tz_matrix_dwo2;
+
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b12_ft_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b12_tx_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b12_ty_matrix_dwodp;
+    Eigen::Matrix<double, NUM_STATES, NUM_PARAMETERS> b12_tz_matrix_dwodp;
+
     for(int i = 1; i <= gtp.tp; i++)
     {
         double timestep = simResults.time[i] - simResults.time[i-1];
@@ -288,23 +334,12 @@ d2w DroneTrajectory::calc_d2w(SimResults const & simResults, std::vector<dwdwo> 
         a10_B_tensor_dwodp = d2xdwodp_curr + timestep/2*(a1_dwodp+a2_dwodp+a3_dwodp+a4_dwodp+a5_dwodp+a6_dwodp+a7_dwodp+a8_dwodp+a9_dwodp);
         d2xdwo2_plus = a10_A_tensor.contract(a10_B_tensor_dwo2, contract_dims).eval();
         d2xdwodp_plus = a10_A_tensor.contract(a10_B_tensor_dwodp, contract_dims).eval();
-        
-        // d2zdwo2_plus // d2zdwodp_plus states 1 to n
-        d2hdx2_curr_tensor = d2hdx2_curr(state_curr, timestep);
-        b1 = d2hdx2_curr_tensor.contract(dxdwo_curr_tensor, contract_dims).eval();
-        b1_dwo2  = b1.contract(dxdwo_curr_tensor, contract_dims).eval();
-        b1_dwodp = b1.contract(dxdp_curr_tensor, contract_dims).eval();
 
+        // d2zdwo2_plus // d2zdwodp_plus states 1 to n
         dhdx_curr = dhdx_curr_sparse.toDense();
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dhdx_curr_tensor(dhdx_curr.data(), NUM_Z_STATES, NUM_PLANT_STATES);
         b2_dwo2  = dhdx_curr_tensor.contract(d2xdwo2_curr, contract_dims).eval();
         b2_dwodp = dhdx_curr_tensor.contract(d2xdwodp_curr, contract_dims).eval();
-
-        // only uses plant state in derivative
-        d2hdx2_plus_tensor = d2hdx2_plus(state_plus, time, timestep);
-        b3 = d2hdx2_plus_tensor.contract(dxdwo_plus_tensor, contract_dims).eval();
-        b3_dwo2  = b3.contract(dxdwo_plus_tensor, contract_dims).eval();
-        b3_dwodp = b3.contract(dxdp_plus_tensor, contract_dims).eval();
 
         dhdx_plus = dhdx_plus_sparse.toDense();
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dhdx_plus_tensor(dhdx_plus.data(), NUM_Z_STATES, NUM_PLANT_STATES);
@@ -320,8 +355,122 @@ d2w DroneTrajectory::calc_d2w(SimResults const & simResults, std::vector<dwdwo> 
         b6 = d2hdxplusdp.contract(dxdwo_plus_tensor, contract_dims);
         b7 = b6.shuffle(Eigen::array<int,3>{0,2,1});
 
-        d2zdwo2_plus = b1_dwo2 + b2_dwo2 + b3_dwo2 + b4_dwo2 + b5_dwo2;
-        d2zdwodp_plus = b1_dwodp + b2_dwodp + b3_dwodp + b4_dwodp + b5_dwodp + b7;
+        d2zdwo2_plus = b2_dwo2 +  b4_dwo2 + b5_dwo2;
+        d2zdwodp_plus = b2_dwodp + b4_dwodp + b5_dwodp + b7;
+
+        // d2hdx2_curr_tensor = d2hdx2_curr(state_curr, timestep);
+        // b1 = d2hdx2_curr_tensor.contract(dxdwo_curr_tensor, contract_dims).eval();
+        // b1_dwo2  = b1.contract(dxdwo_curr_tensor, contract_dims).eval();
+        // b1_dwodp = b1.contract(dxdp_curr_tensor, contract_dims).eval();
+        // d2zdwo2_plus += b1_dwo2;
+        // d2zdwodp_plus += b1_dwodp;
+
+        b1_edx_matrix_dwo2  = ((d2edx_dx_curr2(state_curr, timestep)*dxdwo_curr).transpose()*dxdwo_curr).transpose();
+        b1_edx_matrix_dwodp = ((d2edx_dx_curr2(state_curr, timestep)*dxdp_curr).transpose()*dxdwo_curr).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b1_edx_tensor_dwo2( b1_edx_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b1_edx_tensor_dwodp( b1_edx_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(edx, 0) += b1_edx_tensor_dwo2;
+        d2zdwodp_plus.chip(edx, 0) += b1_edx_tensor_dwodp;
+
+        b1_edy_matrix_dwo2  = ((d2edy_dx_curr2(state_curr, timestep)*dxdwo_curr).transpose()*dxdwo_curr).transpose();
+        b1_edy_matrix_dwodp = ((d2edy_dx_curr2(state_curr, timestep)*dxdp_curr).transpose()*dxdwo_curr).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b1_edy_tensor_dwo2( b1_edy_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b1_edy_tensor_dwodp( b1_edy_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(edy, 0) += b1_edy_tensor_dwo2;
+        d2zdwodp_plus.chip(edy, 0) += b1_edy_tensor_dwodp;
+
+        b1_edxdot_matrix_dwo2  = ((d2edxdot_dx_curr2(state_curr, timestep)*dxdwo_curr).transpose()*dxdwo_curr).transpose();
+        b1_edxdot_matrix_dwodp = ((d2edxdot_dx_curr2(state_curr, timestep)*dxdp_curr).transpose()*dxdwo_curr).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b1_edxdot_tensor_dwo2( b1_edxdot_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b1_edxdot_tensor_dwodp( b1_edxdot_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(edxdot, 0) += b1_edxdot_tensor_dwo2;
+        d2zdwodp_plus.chip(edxdot, 0) += b1_edxdot_tensor_dwodp;
+
+        b1_edydot_matrix_dwo2  = ((d2edydot_dx_curr2(state_curr, timestep)*dxdwo_curr).transpose()*dxdwo_curr).transpose();
+        b1_edydot_matrix_dwodp = ((d2edydot_dx_curr2(state_curr, timestep)*dxdp_curr).transpose()*dxdwo_curr).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b1_edydot_tensor_dwo2( b1_edydot_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b1_edydot_tensor_dwodp( b1_edydot_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(edydot, 0) += b1_edydot_tensor_dwo2;
+        d2zdwodp_plus.chip(edydot, 0) += b1_edydot_tensor_dwodp;
+
+        // only uses plant state in derivative
+        // d2hdx2_plus_tensor = d2hdx2_plus(state_plus, time, timestep);
+        // b3 = d2hdx2_plus_tensor.contract(dxdwo_plus_tensor, contract_dims).eval();
+        // b3_dwo2  = b3.contract(dxdwo_plus_tensor, contract_dims).eval();
+        // b3_dwodp = b3.contract(dxdp_plus_tensor, contract_dims).eval();
+
+        // d2zdwo2_plus += b3_dwo2;
+        // d2zdwodp_plus += b3_dwodp;
+
+        b3_edx_matrix_dwo2  = ((d2edx_dx_plus2(state_plus, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_edx_matrix_dwodp = ((d2edx_dx_plus2(state_plus, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_edx_tensor_dwo2( b3_edx_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_edx_tensor_dwodp( b3_edx_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(edx, 0) += b3_edx_tensor_dwo2;
+        d2zdwodp_plus.chip(edx, 0) += b3_edx_tensor_dwodp;
+
+        b3_edy_matrix_dwo2  = ((d2edy_dx_plus2(state_plus, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_edy_matrix_dwodp = ((d2edy_dx_plus2(state_plus, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_edy_tensor_dwo2( b3_edy_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_edy_tensor_dwodp( b3_edy_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(edy, 0) += b3_edy_tensor_dwo2;
+        d2zdwodp_plus.chip(edy, 0) += b3_edy_tensor_dwodp;
+
+        b3_edxdot_matrix_dwo2  = ((d2edxdot_dx_plus2(state_plus, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_edxdot_matrix_dwodp = ((d2edxdot_dx_plus2(state_plus, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_edxdot_tensor_dwo2( b3_edxdot_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_edxdot_tensor_dwodp( b3_edxdot_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(edxdot, 0) += b3_edxdot_tensor_dwo2;
+        d2zdwodp_plus.chip(edxdot, 0) += b3_edxdot_tensor_dwodp;
+
+        b3_edydot_matrix_dwo2  = ((d2edydot_dx_plus2(state_plus, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_edydot_matrix_dwodp = ((d2edydot_dx_plus2(state_plus, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_edydot_tensor_dwo2( b3_edydot_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_edydot_tensor_dwodp( b3_edydot_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(edydot, 0) += b3_edydot_tensor_dwo2;
+        d2zdwodp_plus.chip(edydot, 0) += b3_edydot_tensor_dwodp;
+
+        b3_eix_matrix_dwo2  = ((d2eix_dx_plus2(state_plus, time, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_eix_matrix_dwodp = ((d2eix_dx_plus2(state_plus, time, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_eix_tensor_dwo2( b3_eix_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_eix_tensor_dwodp( b3_eix_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(eix, 0) += b3_eix_tensor_dwo2;
+        d2zdwodp_plus.chip(eix, 0) += b3_eix_tensor_dwodp;
+
+        b3_eiy_matrix_dwo2  = ((d2eiy_dx_plus2(state_plus, time, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_eiy_matrix_dwodp = ((d2eiy_dx_plus2(state_plus, time, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_eiy_tensor_dwo2( b3_eiy_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_eiy_tensor_dwodp( b3_eiy_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(eiy, 0) += b3_eiy_tensor_dwo2;
+        d2zdwodp_plus.chip(eiy, 0) += b3_eiy_tensor_dwodp;
+
+        b3_eixdot_matrix_dwo2  = ((d2eixdot_dx_plus2(state_plus, time, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_eixdot_matrix_dwodp = ((d2eixdot_dx_plus2(state_plus, time, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_eixdot_tensor_dwo2( b3_eixdot_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_eixdot_tensor_dwodp( b3_eixdot_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(eixdot, 0) += b3_eixdot_tensor_dwo2;
+        d2zdwodp_plus.chip(eixdot, 0) += b3_eixdot_tensor_dwodp;
+
+        b3_eiydot_matrix_dwo2  = ((d2eiydot_dx_plus2(state_plus, time, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_eiydot_matrix_dwodp = ((d2eiydot_dx_plus2(state_plus, time, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_eiydot_tensor_dwo2( b3_eiydot_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_eiydot_tensor_dwodp( b3_eiydot_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(eiydot, 0) += b3_eiydot_tensor_dwo2;
+        d2zdwodp_plus.chip(eiydot, 0) += b3_eiydot_tensor_dwodp;
+
+        b3_desVelx_matrix_dwo2  = ((d2desVelx_dx_plus2(state_plus, time, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_desVelx_matrix_dwodp = ((d2desVelx_dx_plus2(state_plus, time, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_desVelx_tensor_dwo2( b3_desVelx_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_desVelx_tensor_dwodp( b3_desVelx_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(desVelX, 0) += b3_desVelx_tensor_dwo2;
+        d2zdwodp_plus.chip(desVelX, 0) += b3_desVelx_tensor_dwodp;
+
+        b3_desVely_matrix_dwo2  = ((d2desVely_dx_plus2(state_plus, time, timestep)*dxdwo_plus).transpose()*dxdwo_plus).transpose();
+        b3_desVely_matrix_dwodp = ((d2desVely_dx_plus2(state_plus, time, timestep)*dxdp_plus).transpose()*dxdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_desVely_tensor_dwo2( b3_desVely_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b3_desVely_tensor_dwodp( b3_desVely_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(desVelY, 0) += b3_desVely_tensor_dwo2;
+        d2zdwodp_plus.chip(desVelY, 0) += b3_desVely_tensor_dwodp;
 
         dhdz_plus = dhdz_plus_sparse.toDense();
         d2hdzplusdp = d2hdzplus_dp();
@@ -405,13 +554,41 @@ d2w DroneTrajectory::calc_d2w(SimResults const & simResults, std::vector<dwdwo> 
             d2zdwodp_plus.chip(zAftery, 0) += tmp_dwodp + tmp3.chip(0, 0);     
         }
 
-        d2hdz_plus2 = d2hdzplus2(state_plus);
-        b12 = d2hdz_plus2.contract(dzdwo_plus_tensor, contract_dims).eval();
-        b12_dwo2  = b12.contract(dzdwo_plus_tensor, contract_dims).eval();
-        b12_dwodp = b12.contract(dzdp_plus_tensor, contract_dims).eval();
+        // d2hdz_plus2 = d2hdzplus2(state_plus);
+        // b12 = d2hdz_plus2.contract(dzdwo_plus_tensor, contract_dims).eval();
+        // b12_dwo2  = b12.contract(dzdwo_plus_tensor, contract_dims).eval();
+        // b12_dwodp = b12.contract(dzdp_plus_tensor, contract_dims).eval();
 
-        d2zdwo2_plus += b12_dwo2;
-        d2zdwodp_plus += b12_dwodp;
+        // d2zdwo2_plus += b12_dwo2;
+        // d2zdwodp_plus += b12_dwodp;
+
+        b12_ft_matrix_dwo2  = ((d2ft_dz_plus2(state_plus)*dzdwo_plus).transpose()*dzdwo_plus).transpose();
+        b12_ft_matrix_dwodp = ((d2ft_dz_plus2(state_plus)*dzdp_plus).transpose()*dzdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b12_ft_tensor_dwo2( b12_ft_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b12_ft_tensor_dwodp( b12_ft_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(ft, 0) += b12_ft_tensor_dwo2;
+        d2zdwodp_plus.chip(ft, 0) += b12_ft_tensor_dwodp;
+        
+        b12_tx_matrix_dwo2  = ((d2tx_dz_plus2(state_plus)*dzdwo_plus).transpose()*dzdwo_plus).transpose();
+        b12_tx_matrix_dwodp = ((d2tx_dz_plus2(state_plus)*dzdp_plus).transpose()*dzdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b12_tx_tensor_dwo2( b12_tx_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b12_tx_tensor_dwodp( b12_tx_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(tx, 0) += b12_tx_tensor_dwo2;
+        d2zdwodp_plus.chip(tx, 0) += b12_tx_tensor_dwodp;
+
+        b12_ty_matrix_dwo2  = ((d2ty_dz_plus2(state_plus)*dzdwo_plus).transpose()*dzdwo_plus).transpose();
+        b12_ty_matrix_dwodp = ((d2ty_dz_plus2(state_plus)*dzdp_plus).transpose()*dzdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b12_ty_tensor_dwo2( b12_ty_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b12_ty_tensor_dwodp( b12_ty_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(ty, 0) += b12_ty_tensor_dwo2;
+        d2zdwodp_plus.chip(ty, 0) += b12_ty_tensor_dwodp;
+
+        b12_tz_matrix_dwo2  = ((d2tz_dz_plus2(state_plus)*dzdwo_plus).transpose()*dzdwo_plus).transpose();
+        b12_tz_matrix_dwodp = ((d2tz_dz_plus2(state_plus)*dzdp_plus).transpose()*dzdwo_plus).transpose();
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b12_tz_tensor_dwo2( b12_tz_matrix_dwo2.data(), NUM_STATES, NUM_STATES);
+        Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> b12_tz_tensor_dwodp( b12_tz_matrix_dwodp.data(), NUM_STATES, NUM_PARAMETERS);
+        d2zdwo2_plus.chip(tz, 0) += b12_tz_tensor_dwo2;
+        d2zdwodp_plus.chip(tz, 0) += b12_tz_tensor_dwodp;
 
         // update step
         dxdp_curr = dxdp_plus; dzdp_curr = dzdp_plus; dydp_curr = dydp_plus;
