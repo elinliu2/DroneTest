@@ -99,12 +99,12 @@ test_timestep simulateTimestep(test_state prev, double time, double timestep, Lo
 
     next(test_x1) = x_guess(test_x1);
     next(test_x2) = x_guess(test_x2);
-    // if(next(test_x1) >  0){
+    if(next(test_x1) >  0){
         next(test_y) = std::sin(next(test_x1));
-    // } else {
-    //     next(test_y) = 0;
-    // }
-    next(test_z) = 0.5*prev(test_z) -std::pow(next(test_y), 2);
+    } else {
+        next(test_y) = 0;
+    }
+    next(test_z) = -next(test_y);
 
     stable = stable && count < max_iterations;   
 
@@ -166,13 +166,13 @@ std::vector<Eigen::Matrix4d> trajSens(test_simResults const & simResults)
         solver.compute(A);
         dwdwo_plus.topRows(2) = solver.solve(B);
 
-        // if (simResults.stateProgression.at(i).coeff(test_x1) > 0) {
+        if (simResults.stateProgression.at(i).coeff(test_x1) > 0) {
             dwdwo_plus.row(test_y) = std::cos(simResults.stateProgression.at(i).coeff(test_x1)) * dwdwo_plus.row(test_x1);
-            dwdwo_plus.row(test_z) = -2*simResults.stateProgression.at(i).coeff(test_y)*dwdwo_plus.row(test_y) + 0.5*dwdwo.row(test_z);
-        // } else {
-        //     dwdwo_plus.row(test_y).setZero();
-        //     dwdwo_plus.row(test_z) = 0.5*dwdwo.row(test_z);
-        // }
+            dwdwo_plus.row(test_z) = -dwdwo_plus.row(test_y);
+        } else {
+            dwdwo_plus.row(test_y).setZero();
+            dwdwo_plus.row(test_z) = 0.5*dwdwo.row(test_z);
+        }
         ts.push_back(dwdwo_plus);
     }
 
