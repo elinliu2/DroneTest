@@ -102,3 +102,15 @@ target_include_directories(test_simulation PRIVATE
 target_link_libraries(test_simulation
   crazyflie_cpp
 )
+
+add_executable(test_simple_system
+  src/test_simple_system.cpp
+)
+
+target_include_directories(test_simple_system PRIVATE
+  ${CMAKE_SOURCE_DIR}/eigen
+)
+
+target_link_libraries(test_simple_system
+  crazyflie_cpp
+)
