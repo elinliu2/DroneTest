@@ -171,7 +171,7 @@ std::vector<Eigen::Matrix4d> trajSens(test_simResults const & simResults)
             dwdwo_plus.row(test_z) = -dwdwo_plus.row(test_y);
         } else {
             dwdwo_plus.row(test_y).setZero();
-            dwdwo_plus.row(test_z) = 0.5*dwdwo.row(test_z);
+            dwdwo_plus.row(test_z).setZero();
         }
         ts.push_back(dwdwo_plus);
     }
