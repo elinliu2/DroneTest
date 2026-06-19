@@ -1,5 +1,6 @@
 #include "DroneTrajectory.h"
 #include <chrono>
+#include <iomanip>
 
 std::vector<dwdwo> DroneTrajectory::trajSens(SimResults const & simResults) const
 {
@@ -65,13 +66,21 @@ std::vector<dwdwo> DroneTrajectory::trajSens(SimResults const & simResults) cons
         Eigen::SparseMatrix<double> dgdx_plus = dgdx(simResults.stateProgression[i]);
 
         dzdwo_plus = dhdx_plus * dxdwo_plus + dhdx_curr * dxdwo + dhdz_curr * dzdwo;
+        Eigen::MatrixXd test1 = dhdx_plus * dxdwo_plus;
+        Eigen::MatrixXd test2 = dhdx_curr * dxdwo;
+        Eigen::MatrixXd test3 = dhdz_curr * dzdwo;
+        Eigen::MatrixXd test4 = test1 + test2 + test3;
+        m_logger << std::setprecision(15) << test1.coeff(1, 0) << std::endl;
+        m_logger << std::setprecision(15) << test2.coeff(1, 0) << std::endl;
+        m_logger << test3.coeff(1, 0) << std::endl;
+        m_logger << test4.coeff(1, 0) << std::endl;
+        m_logger << dzdwo_plus.coeff(1, 0) << std::endl;
 
         for(int zBeforey = 1; zBeforey <= desThrust; zBeforey ++){
             Eigen::Matrix<double, 1, NUM_STATES> tmp;
             tmp = dhdz_plus.block(zBeforey, 0, 1, zBeforey) * dzdwo_plus.topRows(zBeforey);
             dzdwo_plus.row(zBeforey) += tmp;
         }  
-        
         // dydwo
         dydwo_plus = dgdz_plus * dzdwo_plus + dgdx_plus * dxdwo_plus;
 
@@ -82,7 +91,6 @@ std::vector<dwdwo> DroneTrajectory::trajSens(SimResults const & simResults) cons
             tmp = dhdz_plus.block(zAftery, 0, 1, zAftery) * dzdwo_plus.topRows(zAftery);
             dzdwo_plus.row(zAftery) += tmp;
         }
-        
         ts.emplace_back(dxdwo_plus, dzdwo_plus, dydwo_plus);
     }
 

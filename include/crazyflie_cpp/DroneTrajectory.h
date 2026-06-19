@@ -96,13 +96,13 @@ std::array<PIDParameters, NUM_PIDS> inline defaultPIDParameters(){
     PIDParameters velYpid = {25, 1, 0};
     PIDParameters velZpid = {25, 15, 0};
 
-    PIDParameters rollpid  = {6, 3, 0, 20.0};
-    PIDParameters pitchpid = {6, 3, 0, 20.0};
-    PIDParameters yawpid   = {6, 1, 0.35, 360.0};
+    PIDParameters rollpid  = {6, 3, 0, 0};
+    PIDParameters pitchpid = {6, 3, 0, 0};
+    PIDParameters yawpid   = {6, 1, 0.35, 0};
 
-    PIDParameters rollRatepid  = {250.0, 500, 2.5, 33.3, true};
-    PIDParameters pitchRatepid = {250.0, 500, 2.5, 33.3, true};
-    PIDParameters yawRatepid   = {120.0, 16.7, 0, 166.7};
+    PIDParameters rollRatepid  = {250.0, 500, 2.5, 0, true};
+    PIDParameters pitchRatepid = {250.0, 500, 2.5, 0, true};
+    PIDParameters yawRatepid   = {120.0, 16.7, 0, 0};
     return {posXpid, posYpid, posZpid, velXpid, velYpid, velZpid, rollpid, pitchpid, yawpid, rollRatepid, pitchRatepid, yawRatepid};
 }
 

@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 
 double PIDctrl(PIDParameters params, Eigen::Vector<double, NUM_PID_STATES> state);
-Eigen::Vector<double, NUM_PID_STATES> updatePIDstate(Eigen::Vector<double, NUM_PID_STATES> currVal, double currSig, double prevSig, double ref, double timestep, double time);
+// Eigen::Vector<double, NUM_PID_STATES> updatePIDstate(Eigen::Vector<double, NUM_PID_STATES> currVal, double currSig, double prevSig, double ref, double timestep, double time);
 std::string printPIDstate(Eigen::Vector<double, NUM_PID_STATES> state);
 double capAngle(double angle);
 double rad2Deg(double angle) { return angle / M_PI * 180.0; }
@@ -264,8 +264,11 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     // m_logger << "unsat desRoll: " << -PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}) << std::endl;
     // m_logger << "unsat desPitch: " << PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}) << std::endl;
 
-    algeStates(desRoll) = -std::clamp(PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
-    algeStates(desPitch) = std::clamp(PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
+    // algeStates(desRoll) = -std::clamp(PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+    // algeStates(desPitch) = std::clamp(PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
+
+    algeStates(desRoll) = -PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}) ; 
+    algeStates(desPitch) = PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}) ; 
 
     algeStates(eiphi) = currAlgeStates(eiphi) + timestep*(algeStates(desRoll) - 180/M_PI*plantState(phi));
     algeStates(eitheta) = currAlgeStates(eitheta) + timestep*(algeStates(desPitch) - 180/M_PI*plantState(theta));
@@ -472,11 +475,11 @@ Eigen::Vector<double, NUM_PID_STATES> updatePIDstate(Eigen::Vector<double, NUM_P
     newPIDstate(kp_error) = ref - currSig;
     newPIDstate(ki_error) = currVal(ki_error) + newPIDstate(kp_error)*timestep; 
    
-    if (time != 0) {
+    // if (time != 0) {
         // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/utils/src/pid.c
         // prevent derivative kick
         newPIDstate(kd_error) = -1.0/timestep*(currSig - prevSig);     
-    }
+    // }
    
     return newPIDstate;
 }
