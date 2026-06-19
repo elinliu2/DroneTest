@@ -258,59 +258,78 @@ void testTrajSens(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    double finalTime = 1;
+    double finalTime = 10;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
     SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+
+    Logger splot("./build/splot.txt");
+    splotTrajectory(simResults, splot);
     
     std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
     std::vector<dwdwo> tstest = droneTrajectory.trajSensTest(stateCloseToRoABoundary());
     double max = 0;
     int index = 0;
     // for (int i = 0; i < ts.size(); i++){
-    //     // log << i << ", ";
+    //     log << i << " " <<  (ts[i].dxdwo - tstest[i].dxdwo).cwiseAbs().maxCoeff() 
+    //              << " " << (ts[i].dydwo - tstest[i].dydwo).cwiseAbs().maxCoeff() 
+    //              << " " << (ts[i].dzdwo - tstest[i].dzdwo).cwiseAbs().maxCoeff() << std::endl;
     //     // double max = 0;
-    //     double temp_max = (ts[i].dxdwo - tstest[i].dxdwo).cwiseAbs().maxCoeff();
-    //     if (temp_max > max) { max = temp_max;  index = i;}
-    //     temp_max = (ts[i].dydwo - tstest[i].dydwo).cwiseAbs().maxCoeff();
-    //     if (temp_max > max) { max = temp_max;  index = i;}
-    //     temp_max = (ts[i].dzdwo - tstest[i].dzdwo).cwiseAbs().maxCoeff();
-    //     if (temp_max > max) { max = temp_max; index = i;}
+    //     // double temp_max = (ts[i].dxdwo - tstest[i].dxdwo).cwiseAbs().maxCoeff();
+    //     // if (temp_max > max) { max = temp_max;  index = i;}
+    //     // temp_max = (ts[i].dydwo - tstest[i].dydwo).cwiseAbs().maxCoeff();
+    //     // if (temp_max > max) { max = temp_max;  index = i;}
+    //     // temp_max = (ts[i].dzdwo - tstest[i].dzdwo).cwiseAbs().maxCoeff();
+    //     // if (temp_max > max) { max = temp_max; index = i;}
     // }
     // log << "ts diff " << max << " " << index << std::endl;
 
-    index = 1;
-    for (int i = 0; i < NUM_Z_STATES; i++){
-        for(int j = 0; j < NUM_STATES; j++)
-        {
-            if(ts[index].dzdwo.coeff(i, j) != 0){
-                double percentDiff = (ts[index].dzdwo.coeff(i, j)-tstest[index].dzdwo.coeff(i, j))/ts[index].dzdwo.coeff(i, j);
-                if(std::abs(percentDiff) > max){
-                    max = std::abs(percentDiff);
-                    log << "percent diff: " << max << " i: " << i << " j: " << j << std::endl;
-                    log << ts[index].dzdwo.coeff(i, j) << " " << tstest[index].dzdwo.coeff(i, j) << std::endl;
-                }
-            }
-            if(tstest[index].dzdwo.coeff(i, j) != 0){
-                double percentDiff = (ts[index].dzdwo.coeff(i, j)-tstest[index].dzdwo.coeff(i, j))/tstest[index].dzdwo.coeff(i, j);
-                if(std::abs(percentDiff) > max){
-                    max =  std::abs(percentDiff);
-                    log << "percent diff: " << max << " i: " << i << " j: " << j << std::endl;
-                    log << ts[index].dzdwo.coeff(i, j) << " " << tstest[index].dzdwo.coeff(i, j) << std::endl;
-                }
-            }
-            
-        }
-    }
-    log << "ts diff " << max << " " << index << std::endl;
-
+    index = 8351;
+    log << simResults.stateProgression.at(index).alge(desPitch) << std::endl;
     log << "ts[index].dxdwo - tstest[index].dxdwo max" << std::endl;
     log << (ts[index].dxdwo - tstest[index].dxdwo).cwiseAbs().maxCoeff() << std::endl;
     log << "ts[index].dydwo - tstest[index].dydwo max" << std::endl;
     log << (ts[index].dydwo - tstest[index].dydwo).cwiseAbs().maxCoeff() << std::endl;
     log << "ts[index].dzdwo - tstest[index].dzdwo max" << std::endl;
     log << (ts[index].dzdwo - tstest[index].dzdwo).cwiseAbs().maxCoeff() << std::endl;
+
+    index = 8352;
+    log << simResults.stateProgression.at(index).alge(desPitch) << std::endl;
+    log << simResults.stateProgression.at(index+1).alge(desPitch) << std::endl;
+    
+    // for (int i = 0; i < NUM_Z_STATES; i++){
+    //     for(int j = 0; j < NUM_STATES; j++)
+    //     {
+    //         if(ts[index].dzdwo.coeff(i, j) != 0){
+    //             double percentDiff = (ts[index].dzdwo.coeff(i, j)-tstest[index].dzdwo.coeff(i, j))/ts[index].dzdwo.coeff(i, j);
+    //             if(std::abs(percentDiff) > max){
+    //                 max = std::abs(percentDiff);
+    //                 log << "percent diff: " << max << " i: " << i << " j: " << j << std::endl;
+    //                 log << ts[index].dzdwo.coeff(i, j) << " " << tstest[index].dzdwo.coeff(i, j) << std::endl;
+    //             }
+    //         }
+    //         if(tstest[index].dzdwo.coeff(i, j) != 0){
+    //             double percentDiff = (ts[index].dzdwo.coeff(i, j)-tstest[index].dzdwo.coeff(i, j))/tstest[index].dzdwo.coeff(i, j);
+    //             if(std::abs(percentDiff) > max){
+    //                 max =  std::abs(percentDiff);
+    //                 log << "percent diff: " << max << " i: " << i << " j: " << j << std::endl;
+    //                 log << ts[index].dzdwo.coeff(i, j) << " " << tstest[index].dzdwo.coeff(i, j) << std::endl;
+    //             }
+    //         }
+            
+    //     }
+    // }
+
+    log << "ts[index].dxdwo - tstest[index].dxdwo max" << std::endl;
+    log << (ts[index].dxdwo - tstest[index].dxdwo).cwiseAbs().maxCoeff() << std::endl;
+    log << "ts[index].dydwo - tstest[index].dydwo max" << std::endl;
+    log << (ts[index].dydwo - tstest[index].dydwo).cwiseAbs().maxCoeff() << std::endl;
+    log << "ts[index].dzdwo - tstest[index].dzdwo max top rows" << std::endl;
+    log << (ts[index].dzdwo.topRows(15) - tstest[index].dzdwo.topRows(15)).cwiseAbs().maxCoeff() << std::endl;
+    log << "ts[index].dzdwo - tstest[index].dzdwo max" << std::endl;
+    log << (ts[index].dzdwo - tstest[index].dzdwo).cwiseAbs().maxCoeff() << std::endl;
+
     log << "ts[index].dxdwo - tstest[index].dxdwo" << std::endl;
     log << ts[index].dxdwo - tstest[index].dxdwo << std::endl;
     log << "ts[index].dxdwo" << std::endl;
