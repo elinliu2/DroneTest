@@ -100,11 +100,11 @@ test_timestep simulateTimestep(test_state prev, double time, double timestep, Lo
     next(test_x1) = x_guess(test_x1);
     next(test_x2) = x_guess(test_x2);
     if(next(test_x1) >  0){
-        next(test_y) = std::sin(next(test_x1));
+        next(test_y) = 10*std::sin(next(test_x1)) ;
     } else {
         next(test_y) = 0;
     }
-    next(test_z) = -next(test_y);
+    next(test_z) = -std::pow(next(test_y), 2);
 
     stable = stable && count < max_iterations;   
 
@@ -167,8 +167,8 @@ std::vector<Eigen::Matrix4d> trajSens(test_simResults const & simResults)
         dwdwo_plus.topRows(2) = solver.solve(B);
 
         if (simResults.stateProgression.at(i).coeff(test_x1) > 0) {
-            dwdwo_plus.row(test_y) = std::cos(simResults.stateProgression.at(i).coeff(test_x1)) * dwdwo_plus.row(test_x1);
-            dwdwo_plus.row(test_z) = -dwdwo_plus.row(test_y);
+            dwdwo_plus.row(test_y) = 10*std::cos(simResults.stateProgression.at(i).coeff(test_x1)) * dwdwo_plus.row(test_x1);
+            dwdwo_plus.row(test_z) = -2*simResults.stateProgression.at(i).coeff(test_y)*dwdwo_plus.row(test_y);
         } else {
             dwdwo_plus.row(test_y).setZero();
             dwdwo_plus.row(test_z).setZero();
@@ -252,7 +252,8 @@ int main()
         log << "i: "  << i << " " << (ts.at(i).row(test_x1)).norm() << " " <<  (tstest.at(i).row(test_x1)).norm() << " " 
                         << (ts.at(i).row(test_x2)).norm() << " " <<  (tstest.at(i).row(test_x2)).norm() << " "
                         << (ts.at(i).row(test_y)).norm() << " " <<  (tstest.at(i).row(test_y)).norm() << " "
-                        << (ts.at(i).row(test_z)).norm() << " " <<  (tstest.at(i).row(test_z)).norm() << " "<< std::endl;
+                        << (ts.at(i).row(test_z)).norm() << " " <<  (tstest.at(i).row(test_z)).norm() << " " 
+                        << (ts.at(i).row(test_z)-tstest.at(i).row(test_z)).norm() << std::endl;
     }
     std::cout << ":D" << std::endl;
     return 0;
