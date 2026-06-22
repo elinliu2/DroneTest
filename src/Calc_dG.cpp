@@ -435,11 +435,11 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG(dwdwo 
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> dwdwo_matrix;
     dwdwo_matrix << ts.dxdwo, ts.dzdwo, ts.dydwo;
 
-    Eigen::Tensor<double, 3> tmp_dwo2  = d2w.dwo2.d2xdwo2.concatenate(d2w.dwo2.d2zdwo2, 0);
-    Eigen::Tensor<double, 3> secondOrderTraj = tmp_dwo2.concatenate(d2w.dwo2.d2ydwo2, 0);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> tmp_dwo2  = d2w.dwo2.d2xdwo2.concatenate(d2w.dwo2.d2zdwo2, 0);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> secondOrderTraj = tmp_dwo2.concatenate(d2w.dwo2.d2ydwo2, 0);
 
-    Eigen::Tensor<double, 3> tmp_dwodp = d2w.dwodp.d2xdwodp.concatenate(d2w.dwodp.d2zdwodp, 0);
-    Eigen::Tensor<double, 3> secondOrderTrajParams = tmp_dwodp.concatenate(d2w.dwodp.d2ydwodp, 0);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> tmp_dwodp = d2w.dwodp.d2xdwodp.concatenate(d2w.dwodp.d2zdwodp, 0);
+    Eigen::Tensor<double, 3, Eigen::ColMajor> secondOrderTrajParams = tmp_dwodp.concatenate(d2w.dwodp.d2ydwodp, 0);
 
     Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS>::Zero();
     for(int j = 0; j < NUM_STATES; j++)
@@ -447,7 +447,7 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG(dwdwo 
         for(int i = 0; i < NUM_STATES; i++)
         {
             Eigen::Vector<double, NUM_STATES> signed_dw = dwdwo_matrix.col(i).array().sign();
-            Eigen::Tensor<double, 1> secondOrderTrajChip = secondOrderTraj.chip(j, 2).chip(i, 1);
+            Eigen::Tensor<double, 1, Eigen::ColMajor> secondOrderTrajChip = secondOrderTraj.chip(j, 2).chip(i, 1);
             Eigen::Map<Eigen::Vector<double, NUM_STATES>> secondOrderTrajChipVec(secondOrderTrajChip.data(), secondOrderTrajChip.size());
             dG(j) += signed_dw.transpose() * secondOrderTrajChipVec;
         }
@@ -458,7 +458,7 @@ Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> DroneTrajectory::calc_dG(dwdwo 
         for(int i = 0; i < NUM_STATES; i++)
         {
             Eigen::Vector<double, NUM_STATES> signed_dw = dwdwo_matrix.col(i).array().sign();
-            Eigen::Tensor<double, 1> secondOrderTrajChip = secondOrderTrajParams.chip(j, 2).chip(i, 1);
+            Eigen::Tensor<double, 1, Eigen::ColMajor> secondOrderTrajChip = secondOrderTrajParams.chip(j, 2).chip(i, 1);
             Eigen::Map<Eigen::Vector<double, NUM_STATES>> secondOrderTrajChipVec(secondOrderTrajChip.data(), secondOrderTrajChip.size());
             dG(NUM_STATES + j) += signed_dw.transpose() * secondOrderTrajChipVec;
         }

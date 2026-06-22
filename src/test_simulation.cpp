@@ -2,6 +2,7 @@
 #include "Splotting.h"
 #include "Logger.h"
 #include <iostream>
+#include <cmath>
 
 double windDist(double time)
 {
@@ -126,6 +127,74 @@ SystemState stateCloseToRoABoundary()
     initialState.alge(43) = -0.000161436;
     initialState.alge(44) = 2.11438e-06;
     initialState.alge(45) = 1.11666e-05;
+    initialState.alge(46) = 20;
+    initialState.alge(47) = -20;
+
+    return initialState;
+}
+
+SystemState stateOnRoABoundary()
+{
+    SystemState initialState;
+
+    initialState.plant(0) = 9.4078;
+    initialState.plant(1) = 1.03948;
+    initialState.plant(2) = -0.0206361;
+    initialState.plant(3) = 0.311115;
+    initialState.plant(4) = -0.369183;
+    initialState.plant(5) = -0.00404598;
+    initialState.plant(6) = 17.9853;
+    initialState.plant(7) = 1.2388;
+    initialState.plant(8) = -0.0079619;
+    initialState.plant(9) = 0.425983;
+    initialState.plant(10) = 0.00125436;
+    initialState.plant(11) = -0.00177402;
+    initialState.alge(0) = -2.22199;
+    initialState.alge(1) = -17.9702;
+    initialState.alge(2) = -16.8151;
+    initialState.alge(3) = 0.655338;
+    initialState.alge(4) = -1.32674;
+    initialState.alge(5) = -0.147003;
+    initialState.alge(6) = 0.0114084;
+    initialState.alge(7) = 0.00792153;
+    initialState.alge(8) = 0.0469763;
+    initialState.alge(9) = -13.874;
+    initialState.alge(10) = -16.8217;
+    initialState.alge(11) = 0.410062;
+    initialState.alge(12) = 3.24285;
+    initialState.alge(13) = 0.0451465;
+    initialState.alge(14) = 0.0807363;
+    initialState.alge(15) = 38050.7;
+    initialState.alge(16) = 3.16988;
+    initialState.alge(17) = -24.5161;
+    initialState.alge(18) = 22.556;
+    initialState.alge(19) = -2.36801;
+    initialState.alge(20) = -0.0990131;
+    initialState.alge(21) = -0.188172;
+    initialState.alge(22) = -1.08024;
+    initialState.alge(23) = 0.0827114;
+    initialState.alge(24) = 0.339614;
+    initialState.alge(25) = 1446.75;
+    initialState.alge(26) = 1456.06;
+    initialState.alge(27) = -21.666;
+    initialState.alge(28) = -21.7089;
+    initialState.alge(29) = -0.17174;
+    initialState.alge(30) = 162.264;
+    initialState.alge(31) = -142.955;
+    initialState.alge(32) = 0.146161;
+    initialState.alge(33) = -2.41921;
+    initialState.alge(34) = 2.0219;
+    initialState.alge(35) = -0.0722482;
+    initialState.alge(36) = -4.1726;
+    initialState.alge(37) = 51.7445;
+    initialState.alge(38) = 1587.62;
+    initialState.alge(39) = 1583.24;
+    initialState.alge(40) = 1581.6;
+    initialState.alge(41) = 1577.38;
+    initialState.alge(42) = 0.372623;
+    initialState.alge(43) = -4.5536e-05;
+    initialState.alge(44) = 7.05955e-07;
+    initialState.alge(45) = 2.10597e-06;
     initialState.alge(46) = 20;
     initialState.alge(47) = -20;
 
@@ -441,7 +510,7 @@ void testERAAlgo(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    double finalTime = 100;
+    double finalTime = 300;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
@@ -471,12 +540,198 @@ void testSim(Logger & log)
     splotPlantState(simResults, yPlot, y);
 }
 
+Eigen::Vector<double, NUM_STATES> vz_stateCloseToRoABoundary()
+{
+    Eigen::Vector<double, NUM_STATES> vz = {
+        -2.84488e-08,
+         6.49673e-11,
+        -1.27123e-08,
+        -3.72008e-09,
+        -7.05403e-08,
+        -1.06216e-07,
+        -1.36627e-07,
+         6.36192e-10,
+        -5.25603e-08,
+        -6.10231e-11,
+         1.81503e-10,
+        -8.21654e-09,
+                  -0,
+                  -0,
+                  -0,
+                  -0,
+                  -0,
+                  -0,
+           1.285e-09,
+                  -0,
+                  -0,
+         4.73351e-10,
+                  -0,
+        -6.61786e-14,
+                  -0,
+        -4.24746e-11,
+                  -0,
+                  -0,
+        -7.76228e-11,
+                  -0,
+                  -0,
+        -1.63984e-08,
+                  -0,
+                  -0,
+        -3.92802e-10,
+                  -0,
+                  -0,
+         6.09986e-16,
+        -3.16742e-16,
+         3.98727e-15,
+        -2.25276e-15,
+        -3.78777e-11,
+                  -0,
+                  -0,
+        -1.74299e-09,
+                  -0,
+                  -0,
+        -5.48197e-11,
+                  -0,
+                  -0,
+                  -0,
+                  -0,
+                  -0,
+                  -0,
+        -4.30932e-11,
+        -5.24444e-09,
+        -2.58058e-10,
+        -2.79594e-07,
+                  -0,
+                  -0
+    };
+
+    return vz;
+}
+
+Eigen::Vector<double, NUM_PARAMETERS> vp_stateCloseToRoABoundary()
+{
+    Eigen::Vector<double, NUM_PARAMETERS> vp = {
+         -3.4627e-07,
+        -4.68415e-06,
+         5.17365e-07,
+        -3.50998e-11,
+         6.89135e-12,
+        -1.65925e-11,
+          1.7199e-10,
+         1.35183e-11,
+         1.13221e-09,
+         7.49887e-09,
+        -3.66293e-07,
+         8.67092e-09,
+        -2.87432e-12,
+        -3.69854e-13,
+         2.07048e-11,
+         5.56554e-11,
+         5.95553e-12,
+         3.12149e-10,
+         -9.8693e-11,
+        -7.71553e-11,
+         9.20922e-10,
+        -5.45863e-09,
+         2.92891e-08,
+        -5.88542e-08,
+         5.27344e-10,
+         5.03168e-10,
+        -5.56355e-10,
+         2.27796e-13,
+         4.28667e-15,
+        -1.75006e-11,
+        -1.60923e-11,
+        -4.95524e-13,
+         3.39489e-10,
+         2.46575e-11,
+         7.73515e-12,
+        -2.13172e-11
+    };
+    return vp;
+}
+
+
+void test_vp(Logger & log)
+{
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
+    double finalTime = 500;
+    double simTime = 1e-3;
+    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
+    std::chrono::time_point start = std::chrono::steady_clock::now();
+    SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary(), true);
+
+    Logger splot("./build/splot.txt");
+    splotTrajectory(simResults, splot);
+
+    std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
+    G_tp gtp = droneTrajectory.calc_G_tp(ts);
+    double og_gtp = gtp.G;
+    log <<  "G: " << gtp.G << " tp: " << gtp.tp << std::endl;
+    d2w d2w = droneTrajectory.calc_d2w(simResults, ts, gtp);
+    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG(ts.at(gtp.tp), d2w, gtp);
+    Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
+    // Eigen::Vector<double, NUM_STATES> vz = vz_stateCloseToRoABoundary();
+    log << "vz " << std::endl << vz << std::endl;
+    Eigen::Vector<double, NUM_PARAMETERS> vp = dG.segment(NUM_STATES, NUM_PARAMETERS);
+    // Eigen::Vector<double, NUM_PARAMETERS> vp = vp_stateCloseToRoABoundary();
+    log << "vp " << std::endl << vp << std::endl;
+    std::array<PIDParameters, NUM_PIDS> og_params = droneTrajectory.m_ctrlParams;
+    double delta = 1e-05;
+    log << "change plant states" << std::endl;
+    for(int i = 0; i < NUM_PLANT_STATES; i++) {
+        SystemState test_state = stateCloseToRoABoundary();
+        test_state.plant(i) += std::copysign(delta, vz(i));
+        SimResults test_state_sim = droneTrajectory.Trajectory(test_state);
+        std::vector<dwdwo> test_state_ts = droneTrajectory.trajSens(test_state_sim);
+        gtp = droneTrajectory.calc_G_tp(test_state_ts);
+        log <<  "i: " <<  i <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
+    }
+    delta = 1e-05;
+    log << "change alge states" << std::endl;
+    for(int i = 0; i < NUM_ALGE_STATES; i++) {
+        SystemState test_state = stateCloseToRoABoundary();
+        test_state.alge(i) += std::copysign(delta, vz(NUM_PLANT_STATES + i));
+        SimResults test_state_sim = droneTrajectory.Trajectory(test_state);
+        std::vector<dwdwo> test_state_ts = droneTrajectory.trajSens(test_state_sim);
+        gtp = droneTrajectory.calc_G_tp(test_state_ts);
+        log <<  "i: " <<  i <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
+    }
+    delta = 1e-05;
+    log << "change parameters" << std::endl;
+    for(int i = 0; i < NUM_PIDS; i++) {
+        droneTrajectory.m_ctrlParams.at(i).kp = og_params.at(i).kp + std::copysign(delta, vp(i*NUM_PID_STATES));
+        SimResults kp_sim = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+        std::vector<dwdwo> plus_kp = droneTrajectory.trajSens(kp_sim);
+        droneTrajectory.m_ctrlParams.at(i).kp = og_params.at(i).kp;    
+        gtp = droneTrajectory.calc_G_tp(plus_kp);
+        log <<  "i: " <<  i*NUM_PID_STATES <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
+
+        droneTrajectory.m_ctrlParams.at(i).ki = og_params.at(i).ki + std::copysign(delta, vp(i*NUM_PID_STATES + 1));
+        SimResults ki_sim = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+        std::vector<dwdwo> plus_ki = droneTrajectory.trajSens(ki_sim);
+        droneTrajectory.m_ctrlParams.at(i).ki = og_params.at(i).ki; 
+        gtp = droneTrajectory.calc_G_tp(plus_ki);
+        log <<  "i: " << i*NUM_PID_STATES + 1 <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
+
+        droneTrajectory.m_ctrlParams.at(i).kd = og_params.at(i).kd + std::copysign(delta, vp(i*NUM_PID_STATES + 2));
+        SimResults kd_sim = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+        std::vector<dwdwo> plus_kd = droneTrajectory.trajSens(kd_sim);
+        droneTrajectory.m_ctrlParams.at(i).kd = og_params.at(i).kd;  
+        gtp = droneTrajectory.calc_G_tp(plus_kd);
+        log <<  "i: " << i*NUM_PID_STATES + 2 <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
+    }
+
+}
+
 int main()
 {
     Logger log("./build/log.txt");
     // testERAAlgo(log);
-    testTrajSens(log);
+    // testTrajSens(log);
     // testSim(log);
+    test_vp(log);
     std::cout << ":D" << std::endl;
     return 0;
 }

@@ -261,7 +261,7 @@ class DroneTrajectory
     // For ERA algo Weighting Matrix
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> m_Pinv = Eigen::Matrix<double, NUM_STATES, NUM_STATES>::Identity();
     // For ERA algo numerical tolerances for 
-    double m_epsilon = 1e-12;
+    double m_epsilon = 1e-10;
     double m_backtrack = 1.0/2.0;
 
     Eigen::Vector<double, NUM_ALGE_STATES> CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, 
@@ -356,7 +356,7 @@ class DroneTrajectory
             DroneParameters droneParameters = {},
             double sampleRate = 500, double cutoffFreq = 30, bool fixedNumIterations = true);
         
-        SimResults Trajectory(SystemState initialState, bool checkConverge = false) const; 
+        SimResults Trajectory(SystemState initialState, bool checkConverge = true) const; 
         SystemState Trajectory(SystemState initialState, int finalTimestep) const; 
 
         std::vector<dwdwo> trajSens(SimResults const & simResults) const;
@@ -375,7 +375,7 @@ class DroneTrajectory
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime);
 
         zkpk theGigaAlgo(SystemState currState);
-        zkpk updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> currState);
+        zkpk updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> const & currState);
 
         Eigen::Vector<double, NUM_STATES> closestZBar(SystemState currState);
 

@@ -18,7 +18,7 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
     return curr;
 }
 
-zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> currState)
+zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> const & currState)
 {
     SystemState prev_zk_state = {prev.zk.segment(0, NUM_PLANT_STATES), prev.zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)};
     SimResults traj = Trajectory(prev_zk_state);
@@ -31,9 +31,10 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> cu
     m_logger << "vz " << vz << std::endl;
     Eigen::Vector<double, NUM_PARAMETERS> vp = dG.segment(NUM_STATES, NUM_PARAMETERS);
     m_logger << "vp " << vp << std::endl;
-    Eigen::Vector<double, NUM_PARAMETERS> pk = prev.pk + m_algo_alpha*(vz.transpose()*(prev.zk - currState) + gtp.G - m_epsilon)/(vz.transpose()*m_Pinv*vz)*vp;
+    double denominator = vz.transpose()*m_Pinv*vz;
+    Eigen::Vector<double, NUM_PARAMETERS> pk = prev.pk + m_algo_alpha*(vz.transpose()*(currState - prev.zk) + gtp.G - m_epsilon)/denominator*vp;
     setParams(pk);
-    Eigen::Vector<double, NUM_STATES> zk = (m_Pinv*vz*vz.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.zk-currState) + (m_Pinv*vz*vp.transpose())/(vz.transpose()*m_Pinv*vz)*(prev.pk-pk) + currState - (m_Pinv*vz)/(vz.transpose()*m_Pinv*vz)*(gtp.G-m_epsilon);
+    Eigen::Vector<double, NUM_STATES> zk = (m_Pinv*vz*vz.transpose())/denominator*(prev.zk-currState) - (m_Pinv*vz*vp.transpose())/denominator*(pk - prev.pk) + currState - (m_Pinv*vz)/denominator*(gtp.G-m_epsilon);
     double backtrack = m_backtrack;
     traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
     int backtrackingCount = 0;

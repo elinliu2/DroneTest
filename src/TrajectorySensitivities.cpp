@@ -74,18 +74,6 @@ std::vector<dwdwo> DroneTrajectory::trajSens(SimResults const & simResults) cons
         }  
         // dydwo
         dydwo_plus = dgdx_plus * dxdwo_plus + dgdz_plus * dzdwo_plus;
-        if(i == 8352){
-            m_logger << "dgdz_plus * dzdwo_plus" << std::endl;
-            m_logger << dgdz_plus * dzdwo_plus << std::endl;
-            m_logger << "dgdx_plus * dxdwo_plus" << std::endl;
-            m_logger << dgdx_plus * dxdwo_plus << std::endl;
-            Eigen::Matrix<double, NUM_Y_STATES, NUM_STATES> test = dgdz_plus.toDense().leftCols(15) * dzdwo_plus.topRows(15);
-        
-            m_logger << "test" << std::endl;
-            m_logger << test << std::endl;
-            m_logger << "dydwo_plus" << std::endl;
-            m_logger << dydwo_plus << std::endl;
-        }
 
         // dzdwo 
         dzdwo_plus += dhdy_plus * dydwo_plus;
