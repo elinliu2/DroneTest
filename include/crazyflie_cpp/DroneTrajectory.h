@@ -343,6 +343,11 @@ class DroneTrajectory
     void dgdz_test(SystemState currState, SystemState prevState, double time, double timestep);
     void dhdy_test(SystemState currState, SystemState prevState, double time, double timestep);
 
+    zkpk updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> const & currState);
+    zkpk updateStepWNewBackstepping(zkpk prev, Eigen::Vector<double, NUM_STATES> const & currState);    
+    Eigen::Vector<double, NUM_STATES> backstep_btwn_zk_zkp1(Eigen::Vector<double, NUM_STATES> const & zk, Eigen::Vector<double, NUM_STATES> const & zkp1);
+   
+
     public:
         // I would add set/gets but please im lazy and i just want to get a mvp
         std::array<PIDParameters, NUM_PIDS> m_ctrlParams;
@@ -371,12 +376,13 @@ class DroneTrajectory
 
         G_tp calc_G_tp(std::vector<dwdwo> const& trajSens);
         d2w calc_d2w(SimResults const & simResults, std::vector<dwdwo> const & ts, G_tp gtp);
+        d2wdwo2 calc_d2wdwo2(SimResults const & simResults, std::vector<dwdwo> const & ts, G_tp gtp);
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG(dwdwo ts, d2w const & d2w, G_tp gtp);
+        Eigen::Vector<double, NUM_STATES> calc_vz(dwdwo ts, d2wdwo2 const & d2wdwo2, G_tp gtp);
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime);
 
         zkpk theGigaAlgo(SystemState currState);
-        zkpk updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> const & currState);
-
+        zkpk theGigaAlgopt2(SystemState currState);
         Eigen::Vector<double, NUM_STATES> closestZBar(SystemState currState);
 
         Eigen::Vector<double, NUM_PARAMETERS> getParams();

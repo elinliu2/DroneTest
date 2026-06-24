@@ -510,14 +510,21 @@ void testERAAlgo(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    double finalTime = 300;
+    double finalTime = 500;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
     SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
     log << simResults.stable << std::endl;
-    zkpk zkpk = droneTrajectory.theGigaAlgo(stateCloseToRoABoundary());
+    zkpk zkpk_v2 = droneTrajectory.theGigaAlgopt2(stateCloseToRoABoundary());
+    log << "zkpk_v2" << std::endl;
+    log << zkpk_v2.zk << std::endl << std::endl;
+    log << zkpk_v2.pk << std::endl;
 
+    zkpk zkpk = droneTrajectory.theGigaAlgo(stateCloseToRoABoundary());
+    log << "zkpk" << std::endl;
+    log << zkpk.zk << std::endl << std::endl;
+    log << zkpk.pk << std::endl;
 }
 
 void testSim(Logger & log)
@@ -725,13 +732,25 @@ void test_vp(Logger & log)
 
 }
 
+void test_closestzbar(Logger & log)
+{
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
+    double finalTime = 500;
+    double simTime = 1e-3;
+    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
+    std::chrono::time_point start = std::chrono::steady_clock::now();
+    Eigen::Vector<double, NUM_STATES>  zbar = droneTrajectory.closestZBar(stateCloseToRoABoundary());
+}
+
 int main()
 {
     Logger log("./build/log.txt");
-    // testERAAlgo(log);
+    testERAAlgo(log);
     // testTrajSens(log);
     // testSim(log);
-    test_vp(log);
+    // test_vp(log);
+    // test_closestzbar(log);
     std::cout << ":D" << std::endl;
     return 0;
 }
