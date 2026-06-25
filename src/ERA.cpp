@@ -10,7 +10,7 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
     zkpk curr = {z0, getParams()};
     Eigen::Vector<double, NUM_PARAMETERS> p0 = getParams();
     int count = 0;
-    while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-15)
+    while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-8)
     {
         pk_prev = curr.pk;
         curr = updateStep(curr, z0);
@@ -31,7 +31,7 @@ zkpk DroneTrajectory::theGigaAlgopt2(SystemState currState)
     zkpk curr = {z0, getParams()};
     Eigen::Vector<double, NUM_PARAMETERS> p0 = getParams();
     int count = 0;
-    while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-15)
+    while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-8)
     {
         pk_prev = curr.pk;
         curr = updateStepWNewBackstepping(curr, z0);
@@ -65,7 +65,7 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> co
     traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
     int backtrackingCount = 0;
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-12)
+    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-8)
     {
         m_logger << "backtrackingCount " << backtrackingCount << std::endl;
         pk = prev.pk + backtrack*(pk-prev.pk);
@@ -277,7 +277,7 @@ zkpk DroneTrajectory::updateStepWNewBackstepping(zkpk prev, Eigen::Vector<double
     if (traj.stable && traj.converged) {
         m_logger << "traj stable and converged" << std::endl;
     }
-    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-15)
+    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-8)
     {
         m_logger << "traj not stable or not converged" << std::endl;
         SimResults prev_zk_pkp1_traj = Trajectory(prev_zk_state);

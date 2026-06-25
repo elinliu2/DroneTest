@@ -6,7 +6,7 @@
 
 double windDist(double time)
 {
-    if(time < 1){
+    if(time < 0.20){
         return 0.7;
     }
     return 0;
@@ -516,10 +516,10 @@ void testERAAlgo(Logger & log)
     std::chrono::time_point start = std::chrono::steady_clock::now();
     SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
     log << simResults.stable << std::endl;
-    zkpk zkpk_v2 = droneTrajectory.theGigaAlgopt2(stateCloseToRoABoundary());
-    log << "zkpk_v2" << std::endl;
-    log << zkpk_v2.zk << std::endl << std::endl;
-    log << zkpk_v2.pk << std::endl;
+    // zkpk zkpk_v2 = droneTrajectory.theGigaAlgopt2(stateCloseToRoABoundary());
+    // log << "zkpk_v2" << std::endl;
+    // log << zkpk_v2.zk << std::endl << std::endl;
+    // log << zkpk_v2.pk << std::endl;
 
     zkpk zkpk = droneTrajectory.theGigaAlgo(stateCloseToRoABoundary());
     log << "zkpk" << std::endl;
@@ -732,6 +732,66 @@ void test_vp(Logger & log)
 
 }
 
+Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
+{
+    Eigen::Vector<double, NUM_PARAMETERS> params = {
+                1.99641520191027,
+             -0.0382430185289582,
+             0.00375574178589344,
+                1.99235464293712,
+             -0.0065778889334478,
+              -0.110287240374983,
+                1.97412485258705,
+               0.501290812593752,
+              -0.413935092741365,
+                25.0000060322266,
+               0.997031267073954,
+            9.99627590929611e-05,
+                24.9997037765278,
+               0.999726842448724,
+             -0.0113416621191316,
+                24.9852315914554,
+                 15.000690902211,
+              -0.183551932520078,
+                5.97983400970452,
+                2.99995497799582,
+               0.032257586607714,
+                5.99650725430897,
+                 3.0013239389497,
+             -0.0486507530662815,
+                5.87312360888611,
+               0.984294548132201,
+              -0.542566739512184,
+                249.999734552023,
+                499.999987095493,
+                 2.4999231595152,
+                249.999786518053,
+                499.999990094132,
+                2.49312684504915,
+                119.987316743198,
+                16.6988978887854,
+             -0.0240217173456554
+    };
+    return params;
+}
+
+void test_param(Logger & log)
+{
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {windDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
+    double finalTime = 300;
+    double simTime = 1e-3;
+    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
+    droneTrajectory.setParams(get_test_param());
+    std::chrono::time_point start = std::chrono::steady_clock::now();
+    SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+
+    log << "stable? " << simResults.stable << std::endl;
+
+    Logger splot("./build/splot.txt");
+    splotTrajectory(simResults, splot);
+}
+
 void test_closestzbar(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
@@ -751,6 +811,7 @@ int main()
     // testSim(log);
     // test_vp(log);
     // test_closestzbar(log);
+    // test_param(log);
     std::cout << ":D" << std::endl;
     return 0;
 }
