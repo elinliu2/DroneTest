@@ -245,9 +245,9 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(edy) = -1/timestep*(-plantState(x)*sinyaw + prevPlantState(x)*prevsinyaw + plantState(y)*cosyaw - prevPlantState(y)*prevcosyaw);
     algeStates(edz) = -1/timestep*(plantState(z) - prevPlantState(z));
     
-    algeStates(desVelX) = PIDctrl(m_ctrlParams.at(posX), {(m_ref.at(refx)(time) - plantState(x))*cosyaw + (m_ref.at(refy)(time) - plantState(y))*sinyaw, algeStates(eix), algeStates(edx)});
-    algeStates(desVelY) = PIDctrl(m_ctrlParams.at(posY), {(m_ref.at(refx)(time) - plantState(x))*(-sinyaw) + (m_ref.at(refy)(time) - plantState(y))*cosyaw, algeStates(eiy), algeStates(edy)});
-    algeStates(desVelZ) = PIDctrl(m_ctrlParams.at(posZ), {m_ref.at(refz)(time) - plantState(z), algeStates(eiz), algeStates(edz)});
+    algeStates(desVelX) = PIDctrl(m_ctrlParams.at(posX), m_sf(kppx), m_sf(kipx), m_sf(kdpx), {(m_ref.at(refx)(time) - plantState(x))*cosyaw + (m_ref.at(refy)(time) - plantState(y))*sinyaw, algeStates(eix), algeStates(edx)});
+    algeStates(desVelY) = PIDctrl(m_ctrlParams.at(posY), m_sf(kppy), m_sf(kipy), m_sf(kdpy), {(m_ref.at(refx)(time) - plantState(x))*(-sinyaw) + (m_ref.at(refy)(time) - plantState(y))*cosyaw, algeStates(eiy), algeStates(edy)});
+    algeStates(desVelZ) = PIDctrl(m_ctrlParams.at(posZ), m_sf(kppz), m_sf(kipz), m_sf(kdpz), {m_ref.at(refz)(time) - plantState(z), algeStates(eiz), algeStates(edz)});
 
     algeStates(eixdot) = currAlgeStates(eixdot) + timestep*(algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw);
     algeStates(eiydot) = currAlgeStates(eiydot) + timestep*(algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw);
@@ -257,15 +257,15 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(edydot) = -1/timestep*(-plantState(xdot)*sinyaw + plantState(ydot)*cosyaw + prevPlantState(xdot)*prevsinyaw - prevPlantState(ydot)*prevcosyaw);
     algeStates(edzdot) = -1/timestep*(plantState(zdot) - prevPlantState(zdot));
     
-    algeStates(desThrust) = PIDctrl(m_ctrlParams.at(velZ), {algeStates(desVelZ) - plantState(zdot), algeStates(eizdot), algeStates(edzdot)})*m_thrustScale+m_thrustBase;
+    algeStates(desThrust) = PIDctrl(m_ctrlParams.at(velZ), m_sf(kpvz), m_sf(kivz), m_sf(kdvz), {algeStates(desVelZ) - plantState(zdot), algeStates(eizdot), algeStates(edzdot)})*m_thrustScale+m_thrustBase;
     
     // Need a positive pitch to move forward in the x direction
     // Need a negative roll to move forward in the y direction
     // m_logger << "unsat desRoll: " << -PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}) << std::endl;
     // m_logger << "unsat desPitch: " << PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}) << std::endl;
 
-    algeStates(desRoll) = -std::clamp(PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
-    algeStates(desPitch) = std::clamp(PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
+    algeStates(desRoll) = -std::clamp(PIDctrl(m_ctrlParams.at(velY), m_sf(kpvy), m_sf(kivy), m_sf(kdvy), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+    algeStates(desPitch) = std::clamp(PIDctrl(m_ctrlParams.at(velX), m_sf(kpvx), m_sf(kipx), m_sf(kdpx), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
 
     // algeStates(desRoll) = -PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}) ; 
     // algeStates(desPitch) = PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}) ; 
@@ -278,9 +278,9 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(edtheta) = -1/timestep*180/M_PI*(plantState(theta) - prevPlantState(theta));
     algeStates(edpsi) = -1/timestep*180/M_PI*(plantState(psi) - prevPlantState(psi));
 
-    algeStates(desRollRate) = PIDctrl(m_ctrlParams.at(roll), {algeStates(desRoll) - 180/M_PI*plantState(phi), algeStates(eiphi), algeStates(edphi)});
-    algeStates(desPitchRate) = PIDctrl(m_ctrlParams.at(pitch), {algeStates(desPitch) - 180/M_PI*plantState(theta), algeStates(eitheta), algeStates(edtheta)});
-    algeStates(desYawRate) = PIDctrl(m_ctrlParams.at(yaw), {m_ref.at(refyaw)(time) - 180/M_PI*plantState(psi), algeStates(eipsi), algeStates(edpsi)});
+    algeStates(desRollRate)  = PIDctrl(m_ctrlParams.at(roll),  m_sf(kpphi), m_sf(kiphi), m_sf(kdphi), {algeStates(desRoll) - 180/M_PI*plantState(phi), algeStates(eiphi), algeStates(edphi)});
+    algeStates(desPitchRate) = PIDctrl(m_ctrlParams.at(pitch), m_sf(kptheta), m_sf(kitheta), m_sf(kdtheta), {algeStates(desPitch) - 180/M_PI*plantState(theta), algeStates(eitheta), algeStates(edtheta)});
+    algeStates(desYawRate)   = PIDctrl(m_ctrlParams.at(yaw),   m_sf(kppsi), m_sf(kipsi), m_sf(kdpsi), {m_ref.at(refyaw)(time) - 180/M_PI*plantState(psi), algeStates(eipsi), algeStates(edpsi)});
     
     // LPF for rollRate and pitchRate
     algeStates(delay_1_rollRate) = -rad2Deg(plantState(p)-prevPlantState(p))/timestep - currAlgeStates(delay_1_rollRate)*lpf_a1 - currAlgeStates(delay_2_rollRate)*lpf_a2;
@@ -296,9 +296,9 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(edq) = lpf_b0 * algeStates(delay_1_pitchRate) + currAlgeStates(delay_1_pitchRate) * lpf_b1 + currAlgeStates(delay_2_pitchRate) * lpf_b2;
     algeStates(edr) = -1/timestep*180/M_PI*(plantState(r) - prevPlantState(r));
 
-    algeStates(desRollOutput)  = PIDctrl(m_ctrlParams.at(rollRate), {algeStates(desRollRate) - 180/M_PI*plantState(p), algeStates(eip), algeStates(edp)});
-    algeStates(desPitchOutput) = PIDctrl(m_ctrlParams.at(pitchRate), {algeStates(desPitchRate) - 180/M_PI*plantState(q), algeStates(eiq), algeStates(edq)});
-    algeStates(desYawOutput) = PIDctrl(m_ctrlParams.at(yawRate), {algeStates(desYawRate) - 180/M_PI*plantState(r), algeStates(eir), algeStates(edr)});
+    algeStates(desRollOutput)  = PIDctrl(m_ctrlParams.at(rollRate),  m_sf(kpp), m_sf(kip), m_sf(kdp), {algeStates(desRollRate) - 180/M_PI*plantState(p), algeStates(eip), algeStates(edp)});
+    algeStates(desPitchOutput) = PIDctrl(m_ctrlParams.at(pitchRate), m_sf(kpq), m_sf(kiq), m_sf(kdq), {algeStates(desPitchRate) - 180/M_PI*plantState(q), algeStates(eiq), algeStates(edq)});
+    algeStates(desYawOutput)   = PIDctrl(m_ctrlParams.at(yawRate),   m_sf(kpr), m_sf(kir), m_sf(kdr), {algeStates(desYawRate) - 180/M_PI*plantState(r), algeStates(eir), algeStates(edr)});
 
     // TODO: implement saturation
 
@@ -351,9 +351,9 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::h(
     if (index == edy) { algeStates(edy) += delta;} 
     if (index == edz) { algeStates(edz) += delta;}
     
-    algeStates(desVelX) = PIDctrl(m_ctrlParams.at(posX), {(m_ref.at(refx)(time) - plantState(x))*cosyaw + (m_ref.at(refy)(time) - plantState(y))*sinyaw, algeStates(eix), algeStates(edx)});
-    algeStates(desVelY) = PIDctrl(m_ctrlParams.at(posY), {(m_ref.at(refx)(time) - plantState(x))*(-sinyaw) + (m_ref.at(refy)(time) - plantState(y))*cosyaw, algeStates(eiy), algeStates(edy)});
-    algeStates(desVelZ) = PIDctrl(m_ctrlParams.at(posZ), {m_ref.at(refz)(time) - plantState(z), algeStates(eiz), algeStates(edz)});
+    algeStates(desVelX) = PIDctrl(m_ctrlParams.at(posX), m_sf(kppx), m_sf(kipx), m_sf(kdpx), {(m_ref.at(refx)(time) - plantState(x))*cosyaw + (m_ref.at(refy)(time) - plantState(y))*sinyaw, algeStates(eix), algeStates(edx)});
+    algeStates(desVelY) = PIDctrl(m_ctrlParams.at(posY), m_sf(kppy), m_sf(kipy), m_sf(kdpy), {(m_ref.at(refx)(time) - plantState(x))*(-sinyaw) + (m_ref.at(refy)(time) - plantState(y))*cosyaw, algeStates(eiy), algeStates(edy)});
+    algeStates(desVelZ) = PIDctrl(m_ctrlParams.at(posZ), m_sf(kppz), m_sf(kipz), m_sf(kdpz), {m_ref.at(refz)(time) - plantState(z), algeStates(eiz), algeStates(edz)});
 
     if (index == desVelX) { algeStates(desVelX) += delta;} 
     if (index == desVelY) { algeStates(desVelY) += delta;} 
@@ -375,9 +375,9 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::h(
     if (index == edydot) { algeStates(edydot) += delta;} 
     if (index == edzdot) { algeStates(edzdot) += delta;}
     
-    algeStates(desThrust) = PIDctrl(m_ctrlParams.at(velZ), {algeStates(desVelZ) - plantState(zdot), algeStates(eizdot), algeStates(edzdot)})*m_thrustScale+m_thrustBase;
-    algeStates(desRoll) = -std::clamp(PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
-    algeStates(desPitch) = std::clamp(PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
+    algeStates(desThrust) = PIDctrl(m_ctrlParams.at(velZ), m_sf(kpvz), m_sf(kivz), m_sf(kdvz), {algeStates(desVelZ) - plantState(zdot), algeStates(eizdot), algeStates(edzdot)})*m_thrustScale+m_thrustBase;
+    algeStates(desRoll) = -std::clamp(PIDctrl(m_ctrlParams.at(velY), m_sf(kpvy), m_sf(kivy), m_sf(kdvy), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
+    algeStates(desPitch) = std::clamp(PIDctrl(m_ctrlParams.at(velX), m_sf(kpvx), m_sf(kivx), m_sf(kdvx), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
 
     if (index == desThrust) { algeStates(desThrust) += delta;} 
     if (index == desRoll && algeStates(desRoll) > -20 && algeStates(desRoll) < 20 ) { algeStates(desRoll) += delta;} 
@@ -399,9 +399,9 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::h(
     if (index == edtheta) { algeStates(edtheta) += delta;} 
     if (index == edpsi) { algeStates(edpsi) += delta;}
 
-    algeStates(desRollRate) = PIDctrl(m_ctrlParams.at(roll), {algeStates(desRoll) - 180/M_PI*plantState(phi), algeStates(eiphi), algeStates(edphi)});
-    algeStates(desPitchRate) = PIDctrl(m_ctrlParams.at(pitch), {algeStates(desPitch) - 180/M_PI*plantState(theta), algeStates(eitheta), algeStates(edtheta)});
-    algeStates(desYawRate) = PIDctrl(m_ctrlParams.at(yaw), {m_ref.at(refyaw)(time) - 180/M_PI*plantState(psi), algeStates(eipsi), algeStates(edpsi)});
+    algeStates(desRollRate) = PIDctrl(m_ctrlParams.at(roll), m_sf(kpphi), m_sf(kiphi), m_sf(kdphi), {algeStates(desRoll) - 180/M_PI*plantState(phi), algeStates(eiphi), algeStates(edphi)});
+    algeStates(desPitchRate) = PIDctrl(m_ctrlParams.at(pitch), m_sf(kptheta), m_sf(kitheta), m_sf(kdtheta), {algeStates(desPitch) - 180/M_PI*plantState(theta), algeStates(eitheta), algeStates(edtheta)});
+    algeStates(desYawRate) = PIDctrl(m_ctrlParams.at(yaw), m_sf(kppsi), m_sf(kipsi), m_sf(kdpsi), {m_ref.at(refyaw)(time) - 180/M_PI*plantState(psi), algeStates(eipsi), algeStates(edpsi)});
     
     if (index == desRollRate) { algeStates(desRollRate) += delta;} 
     if (index == desPitchRate) { algeStates(desPitchRate) += delta;} 
@@ -434,9 +434,9 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::h(
     if (index == edq) { algeStates(edq) += delta;} 
     if (index == edr) { algeStates(edr) += delta;}
 
-    algeStates(desRollOutput)  = PIDctrl(m_ctrlParams.at(rollRate), {algeStates(desRollRate) - 180/M_PI*plantState(p), algeStates(eip), algeStates(edp)});
-    algeStates(desPitchOutput) = PIDctrl(m_ctrlParams.at(pitchRate), {algeStates(desPitchRate) - 180/M_PI*plantState(q), algeStates(eiq), algeStates(edq)});
-    algeStates(desYawOutput) = PIDctrl(m_ctrlParams.at(yawRate), {algeStates(desYawRate) - 180/M_PI*plantState(r), algeStates(eir), algeStates(edr)});
+    algeStates(desRollOutput)  = PIDctrl(m_ctrlParams.at(rollRate), m_sf(kpp), m_sf(kip), m_sf(kdp), {algeStates(desRollRate) - 180/M_PI*plantState(p), algeStates(eip), algeStates(edp)});
+    algeStates(desPitchOutput) = PIDctrl(m_ctrlParams.at(pitchRate), m_sf(kpq), m_sf(kiq), m_sf(kdq), {algeStates(desPitchRate) - 180/M_PI*plantState(q), algeStates(eiq), algeStates(edq)});
+    algeStates(desYawOutput) = PIDctrl(m_ctrlParams.at(yawRate), m_sf(kpr), m_sf(kir), m_sf(kdr), {algeStates(desYawRate) - 180/M_PI*plantState(r), algeStates(eir), algeStates(edr)});
 
     if (index == desRollOutput) { algeStates(desRollOutput) += delta;} 
     if (index == desPitchOutput) { algeStates(desPitchOutput) += delta;} 
@@ -465,9 +465,6 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::h(
     return algeStates;
 }
 
-
-double PIDctrl(PIDParameters params, Eigen::Vector<double, NUM_PID_STATES> state)
-{ return params.ki * state(ki_error) + params.kp * state(kp_error) + params.kd * state(kd_error); }
 
 Eigen::Vector<double, NUM_PID_STATES> updatePIDstate(Eigen::Vector<double, NUM_PID_STATES> currVal, double currSig, double prevSig, double ref, double timestep, double time)
 {

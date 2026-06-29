@@ -264,6 +264,9 @@ class DroneTrajectory
     double m_epsilon = 1e-10;
     double m_backtrack = 1.0/2.0;
 
+    double PIDctrl(PIDParameters params, double kp_sf, double ki_sf, double kd_sf, Eigen::Vector<double, NUM_PID_STATES> state) const
+    { return params.kp * state(kp_error) * kp_sf + params.ki * state(ki_error) * ki_sf + params.kd * state(kd_error) * kd_sf; }
+
     Eigen::Vector<double, NUM_ALGE_STATES> CascadedPIDController(Eigen::Vector<double, NUM_PLANT_STATES> plantState, 
     Eigen::Vector<double, NUM_PLANT_STATES> prevPlantState,
     Eigen::Vector<double, NUM_ALGE_STATES> currAlgeStates, double time, double timestep) const;
@@ -344,13 +347,12 @@ class DroneTrajectory
     void dhdy_test(SystemState currState, SystemState prevState, double time, double timestep);
 
     zkpk updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> const & currState);
-    zkpk updateStepWNewBackstepping(zkpk prev, Eigen::Vector<double, NUM_STATES> const & currState);    
-    Eigen::Vector<double, NUM_STATES> backstep_btwn_zk_zkp1(Eigen::Vector<double, NUM_STATES> const & zk, Eigen::Vector<double, NUM_STATES> const & zkp1);
-   
 
     public:
         // I would add set/gets but please im lazy and i just want to get a mvp
         std::array<PIDParameters, NUM_PIDS> m_ctrlParams;
+        // scale factors
+        Eigen::Vector<double, NUM_PARAMETERS> m_sf = Eigen::Vector<double, NUM_PARAMETERS>::Ones();
     
         DroneTrajectory( 
             Logger & log, 
@@ -382,7 +384,6 @@ class DroneTrajectory
         Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> calc_dG_test(SystemState initialState, dwdwo ts, G_tp gtp, double endtime);
 
         zkpk theGigaAlgo(SystemState currState);
-        zkpk theGigaAlgopt2(SystemState currState);
         Eigen::Vector<double, NUM_STATES> closestZBar(SystemState currState);
 
         Eigen::Vector<double, NUM_PARAMETERS> getParams();

@@ -729,7 +729,6 @@ void test_vp(Logger & log)
         gtp = droneTrajectory.calc_G_tp(plus_kd);
         log <<  "i: " << i*NUM_PID_STATES + 2 <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
     }
-
 }
 
 Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
