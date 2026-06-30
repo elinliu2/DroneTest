@@ -10,7 +10,7 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
     zkpk curr = {z0, m_sf};
     Eigen::Vector<double, NUM_PARAMETERS> p0 = m_sf;
     int count = 0;
-    while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-5)
+    while((curr.pk-pk_prev).cwiseAbs().sum() > 5e-5)
     {
         pk_prev = curr.pk;
         curr = updateStep(curr, z0);
@@ -48,7 +48,7 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> co
     traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
     int backtrackingCount = 0;
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-5)
+    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 5e-5)
     {
         m_logger << "backtrackingCount " << backtrackingCount << std::endl;
         pk = prev.pk + backtrack*(pk-prev.pk);
@@ -96,7 +96,7 @@ Eigen::Vector<double, NUM_STATES> DroneTrajectory::closestZBar(SystemState currS
 
         double backtrack = 0.1;
         traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
-        while(!traj.stable && (zk-zk_prev).cwiseAbs().sum() > 1e-8)
+        while(!traj.stable && (zk-zk_prev).cwiseAbs().sum() > 5e-5)
         {
             m_logger << "traj.stable " << traj.stable << " (zk-zk_prev).cwiseAbs().sum(): " << (zk-zk_prev).cwiseAbs().sum() << std::endl;
             zk = zk_prev + backtrack*(zk-zk_prev);

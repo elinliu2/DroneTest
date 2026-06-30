@@ -6,7 +6,7 @@
 
 double windDist(double time)
 {
-    if(time < 0.20){
+    if(time < 1.005){
         return 0.7;
     }
     return 0;
@@ -514,14 +514,9 @@ void testERAAlgo(Logger & log)
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+    SimResults simResults = droneTrajectory.Trajectory(initializeState());
     log << simResults.stable << std::endl;
-    // zkpk zkpk_v2 = droneTrajectory.theGigaAlgopt2(stateCloseToRoABoundary());
-    // log << "zkpk_v2" << std::endl;
-    // log << zkpk_v2.zk << std::endl << std::endl;
-    // log << zkpk_v2.pk << std::endl;
-
-    zkpk zkpk = droneTrajectory.theGigaAlgo(stateCloseToRoABoundary());
+    zkpk zkpk = droneTrajectory.theGigaAlgo(initializeState());
     log << "zkpk" << std::endl;
     log << zkpk.zk << std::endl << std::endl;
     log << zkpk.pk << std::endl;
@@ -734,42 +729,42 @@ void test_vp(Logger & log)
 Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 {
     Eigen::Vector<double, NUM_PARAMETERS> params = {
-                1.99641520191027,
-             -0.0382430185289582,
-             0.00375574178589344,
-                1.99235464293712,
-             -0.0065778889334478,
-              -0.110287240374983,
-                1.97412485258705,
-               0.501290812593752,
-              -0.413935092741365,
-                25.0000060322266,
-               0.997031267073954,
-            9.99627590929611e-05,
-                24.9997037765278,
-               0.999726842448724,
-             -0.0113416621191316,
-                24.9852315914554,
-                 15.000690902211,
-              -0.183551932520078,
-                5.97983400970452,
-                2.99995497799582,
-               0.032257586607714,
-                5.99650725430897,
-                 3.0013239389497,
-             -0.0486507530662815,
-                5.87312360888611,
-               0.984294548132201,
-              -0.542566739512184,
-                249.999734552023,
-                499.999987095493,
-                 2.4999231595152,
-                249.999786518053,
-                499.999990094132,
-                2.49312684504915,
-                119.987316743198,
-                16.6988978887854,
-             -0.0240217173456554
+                0.999881,
+                       1,
+                       1,
+                0.998236,
+                       1,
+                       1,
+                0.969074,
+                0.997806,
+                       1,
+                  0.9999,
+                0.999999,
+                       1,
+                0.998259,
+                0.999989,
+                       1,
+                0.874869,
+                0.994998,
+                       1,
+                0.957454,
+                0.999577,
+                       1,
+                0.961113,
+                0.999624,
+                       1,
+                0.948504,
+                0.999708,
+                0.884178,
+                0.948737,
+                0.998083,
+                0.973266,
+                0.952399,
+                0.998214,
+                0.973419,
+                0.107803,
+                0.996855,
+                       1
     };
     return params;
 }
@@ -781,14 +776,17 @@ void test_param(Logger & log)
     double finalTime = 300;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
-    droneTrajectory.setParams(get_test_param());
+    droneTrajectory.m_sf = get_test_param();
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+    SimResults simResults = droneTrajectory.Trajectory(initializeState());
 
     log << "stable? " << simResults.stable << std::endl;
 
     Logger splot("./build/splot.txt");
     splotTrajectory(simResults, splot);
+
+    Logger xPlot("./build/x.txt");
+    splotPlantState(simResults, xPlot, x);
 }
 
 void test_closestzbar(Logger & log)
@@ -805,12 +803,12 @@ void test_closestzbar(Logger & log)
 int main()
 {
     Logger log("./build/log.txt");
-    testERAAlgo(log);
+    // testERAAlgo(log);
     // testTrajSens(log);
     // testSim(log);
     // test_vp(log);
     // test_closestzbar(log);
-    // test_param(log);
+    test_param(log);
     std::cout << ":D" << std::endl;
     return 0;
 }
