@@ -257,7 +257,7 @@ class DroneTrajectory
     double m_alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/m_thrustBase;    
 
     // For ERA algo gradient ascent step
-    double m_algo_alpha = 1;
+    double m_algo_alpha = 0.01;
     // For ERA algo Weighting Matrix
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> m_Pinv = Eigen::Matrix<double, NUM_STATES, NUM_STATES>::Identity();
     // For ERA algo numerical tolerances for 
