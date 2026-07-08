@@ -816,17 +816,17 @@ void test_param(Logger & log)
     double finalTime = 300;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
-    droneTrajectory.m_sf = get_test_param();
+    // droneTrajectory.m_sf = get_test_param();
     std::chrono::time_point start = std::chrono::steady_clock::now();
     SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
 
     log << "stable? " << simResults.stable << std::endl;
 
     Logger splot("./build/splot.txt");
-    splotTrajectory(simResults, splot);
+    splotTrajectory(simResults, splot, "Post Disturbance Initial Condition with default Parameters");
 
     Logger xPlot("./build/x.txt");
-    splotPlantState(simResults, xPlot, x);
+    splotPlantState(simResults, xPlot, x, "X Position with Post Disturbance Initial Condition and default Parameters");
 }
 
 void test_closestzbar(Logger & log)
