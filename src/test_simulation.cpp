@@ -6,9 +6,14 @@
 
 double windDist(double time)
 {
-    if(time < 0.205){
-        return 0.7;
+    // if(time < 1.18){
+    //     return 0.7;
+    // }
+
+    if(time < 0.1){
+        return 0.019;
     }
+
     return 0;
 }
 
@@ -729,96 +734,96 @@ void test_vp(Logger & log)
 Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 {
     // initial state sf
-    // Eigen::Vector<double, NUM_PARAMETERS> params = {
-    //             0.999881,
-    //                    1,
-    //                    1,
-    //             0.998236,
-    //                    1,
-    //                    1,
-    //             0.969074,
-    //             0.997806,
-    //                    1,
-    //               0.9999,
-    //             0.999999,
-    //                    1,
-    //             0.998259,
-    //             0.999989,
-    //                    1,
-    //             0.874869,
-    //             0.994998,
-    //                    1,
-    //             0.957454,
-    //             0.999577,
-    //                    1,
-    //             0.961113,
-    //             0.999624,
-    //                    1,
-    //             0.948504,
-    //             0.999708,
-    //             0.884178,
-    //             0.948737,
-    //             0.998083,
-    //             0.973266,
-    //             0.952399,
-    //             0.998214,
-    //             0.973419,
-    //             0.107803,
-    //             0.996855,
-    //                    1
-    // };
-
     Eigen::Vector<double, NUM_PARAMETERS> params = {
-        0.985795,
-            1,
-            1,
-        1.00001,
-            1,
-            1,
-            1,
-        0.999999,
-            1,
-        1.00307,
-        0.992643,
-            1,
-        0.999927,
-            1,
-            1,
-        1.00002,
-            1,
-            1,
-            1,
-        0.999996,
-            1,
-        0.999244,
-        1.00171,
-            1,
-        1.00007,
-        1.00001,
-        0.999986,
-            1,
-            1,
-        0.999999,
-        0.99987,
-        0.999995,
-        1.00003,
-        1.00003,
-            1,
-            1
+                0.999881,
+                       1,
+                       1,
+                0.998236,
+                       1,
+                       1,
+                0.969074,
+                0.997806,
+                       1,
+                  0.9999,
+                0.999999,
+                       1,
+                0.998259,
+                0.999989,
+                       1,
+                0.874869,
+                0.994998,
+                       1,
+                0.957454,
+                0.999577,
+                       1,
+                0.961113,
+                0.999624,
+                       1,
+                0.948504,
+                0.999708,
+                0.884178,
+                0.948737,
+                0.998083,
+                0.973266,
+                0.952399,
+                0.998214,
+                0.973419,
+                0.107803,
+                0.996855,
+                       1
     };
+
+    // Eigen::Vector<double, NUM_PARAMETERS> params = {
+    //     0.985795,
+    //         1,
+    //         1,
+    //     1.00001,
+    //         1,
+    //         1,
+    //         1,
+    //     0.999999,
+    //         1,
+    //     1.00307,
+    //     0.992643,
+    //         1,
+    //     0.999927,
+    //         1,
+    //         1,
+    //     1.00002,
+    //         1,
+    //         1,
+    //         1,
+    //     0.999996,
+    //         1,
+    //     0.999244,
+    //     1.00171,
+    //         1,
+    //     1.00007,
+    //     1.00001,
+    //     0.999986,
+    //         1,
+    //         1,
+    //     0.999999,
+    //     0.99987,
+    //     0.999995,
+    //     1.00003,
+    //     1.00003,
+    //         1,
+    //         1
+    // };
     return params;
 }
 
 void test_param(Logger & log)
 {
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {windDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, windDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
     double finalTime = 300;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
-    // droneTrajectory.m_sf = get_test_param();
+    droneTrajectory.m_sf = get_test_param();
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+    SimResults simResults = droneTrajectory.Trajectory(initializeState());
 
     log << "stable? " << simResults.stable << std::endl;
 
