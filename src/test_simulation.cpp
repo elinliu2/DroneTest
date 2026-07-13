@@ -816,8 +816,8 @@ Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 
 void test_param(Logger & log)
 {
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, windDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, oneRef, zeroRef};
     double finalTime = 300;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);

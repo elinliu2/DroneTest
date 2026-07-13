@@ -104,7 +104,7 @@ int main()
         {"pid_rate","pitch_kp"},
         {"pid_rate","pitch_ki"},
         {"pid_rate","pitch_kd"},
-        
+
         {"pid_rate","yaw_kp"},
         {"pid_rate","yaw_ki"},
         {"pid_rate","yaw_kd"},
@@ -122,10 +122,14 @@ int main()
     }
    
 
-    for(int i = 22; i < NUM_PARAMETERS; i++){
+    for(int i = 0; i < NUM_PARAMETERS; i++){
         float pid_gain = nominalPIDgains.at(i) * scaling_factors.at(i);
         file << "i: " << i << " pid_gain " << pid_gain << std::endl;
-        crazyflie.setParam(paramIndex.at(i), pid_gain);
+        
+        if (pid_gain > 0.1)
+        {
+            crazyflie.setParam(paramIndex.at(i), pid_gain);
+        }
     }
 
     std::cout << "set params" << std::endl;

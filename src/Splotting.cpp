@@ -18,8 +18,8 @@ void splotTrajectory(SimResults simResults, Logger & log, std::string const& plo
     std::string filename = ".\\plots\\crazyflie\\" + plotTitle + ".eps";
     filename.erase(std::remove(filename.begin(), filename.end(), ' '), filename.end());
     
-    fprintf(gp, "set terminal postscript eps color enhanced size 8,6 font 'Helvetica,35'\n");
-    fprintf(gp, "set output '%s'\n", filename.c_str());
+    // fprintf(gp, "set terminal postscript eps color enhanced size 8,6 font 'Helvetica,35'\n");
+    // fprintf(gp, "set output '%s'\n", filename.c_str());
 
     // Send gnuplot commands
     fprintf(gp, "set title 'Drone Trajectory %s'\n", plotTitle.c_str());
@@ -40,7 +40,7 @@ void splotTrajectory(SimResults simResults, Logger & log, std::string const& plo
 
     fprintf(gp, "e\n");  // 'e' ends the data section
     // Close the output file so gnuplot flushes/finalizes the EPS
-    fprintf(gp, "set output\n");
+    // fprintf(gp, "set output\n");
     _pclose(gp);  // close gnuplot
     
 }
