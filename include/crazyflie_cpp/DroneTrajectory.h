@@ -32,26 +32,27 @@ struct PIDParameters
 
 struct DroneParameters 
 {
-    double length = 0.046; // [m]
-    double Ix = 16.571710e-6;
-    double Iy = 16.655602e-6;
-    double Iz = 29.261652e-6;
-    double mass = 0.034; // [kg]
-    double g = 9.81;
-
-    // used for implementing motor controller saturation
-    double maxVel = 4;
-    double maxAngVel = 8;
-    double maxAcc = 25;
-    double maxAngAcc = 20;
-
+    // double length = 0.046; // [m]
+    // double Ix = 16.571710e-6;
+    // double Iy = 16.655602e-6;
+    // double Iz = 29.261652e-6;
+    // double mass = 0.034; // [kg]
     // // https://giuseppesilano.net/publications/rosChapter19.pdf
     // I tried kf and km gains from here but they didn't work
 
     // https://arxiv.org/pdf/2512.14450
-    double kf = 3.72e-8;
-    double km = 7.73e-11;
+    // double kf = 3.72e-8;
+    // double km = 7.73e-11;
     
+    double length = 0.046; // [m]
+    double Ix = 8.897161049399316e-06;
+    double Iy = 9.198247719640059e-06;
+    double Iz = 1.6575394432440068e-05;
+    double mass = 0.0315; // [kg]
+    double g = 9.81;
+    double kf = 0.11967404;
+    double km = 0.00023797;
+
     // x y z psi theta phi xdot ydot zdot p q r 
     double numPlantStates = 12;
     // 2 pids * 3 translational directions * 2 states per error
@@ -60,10 +61,6 @@ struct DroneParameters
     // these are in degrees
     double pid_vel_roll_max = 20.0; 
     double pid_vel_pitch_max = 20.0;
-
-    // translational drag coefficients
-    // https://www.proquest.com/docview/1786690441?pq-origsite=gscholar&fromopenview=true&sourcetype=Dissertations%20&%20Theses
-    double kd = 1e-9;
 
 };
 

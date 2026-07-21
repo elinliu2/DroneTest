@@ -265,7 +265,7 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     // m_logger << "unsat desPitch: " << PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}) << std::endl;
 
     algeStates(desRoll) = -std::clamp(PIDctrl(m_ctrlParams.at(velY), m_sf(kpvy), m_sf(kivy), m_sf(kdvy), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
-    algeStates(desPitch) = std::clamp(PIDctrl(m_ctrlParams.at(velX), m_sf(kpvx), m_sf(kipx), m_sf(kdpx), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
+    algeStates(desPitch) = std::clamp(PIDctrl(m_ctrlParams.at(velX), m_sf(kpvx), m_sf(kivx), m_sf(kdvx), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
 
     // algeStates(desRoll) = -PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}) ; 
     // algeStates(desPitch) = PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}) ; 
@@ -317,6 +317,8 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(ty) = m_droneParams.kf * m_droneParams.length * 1/sqrt(2) * (+ algeStates(w1)*algeStates(w1) - algeStates(w2)*algeStates(w2) - algeStates(w3)*algeStates(w3) + algeStates(w4)*algeStates(w4));
     algeStates(tz) = m_droneParams.km * (algeStates(w1)*algeStates(w1) - algeStates(w2)*algeStates(w2) + algeStates(w3)*algeStates(w3) - algeStates(w4)*algeStates(w4));
 
+    // m_logger <<  algeStates(eiphi) << " " <<  algeStates(eitheta) << " " <<  algeStates(eipsi) << std::endl;
+    // m_logger <<  algeStates(eip) << " " <<  algeStates(eiq) << " " <<  algeStates(eir) << std::endl << std::endl;
     return algeStates;
 }
 
@@ -506,7 +508,7 @@ double capAngle(double angle)
 // Check if drone has been near ball around ref for 0.1s
 bool DroneTrajectory::isConverging(SimResults const& simResults, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time) const
 {
-    double posTol = 1;
+    double posTol = 0.1;
     double finalPosTol = 0.01;
     double angleTol = 0.0872665; // 5 degrees
     double timeInterval = 0.1;

@@ -514,14 +514,14 @@ void testTrajSens(Logger & log)
 void testERAAlgo(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    double finalTime = 500;
+    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, oneRef, zeroRef};
+    double finalTime = 1000;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary());
+    SimResults simResults = droneTrajectory.Trajectory(initializeState());
     log << simResults.stable << std::endl;
-    zkpk zkpk = droneTrajectory.theGigaAlgo(stateCloseToRoABoundary());
+    zkpk zkpk = droneTrajectory.theGigaAlgo(initializeState());
     log << "zkpk" << std::endl;
     log << zkpk.zk << std::endl << std::endl;
     log << zkpk.pk << std::endl;
@@ -530,7 +530,7 @@ void testERAAlgo(Logger & log)
 void testSim(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, oneRef, zeroRef};
     double finalTime = 100;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
@@ -817,7 +817,7 @@ Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 void test_param(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, oneRef, zeroRef};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, oneRef, zeroRef};
     double finalTime = 300;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
@@ -848,12 +848,12 @@ void test_closestzbar(Logger & log)
 int main()
 {
     Logger log("./build/log.txt");
-    // testERAAlgo(log);
+    testERAAlgo(log);
     // testTrajSens(log);
     // testSim(log);
     // test_vp(log);
     // test_closestzbar(log);
-    test_param(log);
+    // test_param(log);
     std::cout << ":D" << std::endl;
     return 0;
 }
