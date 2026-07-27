@@ -59,8 +59,8 @@ void splotPlantState(SimResults simResults, Logger & log, int plantIndex, std::s
     std::string filename = ".\\plots\\crazyflie\\" + plotTitle + ".eps";
     filename.erase(std::remove(filename.begin(), filename.end(), ' '), filename.end());
     
-    fprintf(gp, "set terminal postscript eps color enhanced size 10,6 font 'Helvetica,35'\n");
-    fprintf(gp, "set output '%s'\n", filename.c_str());
+    // fprintf(gp, "set terminal postscript eps color enhanced size 10,6 font 'Helvetica,35'\n");
+    // fprintf(gp, "set output '%s'\n", filename.c_str());
 
 
     // Send gnuplot commands
@@ -77,7 +77,7 @@ void splotPlantState(SimResults simResults, Logger & log, int plantIndex, std::s
     }
 
     fprintf(gp, "e\n");  // 'e' ends the data section
-    fprintf(gp, "set output\n");
+    // fprintf(gp, "set output\n");
     _pclose(gp);  // close gnuplot
     
 }

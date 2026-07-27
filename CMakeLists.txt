@@ -28,6 +28,7 @@ add_library(crazyflie_cpp
   src/TrajectorySimulationTest.cpp
   src/ERA.cpp
   src/Calc_dG.cpp
+  src/test_trajectory_from_file.cpp
 )
 
 target_include_directories(crazyflie_cpp

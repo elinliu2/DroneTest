@@ -32,22 +32,24 @@ struct PIDParameters
 
 struct DroneParameters 
 {
-    // double length = 0.046; // [m]
-    // double Ix = 16.571710e-6;
-    // double Iy = 16.655602e-6;
-    // double Iz = 29.261652e-6;
+    double length = 0.046; // [m]
+    double Ix = 16.571710e-6;
+    double Iy = 16.655602e-6;
+    double Iz = 29.261652e-6;
     // double mass = 0.034; // [kg]
     // // https://giuseppesilano.net/publications/rosChapter19.pdf
-    // I tried kf and km gains from here but they didn't work
+    // double kf = 1.28192e-8;
+    // double km = 5.964552e-3;
 
     // https://arxiv.org/pdf/2512.14450
     // double kf = 3.72e-8;
     // double km = 7.73e-11;
     
-    double length = 0.046; // [m]
-    double Ix = 8.897161049399316e-06;
-    double Iy = 9.198247719640059e-06;
-    double Iz = 1.6575394432440068e-05;
+    // double length = 0.046; // [m]
+    // double Ix = 8.897161049399316e-06;
+    // double Iy = 9.198247719640059e-06;
+    // double Iz = 1.6575394432440068e-05;
+    
     double mass = 0.0315; // [kg]
     double g = 9.81;
     double kf = 0.11967404;
@@ -85,21 +87,21 @@ struct SimResults{
 
 std::array<PIDParameters, NUM_PIDS> inline defaultPIDParameters(){
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/platform/interface/platform_defaults_tag.h#L46
-    PIDParameters posXpid = {2, 1e-10, 1e-10};
-    PIDParameters posYpid = {2, 1e-10, 1e-10};
-    PIDParameters posZpid = {2, 0.5, 1e-10};
+    PIDParameters posXpid = {2, 0, 0};
+    PIDParameters posYpid = {2, 0, 0};
+    PIDParameters posZpid = {2, 0.5, 0};
 
-    PIDParameters velXpid = {25, 1, 1e-10};
-    PIDParameters velYpid = {25, 1, 1e-10};
-    PIDParameters velZpid = {25, 15, 1e-10};
+    PIDParameters velXpid = {25, 1, 0};
+    PIDParameters velYpid = {25, 1, 0};
+    PIDParameters velZpid = {25, 15, 0};
 
-    PIDParameters rollpid  = {6, 3, 1e-10, 1e-10};
-    PIDParameters pitchpid = {6, 3, 1e-10, 1e-10};
-    PIDParameters yawpid   = {6, 1, 0.35, 1e-10};
+    PIDParameters rollpid  = {6, 3, 0, 0};
+    PIDParameters pitchpid = {6, 3, 0, 0};
+    PIDParameters yawpid   = {6, 1, 0.35, 0};
 
     PIDParameters rollRatepid  = {250.0, 500, 2.5};
     PIDParameters pitchRatepid = {250.0, 500, 2.5};
-    PIDParameters yawRatepid   = {120.0, 16.7, 1e-10};
+    PIDParameters yawRatepid   = {120.0, 16.7, 0};
     return {posXpid, posYpid, posZpid, velXpid, velYpid, velZpid, rollpid, pitchpid, yawpid, rollRatepid, pitchRatepid, yawRatepid};
 }
 
