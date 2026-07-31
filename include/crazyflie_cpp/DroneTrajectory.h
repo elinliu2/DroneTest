@@ -20,6 +20,7 @@
 #define NUM_DIST_STATES 6
 #define NUM_REF_STATES 4
 #define NUM_PID_STATES 3
+#define NUM_DRONE_PARAMS 5
 
 struct PIDParameters 
 {
@@ -33,9 +34,9 @@ struct PIDParameters
 struct DroneParameters 
 {
     double length = 0.046; // [m]
-    double Ix = 16.571710e-6;
-    double Iy = 16.655602e-6;
-    double Iz = 29.261652e-6;
+    // double Ix = 16.571710e-6;
+    // double Iy = 16.655602e-6;
+    // double Iz = 29.261652e-6;
     // double mass = 0.034; // [kg]
     // // https://giuseppesilano.net/publications/rosChapter19.pdf
     // double kf = 1.28192e-8;
@@ -46,9 +47,9 @@ struct DroneParameters
     // double km = 7.73e-11;
     
     // double length = 0.046; // [m]
-    // double Ix = 8.897161049399316e-06;
-    // double Iy = 9.198247719640059e-06;
-    // double Iz = 1.6575394432440068e-05;
+    double Ix = 8.897161049399316e-06;
+    double Iy = 9.198247719640059e-06;
+    double Iz = 1.6575394432440068e-05;
     
     double mass = 0.0315; // [kg]
     double g = 9.81;
@@ -126,6 +127,7 @@ enum paramIndex {kppx, kipx, kdpx, kppy, kipy, kdpy, kppz, kipz, kdpz,
                  kpvx, kivx, kdvx, kpvy, kivy, kdvy, kpvz, kivz, kdvz,
                  kpphi, kiphi, kdphi, kptheta, kitheta, kdtheta, kppsi, kipsi, kdpsi,
                  kpp, kip, kdp, kpq, kiq, kdq, kpr, kir, kdr};
+enum DroneParamIndex {Ix, Iy, Iz, kf, km};
 
 struct dwdwo {
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_STATES> dxdwo;
@@ -157,6 +159,22 @@ struct dwdp {
     {}
 
     dwdp() : dxdp(), dzdp(),  dydp() {}
+};
+
+struct dwddronep {
+    Eigen::Matrix<double, NUM_PLANT_STATES, NUM_DRONE_PARAMS> dxdp;
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_DRONE_PARAMS> dzdp;
+    Eigen::Matrix<double, NUM_Y_STATES, NUM_DRONE_PARAMS> dydp;
+
+    dwddronep(
+        const Eigen::Matrix<double, NUM_PLANT_STATES, NUM_DRONE_PARAMS>& dx,
+        const Eigen::Matrix<double, NUM_Z_STATES, NUM_DRONE_PARAMS>& dz,
+        const Eigen::Matrix<double, NUM_Y_STATES, NUM_DRONE_PARAMS>& dy
+    )
+        : dxdp(dx), dzdp(dz), dydp(dy)
+    {}
+
+    dwddronep() : dxdp(), dzdp(),  dydp() {}
 };
 
 struct d2wdwo2 {
@@ -284,6 +302,7 @@ class DroneTrajectory
     // don't get mad at me tho go look at the string class and be outraged at that instead
     Eigen::Matrix<double, NUM_PLANT_STATES, NUM_PLANT_STATES> dfdx(SystemState state) const;
     Eigen::SparseMatrix<double> dfdz(SystemState state) const;
+    Eigen::SparseMatrix<double> dfddronep(SystemState state) const;
     Eigen::SparseMatrix<double> dgdx(SystemState state) const;
     Eigen::SparseMatrix<double> dgdz(SystemState state) const;
     Eigen::SparseMatrix<double> dgdp(SystemState state);
@@ -293,6 +312,8 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> dhdzCurr() const;
     Eigen::SparseMatrix<double> dhdy(double timestep) const;
     Eigen::SparseMatrix<double> dhdp(SystemState state, double time);
+    Eigen::SparseMatrix<double> dhddronep(SystemState state) const;
+
 
     Eigen::Tensor<double, 3, Eigen::ColMajor> d2fdx2(SystemState state); 
     Eigen::Tensor<double, 3, Eigen::ColMajor> d2fdxdz(SystemState state); 
@@ -369,6 +390,7 @@ class DroneTrajectory
         dwdwo trajSens(SimResults const & simResults, int tp) const;
         std::vector<dwdwo> trajSensTest(SystemState initialState);
         std::vector<dwdp> trajSensParam(SimResults const & simResults, int iterations);
+        std::vector<dwddronep> trajSensDroneParam(SimResults const & simResults, int iterations);
         std::vector<dwdp> trajSensParamTest(SystemState initialState);
         std::vector<d2wdwo2> secondOrdertrajSens(SimResults const & simResults, std::vector<dwdwo> const & ts);
         std::vector<d2wdwodp> secondOrdertrajSensParams(SimResults const & simResults, std::vector<dwdwo> const & ts, std::vector<dwdp> const & tsp);
@@ -387,6 +409,9 @@ class DroneTrajectory
 
         Eigen::Vector<double, NUM_PARAMETERS> getParams();
         void setParams(Eigen::Vector<double, NUM_PARAMETERS> params);
+
+        Eigen::Vector<double, NUM_DRONE_PARAMS> getDroneParams();
+        void setDroneParams(Eigen::Vector<double, NUM_DRONE_PARAMS> droneParams);
 
 };
 

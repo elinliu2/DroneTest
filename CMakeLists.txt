@@ -29,6 +29,7 @@ add_library(crazyflie_cpp
   src/ERA.cpp
   src/Calc_dG.cpp
   src/test_trajectory_from_file.cpp
+  src/load_experiment_traj.cpp
 )
 
 target_include_directories(crazyflie_cpp
@@ -113,5 +114,17 @@ target_include_directories(test_simple_system PRIVATE
 )
 
 target_link_libraries(test_simple_system
+  crazyflie_cpp
+)
+
+add_executable(test_system_id
+  src/test_system_id.cpp
+)
+
+target_include_directories(test_system_id PRIVATE
+  ${CMAKE_SOURCE_DIR}/eigen
+)
+
+target_link_libraries(test_system_id
   crazyflie_cpp
 )

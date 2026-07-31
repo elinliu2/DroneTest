@@ -152,8 +152,6 @@ Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double
         }
     }
 
-    m_logger << "time " << time << " phi " << guess.plant(phi) << " theta " << guess.plant(theta) << " psi " << guess.plant(psi) << std::endl;
-    m_logger << " p " << guess.plant(p) <<  " q " << guess.plant(q) << " r " << guess.plant(r) << std::endl;
     Eigen::Vector<double, NUM_ALGE_STATES> algeStates = CascadedPIDController(guess.plant, prev.plant, prev.alge, time, timestep);
 
     guess.alge = algeStates;
@@ -212,11 +210,7 @@ Eigen::Vector<double, NUM_PLANT_STATES> DroneTrajectory::f(SystemState state, do
 
     dot(zdot) = - m_droneParams.g + (state.alge(ft) )/m_droneParams.mass * 
                 (std::cos(state.plant(phi)) * std::cos(state.plant(theta))) 
-                + m_dist.at(Fwz)(time) /  m_droneParams.mass;
-
-    // dot(xdot) -= state.plant(xdot) * m_droneParams.kd/m_droneParams.mass;    
-    // dot(ydot) -= state.plant(ydot) * m_droneParams.kd/m_droneParams.mass;    
-    // dot(zdot) -= state.plant(zdot) * m_droneParams.kd/m_droneParams.mass;            
+                + m_dist.at(Fwz)(time) /  m_droneParams.mass;   
 
     dot(p) = (m_droneParams.Iy-m_droneParams.Iz)/m_droneParams.Ix*state.plant(r)*state.plant(q) 
             + (state.alge(tx) + m_dist.at(Twx)(time))/m_droneParams.Ix;
@@ -256,10 +250,6 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(desVelY) = PIDctrl(m_ctrlParams.at(posY), m_sf(kppy), m_sf(kipy), m_sf(kdpy), {(m_ref.at(refx)(time) - plantState(x))*(-sinyaw) + (m_ref.at(refy)(time) - plantState(y))*cosyaw, algeStates(eiy), algeStates(edy)});
     algeStates(desVelZ) = PIDctrl(m_ctrlParams.at(posZ), m_sf(kppz), m_sf(kipz), m_sf(kdpz), {m_ref.at(refz)(time) - plantState(z), algeStates(eiz), algeStates(edz)});
 
-    algeStates(desVelX) = std::clamp(algeStates(desVelX), -1.1, 1.1);
-    algeStates(desVelY) = std::clamp(algeStates(desVelY), -1.1, 1.1);
-    algeStates(desVelZ) = std::clamp(algeStates(desVelZ), -1.1, 1.1);
-
     algeStates(eixdot) = currAlgeStates(eixdot) + timestep*(algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw);
     algeStates(eiydot) = currAlgeStates(eiydot) + timestep*(algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw);
     algeStates(eizdot) = currAlgeStates(eizdot) + timestep*(algeStates(desVelZ) - plantState(zdot));
@@ -269,36 +259,21 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(edzdot) = -1/timestep*(plantState(zdot) - prevPlantState(zdot));
     
     algeStates(desThrust) = PIDctrl(m_ctrlParams.at(velZ), m_sf(kpvz), m_sf(kivz), m_sf(kdvz), {algeStates(desVelZ) - plantState(zdot), algeStates(eizdot), algeStates(edzdot)});
-    algeStates(desThrust) = std::clamp(algeStates(desThrust), -UINT16_MAX/2/m_thrustScale, UINT16_MAX/2/m_thrustScale);
     algeStates(desThrust) = algeStates(desThrust)*m_thrustScale+m_thrustBase;
-    algeStates(desThrust) = std::clamp(algeStates(desThrust), 20000.0, 65535.0);
+    // algeStates(desThrust) = std::clamp(algeStates(desThrust), 20000.0, 65535.0);
     
     algeStates(desRoll) = PIDctrl(m_ctrlParams.at(velY), m_sf(kpvy), m_sf(kivy), m_sf(kdvy), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)});
     algeStates(desPitch) = PIDctrl(m_ctrlParams.at(velX), m_sf(kpvx), m_sf(kivx), m_sf(kdvx), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)});
-    algeStates(desRoll) = std::clamp(algeStates(desRoll), -20*1.1, 20*1.1);
-    algeStates(desPitch) = std::clamp(algeStates(desPitch), -20*1.1, 20*1.1);
+    
     // Need a positive pitch to move forward in the x direction
     // Need a negative roll to move forward in the y direction
-    // m_logger << "unsat desRoll: " << -PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}) << std::endl;
-    // m_logger << "unsat desPitch: " << PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}) << std::endl;
     algeStates(desRoll) = -std::clamp(algeStates(desRoll), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
     algeStates(desPitch) = std::clamp(algeStates(desPitch), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
 
-    // algeStates(desRoll) = -PIDctrl(m_ctrlParams.at(velY), {algeStates(desVelY) + plantState(xdot)*sinyaw - plantState(ydot)*cosyaw, algeStates(eiydot), algeStates(edydot)}) ; 
-    // algeStates(desPitch) = PIDctrl(m_ctrlParams.at(velX), {algeStates(desVelX) - plantState(xdot)*cosyaw - plantState(ydot)*sinyaw, algeStates(eixdot), algeStates(edxdot)}) ; 
-
-    double delta = capAngle(m_ref.at(refyaw)(time) - 180/M_PI*plantState(psi));
-   // double delta = m_ref.at(refyaw)(time) - 180/M_PI*plantState(psi);
+    double delta = m_ref.at(refyaw)(time) - 180/M_PI*plantState(psi);
     algeStates(eiphi) = currAlgeStates(eiphi) + timestep*(algeStates(desRoll) - 180/M_PI*plantState(phi));
     algeStates(eitheta) = currAlgeStates(eitheta) + timestep*(algeStates(desPitch) - 180/M_PI*plantState(theta));
     algeStates(eipsi) = currAlgeStates(eipsi) + timestep*delta;
-
-    algeStates(eiphi)   = std::clamp(algeStates(eiphi),   -20.0,  20.0);
-    algeStates(eitheta) = std::clamp(algeStates(eitheta), -20.0,  20.0);
-    algeStates(eipsi)   = std::clamp(algeStates(eipsi),   -360.0, 360.0);
-    
-    // m_logger << "(eiphi) " << algeStates(eiphi) << " (eitheta) " << algeStates(eitheta)  << " (eipsi) " << algeStates(eipsi) << std::endl;
-    // algeStates(eipsi) = currAlgeStates(eipsi) + timestep*(m_ref.at(refyaw)(time) - 180/M_PI*plantState(psi));
 
     algeStates(edphi) = -1/timestep*180/M_PI*(plantState(phi) - prevPlantState(phi));
     algeStates(edtheta) = -1/timestep*180/M_PI*(plantState(theta) - prevPlantState(theta));
@@ -308,8 +283,6 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(desPitchRate) = PIDctrl(m_ctrlParams.at(pitch), m_sf(kptheta), m_sf(kitheta), m_sf(kdtheta), {algeStates(desPitch) - 180/M_PI*plantState(theta), algeStates(eitheta), algeStates(edtheta)});
     algeStates(desYawRate)   = PIDctrl(m_ctrlParams.at(yaw),   m_sf(kppsi), m_sf(kipsi), m_sf(kdpsi), {delta, algeStates(eipsi), algeStates(edpsi)});
 
-    m_logger << "algeStates(eipsi) " << algeStates(eipsi) << " algeStates(edpsi) "  << algeStates(edpsi) << " algeStates(desYawRate)" << algeStates(desYawRate) << std::endl;
-    
     // LPF for rollRate and pitchRate
     algeStates(delay_1_rollRate) = -rad2Deg(plantState(p)-prevPlantState(p))/timestep - currAlgeStates(delay_1_rollRate)*lpf_a1 - currAlgeStates(delay_2_rollRate)*lpf_a2;
     algeStates(delay_1_pitchRate) = -rad2Deg(plantState(q)-prevPlantState(q))/timestep - currAlgeStates(delay_1_pitchRate)*lpf_a1 - currAlgeStates(delay_2_pitchRate)*lpf_a2;
@@ -320,10 +293,6 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(eiq) = currAlgeStates(eiq) + timestep*(algeStates(desPitchRate) - 180/M_PI*plantState(q));
     algeStates(eir) = currAlgeStates(eir) + timestep*(algeStates(desYawRate) - 180/M_PI*plantState(r));
 
-    algeStates(eip) = std::clamp(algeStates(eip), -33.3, 33.3);
-    algeStates(eiq) = std::clamp(algeStates(eiq), -33.3, 33.3);
-    algeStates(eir) = std::clamp(algeStates(eir), -166.7, 166.7);
-
     algeStates(edp) = lpf_b0 * algeStates(delay_1_rollRate) + currAlgeStates(delay_1_rollRate) * lpf_b1 + currAlgeStates(delay_2_rollRate) * lpf_b2;
     algeStates(edq) = lpf_b0 * algeStates(delay_1_pitchRate) + currAlgeStates(delay_1_pitchRate) * lpf_b1 + currAlgeStates(delay_2_pitchRate) * lpf_b2;
     algeStates(edr) = -1/timestep*180/M_PI*(plantState(r) - prevPlantState(r));
@@ -331,10 +300,6 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(desRollOutput)  = PIDctrl(m_ctrlParams.at(rollRate),  m_sf(kpp), m_sf(kip), m_sf(kdp), {algeStates(desRollRate) - 180/M_PI*plantState(p), algeStates(eip), algeStates(edp)});
     algeStates(desPitchOutput) = PIDctrl(m_ctrlParams.at(pitchRate), m_sf(kpq), m_sf(kiq), m_sf(kdq), {algeStates(desPitchRate) - 180/M_PI*plantState(q), algeStates(eiq), algeStates(edq)});
     algeStates(desYawOutput)   = PIDctrl(m_ctrlParams.at(yawRate),   m_sf(kpr), m_sf(kir), m_sf(kdr), {algeStates(desYawRate) - 180/M_PI*plantState(r), algeStates(eir), algeStates(edr)});
-
-    m_logger << "algeStates(eir) " << algeStates(eir) << " algeStates(edr) "  << algeStates(edr) << " algeStates(desYawOutput)" << algeStates(desYawOutput) << std::endl;
-    
-    // TODO: implement saturation
 
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/power_distribution_quadrotor.c
     // line 86 they divide roll and pitch by 2 
@@ -349,14 +314,10 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     m3 = std::clamp(m3, 0.0, 65535.0);
     m4 = std::clamp(m4, 0.0, 65535.0);
 
-    // m_logger << time << "," << m1 << "," << m2 << "," << m3 << "," << m4 << std::endl;
-
     algeStates(w1) = m_alpha*m1;
     algeStates(w2) = m_alpha*m2;
     algeStates(w3) = m_alpha*m3;
     algeStates(w4) = m_alpha*m4;
-
-    // m_logger << "w1 " << algeStates(w1) << " w2 " << algeStates(w2) << " w3 " << algeStates(w3) << " w4 " << algeStates(w4) << std::endl;
 
     // https://giuseppesilano.net/publications/rosChapter19.pdf
     // the crazyflie firmware using x wing configuration 
@@ -365,8 +326,6 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(ty) = m_droneParams.kf * m_droneParams.length * 1/sqrt(2) * (+ algeStates(w1)*algeStates(w1) - algeStates(w2)*algeStates(w2) - algeStates(w3)*algeStates(w3) + algeStates(w4)*algeStates(w4));
     algeStates(tz) = m_droneParams.km * (algeStates(w1)*algeStates(w1) - algeStates(w2)*algeStates(w2) + algeStates(w3)*algeStates(w3) - algeStates(w4)*algeStates(w4));
 
-    m_logger << "algeStates(tz) " << algeStates(tz) << std::endl;
-    m_logger << "dot(r) " << (m_droneParams.Ix-m_droneParams.Iy)/m_droneParams.Iz*plantState(p)*plantState(q) + algeStates(tz)/m_droneParams.Iz << std::endl; 
     return algeStates;
 }
 

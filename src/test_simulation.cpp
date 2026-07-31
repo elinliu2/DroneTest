@@ -520,8 +520,12 @@ void testTrajSens(Logger & log)
 void testERAAlgo(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, oneRef, zeroRef};
-    double finalTime = 100;
+    std::string path = "../crazyflie_rl_sim/workspace/crazyflie_rl_sim/recordings/system_id_logs/square_test/traj.csv";
+    std::vector<DataPoint> traj = loadTrajectory(path);
+    setActiveTrajectory(traj);
+    std::array<double(*)(double), NUM_REF_STATES> ref = {interpolateX, interpolateY, interpolateZ, interpolateYaw};
+
+    double finalTime = 12;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
@@ -963,12 +967,12 @@ void test_closestzbar(Logger & log) {
 int main()
 {
     Logger log("./build/log.txt");
-    // testERAAlgo(log);
+    testERAAlgo(log);
     // testTrajSens(log);
     // testSim(log);
     // test_vp(log);
     // test_closestzbar(log);
-    test_param(log);
+    // test_param(log);
     // test_sysid(log);
     // test_square_traj(log);
     std::cout << ":D" << std::endl;

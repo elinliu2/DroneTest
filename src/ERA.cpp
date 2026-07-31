@@ -10,11 +10,11 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
     zkpk curr = {z0, m_sf};
     Eigen::Vector<double, NUM_PARAMETERS> p0 = m_sf;
     int count = 0;
-    while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-6)
+    while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-8)
     {
         pk_prev = curr.pk;
         curr = updateStep(curr, z0);
-        SimResults traj = Trajectory(currState);
+        SimResults traj = Trajectory(currState, false);
         std::vector<dwdwo> ts = trajSens(traj);
         G_tp gtp = calc_G_tp(ts);
         count++;
@@ -30,7 +30,7 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
 zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> const & currState)
 {
     SystemState prev_zk_state = {prev.zk.segment(0, NUM_PLANT_STATES), prev.zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)};
-    SimResults traj = Trajectory(prev_zk_state);
+    SimResults traj = Trajectory(prev_zk_state, false);
     std::vector<dwdwo> ts = trajSens(traj);
     G_tp gtp = calc_G_tp(ts);
     m_logger << "tp: " << gtp.tp << std::endl;
@@ -48,7 +48,7 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> co
     traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
     int backtrackingCount = 0;
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-6)
+    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-8)
     {
         m_logger << "backtrackingCount " << backtrackingCount << std::endl;
         pk = prev.pk + backtrack*(pk-prev.pk);
