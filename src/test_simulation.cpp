@@ -514,13 +514,13 @@ void testTrajSens(Logger & log)
 void testERAAlgo(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, zeroRef, oneRef, zeroRef};
-    double finalTime = 1000;
+    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, oneRef, zeroRef};
+    double finalTime = 500;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
-    log << simResults.stable << std::endl;
+    log << simResults.stable << " " << simResults.converged << std::endl;
     zkpk zkpk = droneTrajectory.theGigaAlgo(initializeState());
     log << "zkpk" << std::endl;
     log << zkpk.zk << std::endl << std::endl;
