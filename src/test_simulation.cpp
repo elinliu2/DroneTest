@@ -840,13 +840,13 @@ void test_param(Logger & log)
     Logger splot("./build/splot.txt");
     splotTrajectory(simResults, splot, "splot");
 
-    Logger xPlot("./build/psi.txt");
+    Logger xPlot("./build/x.txt");
     splotPlantState(simResults, xPlot, x, "x");
 
-    Logger yPlot("./build/psi.txt");
+    Logger yPlot("./build/y.txt");
     splotPlantState(simResults, yPlot, y, "y");
 
-    Logger zPlot("./build/psi.txt");
+    Logger zPlot("./build/z.txt");
     splotPlantState(simResults, zPlot, z, "z");
 
     Logger psiPlot("./build/psi.txt");

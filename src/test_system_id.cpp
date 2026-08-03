@@ -98,10 +98,34 @@ void systemId(Logger & log)
     }
 }
 
+void testTrajectory(Logger & log)
+{
+    std::string path = "../crazyflie_rl_sim/workspace/crazyflie_rl_sim/recordings/system_id_logs/square_test/traj.csv";
+    std::vector<DataPoint> traj = loadTrajectory(path);
+
+    setActiveTrajectory(traj);
+
+    double finalTime = 10;
+    double simTime = 1e-3;
+
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_REF_STATES> ref = {interpolateX, interpolateY, interpolateZ, interpolateYaw};
+    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
+
+    SimResults simResults = droneTrajectory.Trajectory(initializeState(), false);
+    log << "Timestamp,x,y,z" << std::endl;
+    for(int i = 0; i < simResults.time.size(); i++)
+    {
+        Eigen::Vector<double, NUM_PLANT_STATES> plantState = simResults.stateProgression.at(i).plant;
+        log << simResults.time.at(i) << "," << plantState(x)*1000 << "," << plantState(y)*1000 << "," << plantState(z)*1000 << std::endl;
+    }
+}
+
 int main()
 {
     Logger log("./build/log.txt");
-    systemId(log);
+    // systemId(log);
+    testTrajectory(log);
     std::cout << ":D" << std::endl;
     return 0;
 }
