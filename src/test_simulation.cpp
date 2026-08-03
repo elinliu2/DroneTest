@@ -831,10 +831,10 @@ void test_param(Logger & log)
     splotTrajectory(simResults, splot, "Initial Condition with ERA Parameters");
 
     Logger xPlot("./build/x.txt");
-    splotPlantState(simResults, xPlot, x, "X Position with Initial Condition and ERA Parameters");
+    splotPlantState(simResults, xPlot, p, "Roll Velocity with Initial Condition and ERA Parameters");
 
     Logger yPlot("./build/y.txt");
-    splotPlantState(simResults, yPlot, y, "Y Position with Initial Condition and ERA Parameters");
+    splotPlantState(simResults, yPlot, q, "Pitch Velocity with Initial Condition and ERA Parameters");
 }
 
 void test_closestzbar(Logger & log)

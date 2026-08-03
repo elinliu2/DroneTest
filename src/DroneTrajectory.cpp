@@ -55,20 +55,20 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState, bool checkConve
         time += m_simTimestep;        
         simResults.time.push_back(time);
 
-        // if(checkConverge)
-        // {
-        //     if (isConverging(simResults, m_ref, time)){
-        //         // m_logger << "converging :D" << std::endl;
-        //         simResults.converged = true;
-        //         return simResults;
-        //     } else if (isNotConverging(state1.state, m_ref, time)) {
-        //         // printInconvergence(state1.state, m_ref, time);
-        //         simResults.converged = false;
-        //         simResults.stable = false;
-        //         // m_logger << "not converging D:" << std::endl;
-        //         return simResults;
-        //     }
-        // }
+        if(checkConverge)
+        {
+            if (isConverging(simResults, m_ref, time)){
+                // m_logger << "converging :D" << std::endl;
+                simResults.converged = true;
+                return simResults;
+            } else if (isNotConverging(state1.state, m_ref, time)) {
+                // printInconvergence(state1.state, m_ref, time);
+                simResults.converged = false;
+                simResults.stable = false;
+                // m_logger << "not converging D:" << std::endl;
+                return simResults;
+            }
+        }
 
         // if (!m_fixedNumIterations)
         // {
