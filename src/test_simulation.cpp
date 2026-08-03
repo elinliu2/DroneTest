@@ -6,13 +6,13 @@
 
 double windDist(double time)
 {
-    // if(time < 1.18){
-    //     return 0.7;
-    // }
-
     if(time < 0.1){
-        return 0.019;
+        return 0.014;
     }
+
+    // if(time < 0.1){
+    //     return 0.019;
+    // }
 
     return 0;
 }
@@ -735,42 +735,42 @@ Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 {
     // initial state sf
     Eigen::Vector<double, NUM_PARAMETERS> params = {
-                0.999881,
-                       1,
-                       1,
-                0.998236,
-                       1,
-                       1,
-                0.969074,
-                0.997806,
-                       1,
-                  0.9999,
-                0.999999,
-                       1,
-                0.998259,
-                0.999989,
-                       1,
-                0.874869,
-                0.994998,
-                       1,
-                0.957454,
-                0.999577,
-                       1,
-                0.961113,
-                0.999624,
-                       1,
-                0.948504,
-                0.999708,
-                0.884178,
-                0.948737,
-                0.998083,
-                0.973266,
-                0.952399,
-                0.998214,
-                0.973419,
-                0.107803,
-                0.996855,
-                       1
+                        1,
+                        1,
+                        1,
+                    0.998955,
+                        1,
+                        1,
+                    1.29101,
+                    1.00139,
+                        1,
+                        1,
+                        1,
+                        1,
+                    0.999024,
+                    0.999993,
+                        1,
+                    1.15109,
+                    1.00097,
+                        1,
+                    0.991822,
+                    0.999832,
+                        1,
+                    0.993209,
+                    0.999865,
+                        1,
+                    0.969727,
+                    0.999846,
+                    0.93803,
+                    0.994989,
+                    0.999626,
+                    0.962762,
+                    0.995691,
+                    0.99969,
+                    0.961536,
+                    0.615167,
+                    0.998605,
+                        1,
     };
 
     // Eigen::Vector<double, NUM_PARAMETERS> params = {
@@ -816,7 +816,7 @@ Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 
 void test_param(Logger & log)
 {
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, windDist, windDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, oneRef, zeroRef};
     double finalTime = 300;
     double simTime = 1e-3;
@@ -828,10 +828,13 @@ void test_param(Logger & log)
     log << "stable? " << simResults.stable << std::endl;
 
     Logger splot("./build/splot.txt");
-    splotTrajectory(simResults, splot, "Post Disturbance Initial Condition with default Parameters");
+    splotTrajectory(simResults, splot, "Initial Condition with ERA Parameters");
 
     Logger xPlot("./build/x.txt");
-    splotPlantState(simResults, xPlot, x, "X Position with Post Disturbance Initial Condition and default Parameters");
+    splotPlantState(simResults, xPlot, x, "X Position with Initial Condition and ERA Parameters");
+
+    Logger yPlot("./build/y.txt");
+    splotPlantState(simResults, yPlot, y, "Y Position with Initial Condition and ERA Parameters");
 }
 
 void test_closestzbar(Logger & log)
@@ -848,12 +851,12 @@ void test_closestzbar(Logger & log)
 int main()
 {
     Logger log("./build/log.txt");
-    testERAAlgo(log);
+    // testERAAlgo(log);
     // testTrajSens(log);
     // testSim(log);
     // test_vp(log);
     // test_closestzbar(log);
-    // test_param(log);
+    test_param(log);
     std::cout << ":D" << std::endl;
     return 0;
 }

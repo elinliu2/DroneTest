@@ -55,20 +55,20 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState, bool checkConve
         time += m_simTimestep;        
         simResults.time.push_back(time);
 
-        if(checkConverge)
-        {
-            if (isConverging(simResults, m_ref, time)){
-                // m_logger << "converging :D" << std::endl;
-                simResults.converged = true;
-                return simResults;
-            } else if (isNotConverging(state1.state, m_ref, time)) {
-                // printInconvergence(state1.state, m_ref, time);
-                simResults.converged = false;
-                simResults.stable = false;
-                // m_logger << "not converging D:" << std::endl;
-                return simResults;
-            }
-        }
+        // if(checkConverge)
+        // {
+        //     if (isConverging(simResults, m_ref, time)){
+        //         // m_logger << "converging :D" << std::endl;
+        //         simResults.converged = true;
+        //         return simResults;
+        //     } else if (isNotConverging(state1.state, m_ref, time)) {
+        //         // printInconvergence(state1.state, m_ref, time);
+        //         simResults.converged = false;
+        //         simResults.stable = false;
+        //         // m_logger << "not converging D:" << std::endl;
+        //         return simResults;
+        //     }
+        // }
 
         // if (!m_fixedNumIterations)
         // {
@@ -113,13 +113,13 @@ Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double
     SystemState guess = prev;
     guess.plant += timestep*f(prev, time-timestep);
     int count = 0;
-    int max_iterations = 100;
+    int max_iterations = 100000;
     bool stable = true;
     for(; count < max_iterations; count++ ){
         Eigen::Vector<double, NUM_PLANT_STATES> h = H(prev, guess.plant, time, timestep);
         if (!h.allFinite()) {
             stable = false;
-            // m_logger.warn(std::string("simulateTimestep: non-finite residual h"));
+            m_logger.warn(std::string("simulateTimestep: non-finite residual h"));
             break;
         }
         if (h.norm() < tol) {
@@ -128,21 +128,21 @@ Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double
         Eigen::MatrixX<double> dh = DH(guess, timestep);
         if (!dh.allFinite()) {
             stable = false;
-            // m_logger.warn(std::string("simulateTimestep: non-finite Jacobian DH"));
+            m_logger.warn(std::string("simulateTimestep: non-finite Jacobian DH"));
             break;
         }
 
         Eigen::FullPivLU<Eigen::MatrixXd> lu(dh);
         if (!lu.isInvertible()) {
             stable = false;
-            // m_logger.warn(std::string("simulateTimestep: DH is singular or ill-conditioned"));
+            m_logger.warn(std::string("simulateTimestep: DH is singular or ill-conditioned"));
             break;
         }
 
         guess.plant = guess.plant - lu.solve(h);
         if (!guess.plant.allFinite()) {
             stable = false;
-            // m_logger.warn(std::string("simulateTimestep: guess.plant became non-finite"));
+            m_logger.warn(std::string("simulateTimestep: guess.plant became non-finite"));
             break;
         }
     }
@@ -154,9 +154,9 @@ Timestep DroneTrajectory::simulateTimestep(SystemState prev, double time, double
         stable = false;
     }
     stable = stable && count < max_iterations;   
-    // if (count >= max_iterations) {
-    //     m_logger << "WARN: took more than " << max_iterations << " iterations for sim to converge" << std::endl;
-    // }
+    if (count >= max_iterations) {
+        m_logger << "WARN: took more than " << max_iterations << " iterations for sim to converge" << std::endl;
+    }
     if (!stable) {
         return {prev, false};
     }
@@ -534,7 +534,7 @@ bool DroneTrajectory::isConverging(SimResults const& simResults, std::array<doub
 
 bool DroneTrajectory::isNotConverging(SystemState state, std::array<double(*)(double), NUM_REF_STATES> const& ref, double time) const
 {
-    double posDist = 100;
+    double posDist = 200;
     double angleDist = 90;
     // double pidStateLimit = 1e7;
 
