@@ -7,13 +7,13 @@
 
 double windDist(double time)
 {
-    // if(time < 1.18){
-    //     return 0.7;
-    // }
-
-    if(time < 0.1){
-        return 0.019;
+    if(time < 1){
+        return 0.525;
     }
+
+    // if(time < 0.1){
+    //     return 0.019;
+    // }
 
     return 0;
 }
@@ -744,44 +744,44 @@ void test_vp(Logger & log)
 Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 {
     // initial state sf
-    Eigen::Vector<double, NUM_PARAMETERS> params = {
-                0.999881,
-                       1,
-                       1,
-                0.998236,
-                       1,
-                       1,
-                0.969074,
-                0.997806,
-                       1,
-                  0.9999,
-                0.999999,
-                       1,
-                0.998259,
-                0.999989,
-                       1,
-                0.874869,
-                0.994998,
-                       1,
-                0.957454,
-                0.999577,
-                       1,
-                0.961113,
-                0.999624,
-                       1,
-                0.948504,
-                0.999708,
-                0.884178,
-                0.948737,
-                0.998083,
-                0.973266,
-                0.952399,
-                0.998214,
-                0.973419,
-                0.107803,
-                0.996855,
-                       1
-    };
+    // Eigen::Vector<double, NUM_PARAMETERS> params = {
+    //             0.999881,
+    //                    1,
+    //                    1,
+    //             0.998236,
+    //                    1,
+    //                    1,
+    //             0.969074,
+    //             0.997806,
+    //                    1,
+    //               0.9999,
+    //             0.999999,
+    //                    1,
+    //             0.998259,
+    //             0.999989,
+    //                    1,
+    //             0.874869,
+    //             0.994998,
+    //                    1,
+    //             0.957454,
+    //             0.999577,
+    //                    1,
+    //             0.961113,
+    //             0.999624,
+    //                    1,
+    //             0.948504,
+    //             0.999708,
+    //             0.884178,
+    //             0.948737,
+    //             0.998083,
+    //             0.973266,
+    //             0.952399,
+    //             0.998214,
+    //             0.973419,
+    //             0.107803,
+    //             0.996855,
+    //                    1
+    // };
 
     // Eigen::Vector<double, NUM_PARAMETERS> params = {
     //     0.985795,
@@ -821,6 +821,46 @@ Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
     //         1,
     //         1
     // };
+
+    // square traj
+    Eigen::Vector<double, NUM_PARAMETERS> params = {
+        0.949178,
+            1,
+            1,
+        0.955509,
+            1,
+            1,
+        0.988354,
+        0.997718,
+            1,
+        0.936882,
+        0.998657,
+            1,
+        0.944227,
+        0.998879,
+            1,
+        0.978727,
+        0.996415,
+            1,
+        0.908343,
+        0.999385,
+            1,
+        0.91211,
+        1.00034,
+            1,
+        0.958529,
+        0.999797,
+        0.976927,
+        0.765037,
+        1.00315,
+        0.745839,
+        0.769431,
+        1.00403,
+        0.766602,
+        0.882404,
+        0.99906,
+            1,
+    };
     return params;
 }
 
@@ -918,38 +958,81 @@ void test_sysid(Logger & log)
     splotPlantState(simResults, psiPlot, psi, "psi");
 }
 
+double hover(double time)
+{
+    if (time < 4)    { return interpolateZ(time); }
+    return 0.4;
+}
+
+double capAngleTest(double angle)
+{
+  double result = angle;
+
+  while (result > 180.0) {
+    result -= 360;
+  }
+
+  while (result < -180.0) {
+    result += 360;
+  }
+
+  return result;
+}
+
 void test_square_traj(Logger & log)
 {
-    std::string path = "../crazyflie_rl_sim/workspace/crazyflie_rl_sim/recordings/system_id_logs/square_test/traj.csv";
+    std::string path = "../crazyflie_rl_sim/workspace/crazyflie_rl_sim/recordings/system_id_logs/square_full_actual/traj.csv";
     std::vector<DataPoint> traj = loadTrajectory(path);
 
-    // log << "Timestamp,x,y,z" << std::endl;
+    // log << "Timestamp,x,y,z,yaw" << std::endl;
     // for(int i = 0; i < traj.size(); i++){
     //    DataPoint dp = traj.at(i); 
-    //    log << dp.timestamp << "," << dp.x << "," << dp.y << ","  << dp.z << std::endl;
+    //    log << dp.timestamp << "," << dp.x << "," << dp.y << ","  << dp.z << "," << dp.yaw << std::endl;
     // }
 
     setActiveTrajectory(traj);
 
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {interpolateX, interpolateY, interpolateZ, interpolateYaw};
-    double finalTime = 12;
+    double finalTime = 17.5;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(initializeState(), false);
-//     log << "stable? " << simResults.stable << std::endl;
+    // droneTrajectory.m_sf = get_test_param();
+
+    SystemState ic = initializeState();
+    // ic.plant = {-6.0/1000, 1.0/1000, 1.0/1000, -0.46661794/180*M_PI, -0.21732523/180*M_PI, 2.3516355/180*M_PI, -4.0/1000,1.0/1000,2.0/1000,7.0/1000,0.0/1000,0.0/1000};
+    ic.plant = {-3.0/1000,-2.0/1000,1.0/1000,-0.3299162/180*M_PI,0.1375021/180*M_PI,0.71228117/180*M_PI,1.0/1000,-4.0/1000,1.0/1000,4.0/1000,-2.0/1000,3.0/1000};
+    SimResults simResults = droneTrajectory.Trajectory(ic, false);
+    // log << "stable? " << simResults.stable << std::endl;
 
     Logger splot("./build/splot.txt");
     splotTrajectory(simResults, splot, "testSquareTraj"); 
 
-    log << "Timestamp,yaw" << std::endl;
+    Logger xPlot("./build/x.txt");
+    splotPlantState(simResults, xPlot, x, "x");
+
+    Logger yPlot("./build/y.txt");
+    splotPlantState(simResults, yPlot, y, "y");
+
+    Logger zPlot("./build/z.txt");
+    splotPlantState(simResults, zPlot, z, "z");
+
+    log << "Timestamp,x,y,z,roll,pitch,yaw,xdot,ydot,zdot,p,q,r" << std::endl;
     for(int i = 0; i < simResults.time.size(); i++){
         log << simResults.time.at(i) << ", " 
-            // << simResults.stateProgression.at(i).plant(x)*1000 << ", "
-            // << simResults.stateProgression.at(i).plant(y)*1000  << ", "
-            // << simResults.stateProgression.at(i).plant(z)*1000  << std::endl;
-            << simResults.stateProgression.at(i).plant(yaw)*180/M_PI << std::endl;
+            << simResults.stateProgression.at(i).plant(x)*1000 << ","
+            << simResults.stateProgression.at(i).plant(y)*1000 << ","
+            << simResults.stateProgression.at(i).plant(z)*1000 << ","
+            << simResults.stateProgression.at(i).plant(phi)*180/M_PI << ","
+            << -simResults.stateProgression.at(i).plant(theta)*180/M_PI << ","
+            << capAngleTest(simResults.stateProgression.at(i).plant(psi)*180/M_PI) << ","
+            << simResults.stateProgression.at(i).plant(xdot)*1000 << ","
+            << simResults.stateProgression.at(i).plant(ydot)*1000 << ","
+            << simResults.stateProgression.at(i).plant(zdot)*1000 << ","
+            << simResults.stateProgression.at(i).plant(p)*1000 << ","
+            << simResults.stateProgression.at(i).plant(q)*1000 << ","
+            << simResults.stateProgression.at(i).plant(r)*1000 << std::endl;
     }
 }
 
@@ -967,14 +1050,14 @@ void test_closestzbar(Logger & log) {
 int main()
 {
     Logger log("./build/log.txt");
-    testERAAlgo(log);
+    // testERAAlgo(log);
     // testTrajSens(log);
     // testSim(log);
     // test_vp(log);
     // test_closestzbar(log);
     // test_param(log);
     // test_sysid(log);
-    // test_square_traj(log);
+    test_square_traj(log);
     std::cout << ":D" << std::endl;
     return 0;
 }

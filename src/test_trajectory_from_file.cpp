@@ -58,7 +58,7 @@ static bool parseLine(const std::string& line, DataPoint& dp, double & firstTime
         return false;
     }
 
-    if (values.size() != 5) return false;
+    if (values.size() != 7) return false;
 
     if (firstTimestep == 0){
         firstTimestep = values[0];
@@ -67,7 +67,7 @@ static bool parseLine(const std::string& line, DataPoint& dp, double & firstTime
     dp.x         = values[1]/1000.0;
     dp.y         = values[2]/1000.0;
     dp.z         = values[3]/1000.0;
-    dp.yaw       = values[4];
+    dp.yaw       = values[6];
     return true;
 }
 

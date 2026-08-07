@@ -56,6 +56,8 @@ struct DroneParameters
     double kf = 0.11967404;
     double km = 0.00023797;
 
+    double tau_motor = 0.072;
+
     // x y z psi theta phi xdot ydot zdot p q r 
     double numPlantStates = 12;
     // 2 pids * 3 translational directions * 2 states per error
@@ -258,6 +260,9 @@ class DroneTrajectory
     double m_simTimestep; // [s]
     double m_finalTime; // [s]
     bool m_fixedNumIterations; 
+
+    // double motor_delay_factor = std::exp(-m_simTimestep/m_droneParams.tau_motor);
+    double motor_delay_factor = 0;
 
     double lpf_a1;
     double lpf_a2;

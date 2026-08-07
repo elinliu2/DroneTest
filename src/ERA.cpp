@@ -10,7 +10,7 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
     zkpk curr = {z0, m_sf};
     Eigen::Vector<double, NUM_PARAMETERS> p0 = m_sf;
     int count = 0;
-    while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-8)
+    while((curr.pk-pk_prev).cwiseAbs().sum() > 1e-5)
     {
         pk_prev = curr.pk;
         curr = updateStep(curr, z0);
@@ -18,6 +18,8 @@ zkpk DroneTrajectory::theGigaAlgo(SystemState currState)
         std::vector<dwdwo> ts = trajSens(traj);
         G_tp gtp = calc_G_tp(ts);
         count++;
+        m_logger << "zk " << curr.zk << std::endl;
+        m_logger << "pk " << curr.pk << std::endl;
         m_logger << "count " << count << std::endl;
         m_logger << "(curr.pk-pk_prev).cwiseAbs().sum() " << (curr.pk-pk_prev).cwiseAbs().sum() << std::endl;
         m_logger << "(curr.pk-p0).cwiseAbs().sum() " <<  (curr.pk-p0).cwiseAbs().sum() << std::endl;
@@ -37,9 +39,10 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> co
     d2w d2w = calc_d2w(traj, ts, gtp);
     Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = calc_dG(ts.at(gtp.tp), d2w, gtp);
     Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
-    m_logger << "vz " << vz << std::endl;
+    // m_logger << "vz " << vz << std::endl;
     Eigen::Vector<double, NUM_PARAMETERS> vp = dG.segment(NUM_STATES, NUM_PARAMETERS);
-    m_logger << "vp " << vp << std::endl;
+    // m_logger << "vp " << vp << std::endl;
+    m_logger << "vz_norm: " << vz.norm() << "vp_norm: " << vp.norm() << std::endl;
     double denominator = vz.transpose()*m_Pinv*vz;
     Eigen::Vector<double, NUM_PARAMETERS> pk = prev.pk + m_algo_alpha*(vz.transpose()*(currState - prev.zk) + gtp.G - m_epsilon)/denominator*vp;
     m_sf = pk;
@@ -48,7 +51,7 @@ zkpk DroneTrajectory::updateStep(zkpk prev, Eigen::Vector<double, NUM_STATES> co
     traj = Trajectory({zk.segment(0, NUM_PLANT_STATES), zk.segment(NUM_PLANT_STATES, NUM_ALGE_STATES)});
     int backtrackingCount = 0;
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-8)
+    while((!traj.stable || !traj.converged) && (pk-prev.pk).cwiseAbs().sum() > 1e-5)
     {
         m_logger << "backtrackingCount " << backtrackingCount << std::endl;
         pk = prev.pk + backtrack*(pk-prev.pk);

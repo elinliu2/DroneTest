@@ -30,6 +30,7 @@ add_library(crazyflie_cpp
   src/Calc_dG.cpp
   src/test_trajectory_from_file.cpp
   src/load_experiment_traj.cpp
+  src/test_motors.cpp
 )
 
 target_include_directories(crazyflie_cpp
