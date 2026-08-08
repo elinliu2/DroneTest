@@ -202,30 +202,30 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdxPlus(SystemState state, double 
 
     dhdx.push_back(T(desThrust, zdot, -m_thrustScale*m_ctrlParams.at(velZ).kp*m_sf(kpvz) ));
 
-    dhdx.push_back(T(eiphi, phi, -180/M_PI*timestep ));
+    if(state.alge(eiphi) > -20 && state.alge(eiphi) < 20) { dhdx.push_back(T(eiphi, phi, -180/M_PI*timestep )); }
     dhdx.push_back(T(edphi, phi, -180/M_PI/timestep ));
     dhdx.push_back(T(desRollRate, phi, -m_ctrlParams.at(roll).kp*m_sf(kpphi)*180/M_PI));
 
-    dhdx.push_back(T(eitheta, theta, -180/M_PI*timestep ));
+    if(state.alge(eitheta) > -20 && state.alge(eitheta) < 20) { dhdx.push_back(T(eitheta, theta, -180/M_PI*timestep )); }
     dhdx.push_back(T(edtheta, theta, -180/M_PI/timestep ));
     dhdx.push_back(T(desPitchRate, theta, -m_ctrlParams.at(pitch).kp*m_sf(kptheta)*180/M_PI));
 
-    dhdx.push_back(T(eipsi, psi, -180/M_PI*timestep ));
+    if(state.alge(eipsi) > -360 && state.alge(eipsi) < 360) { dhdx.push_back(T(eipsi, psi, -180/M_PI*timestep )); }
     dhdx.push_back(T(edpsi, psi, -180/M_PI/timestep ));
     dhdx.push_back(T(desYawRate, psi, -m_ctrlParams.at(yaw).kp*m_sf(kppsi)*180/M_PI));
 
     dhdx.push_back(T(delay_1_rollRate, p, -180/timestep/M_PI));
     dhdx.push_back(T(delay_1_pitchRate, q, -180/timestep/M_PI));
 
-    dhdx.push_back(T(eip, p, -180/M_PI*timestep ));
+    if(state.alge(eip) > -33.3 && state.alge(eip) < 33.3) { dhdx.push_back(T(eip, p, -180/M_PI*timestep )); }
     dhdx.push_back(T(edp, p, -180/M_PI/timestep*lpf_b0 ));
     dhdx.push_back(T(desRollOutput, p, -m_ctrlParams.at(rollRate).kp*m_sf(kpp)*180/M_PI));
 
-    dhdx.push_back(T(eiq, q, -180/M_PI*timestep ));
+    if(state.alge(eip) > -33.3 && state.alge(eip) < 33.3) { dhdx.push_back(T(eiq, q, -180/M_PI*timestep )); }
     dhdx.push_back(T(edq, q, -180/M_PI/timestep*lpf_b0 ));
     dhdx.push_back(T(desPitchOutput, q, -m_ctrlParams.at(pitchRate).kp*m_sf(kpq)*180/M_PI));
 
-    dhdx.push_back(T(eir, r, -180/M_PI*timestep ));
+    if(state.alge(eip) > -166.7 && state.alge(eip) < 166.7) { dhdx.push_back(T(eir, r, -180/M_PI*timestep )); }
     dhdx.push_back(T(edr, r, -180/M_PI/timestep ));
     dhdx.push_back(T(desYawOutput, r, -m_ctrlParams.at(yawRate).kp*m_sf(kpr)*180/M_PI));
 
@@ -302,20 +302,23 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double 
     dhdz.push_back(T(desPitchRate, eitheta, m_ctrlParams.at(pitch).ki*m_sf(kitheta)));
     dhdz.push_back(T(desPitchRate, edtheta, m_ctrlParams.at(pitch).kd*m_sf(kdtheta)));
     
+    if(state.alge(eipsi) > -360 && state.alge(eipsi) < 360) { dhdz.push_back(T(eipsi, desYawRef, timestep));}
+    
     dhdz.push_back(T(desYawRate, eipsi, m_ctrlParams.at(yaw).ki*m_sf(kipsi)));
     dhdz.push_back(T(desYawRate, edpsi, m_ctrlParams.at(yaw).kd*m_sf(kdpsi)));
-    
-    dhdz.push_back(T(eip, desRollRate, timestep));
+    dhdz.push_back(T(desYawRate, desYawRef, m_ctrlParams.at(yaw).kp*m_sf(kppsi)));
+
+    if(state.alge(eip) > -33.3 && state.alge(eip) < 33.3) { dhdz.push_back(T(eip, desRollRate, timestep)); }
     dhdz.push_back(T(desRollOutput, desRollRate, m_ctrlParams.at(rollRate).kp*m_sf(kpp)));
     dhdz.push_back(T(desRollOutput, eip, m_ctrlParams.at(rollRate).ki*m_sf(kip)));
     dhdz.push_back(T(desRollOutput, edp, m_ctrlParams.at(rollRate).kd*m_sf(kdp)));
 
-    dhdz.push_back(T(eiq, desPitchRate, timestep));
+    if(state.alge(eiq) > -33.3 && state.alge(eiq) < 33.3) { dhdz.push_back(T(eiq, desPitchRate, timestep)); }
     dhdz.push_back(T(desPitchOutput, desPitchRate, m_ctrlParams.at(pitchRate).kp*m_sf(kpq)));
     dhdz.push_back(T(desPitchOutput, eiq, m_ctrlParams.at(pitchRate).ki*m_sf(kiq)));
     dhdz.push_back(T(desPitchOutput, edq, m_ctrlParams.at(pitchRate).kd*m_sf(kdq)));
 
-    dhdz.push_back(T(eir, desYawRate, timestep));
+    if(state.alge(eir) > -166.7 && state.alge(eir) < 166.7) { dhdz.push_back(T(eir, desYawRate, timestep)); }
     dhdz.push_back(T(desYawOutput, desYawRate, m_ctrlParams.at(yawRate).kp*m_sf(kpr)));
     dhdz.push_back(T(desYawOutput, eir, m_ctrlParams.at(yawRate).ki*m_sf(kir)));
     dhdz.push_back(T(desYawOutput, edr, m_ctrlParams.at(yawRate).kd*m_sf(kdr)));
@@ -377,7 +380,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzPlus(SystemState state, double 
     return dhdz_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr() const
+Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr(SystemState state) const
 {
     std::vector<T> dhdz;
     dhdz.reserve(26);
@@ -387,37 +390,37 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdzCurr() const
     dhdz.push_back(T(eixdot, eixdot, 1));
     dhdz.push_back(T(eiydot, eiydot, 1));
     dhdz.push_back(T(eizdot, eizdot, 1));
-    dhdz.push_back(T(eiphi, eiphi, 1));
-    dhdz.push_back(T(eitheta, eitheta, 1));
-    dhdz.push_back(T(eipsi, eipsi, 1));
-    dhdz.push_back(T(eip, eip, 1));
+    dhdz.push_back(T(desYawRef, desYawRef, 1));
+    if(state.alge(eiphi) > -20 && state.alge(eiphi) < 20) { dhdz.push_back(T(eiphi, eiphi, 1)); }
+    if(state.alge(eitheta) > -20 && state.alge(eitheta) < 20) { dhdz.push_back(T(eitheta, eitheta, 1)); }
+    if(state.alge(eipsi) > -360 && state.alge(eipsi) < 360) { dhdz.push_back(T(eipsi, eipsi, 1)); }
+    if(state.alge(eip) > -33.3 && state.alge(eip) < 33.3) { dhdz.push_back(T(eip, eip, 1)); }
+    if(state.alge(eiq) > -33.3 && state.alge(eiq) < 33.3) { dhdz.push_back(T(eiq, eiq, 1)); }
+    if(state.alge(eir) > -166.7 && state.alge(eir) < 166.7) { dhdz.push_back(T(eir, eir, 1)); }
     dhdz.push_back(T(edp, delay_1_rollRate, lpf_b1 - lpf_a1*lpf_b0));
     dhdz.push_back(T(edp, delay_2_rollRate, lpf_b2 - lpf_b0*lpf_a2));
-    dhdz.push_back(T(eiq, eiq, 1));
     dhdz.push_back(T(edq, delay_1_pitchRate, lpf_b1 - lpf_a1*lpf_b0));
     dhdz.push_back(T(edq, delay_2_pitchRate, lpf_b2 - lpf_b0*lpf_a2));
-    dhdz.push_back(T(eir, eir, 1));
     dhdz.push_back(T(delay_1_rollRate, delay_1_rollRate, -lpf_a1));
     dhdz.push_back(T(delay_1_rollRate, delay_2_rollRate, -lpf_a2));
     dhdz.push_back(T(delay_2_rollRate, delay_1_rollRate, 1));
     dhdz.push_back(T(delay_1_pitchRate, delay_1_pitchRate, -lpf_a1));
     dhdz.push_back(T(delay_1_pitchRate, delay_2_pitchRate, -lpf_a2));
     dhdz.push_back(T(delay_2_pitchRate, delay_1_pitchRate, 1));
-
     
     Eigen::SparseMatrix<double> dhdz_mat(NUM_Z_STATES, NUM_Z_STATES);
     dhdz_mat.setFromTriplets(dhdz.begin(), dhdz.end());
     return dhdz_mat;
 }
 
-Eigen::SparseMatrix<double> DroneTrajectory::dhdy(double timestep) const
+Eigen::SparseMatrix<double> DroneTrajectory::dhdy(SystemState state, double timestep) const
 {
     std::vector<T> dhdy;
     dhdy.reserve(4);
    
-    dhdy.push_back(T(eiphi, 0, timestep));
+    if(state.alge(eiphi) > -20 && state.alge(eiphi) < 20 ) { dhdy.push_back(T(eiphi, 0, timestep)); }
     dhdy.push_back(T(desRollRate, 0, m_ctrlParams.at(roll).kp*m_sf(kpphi)));
-    dhdy.push_back(T(eitheta, 1, timestep));
+    if(state.alge(eitheta) > -20 && state.alge(eitheta) < 20 ) { dhdy.push_back(T(eitheta, 1, timestep)); }
     dhdy.push_back(T(desPitchRate, 1, m_ctrlParams.at(pitch).kp*m_sf(kptheta)));
     
     Eigen::SparseMatrix<double> dhdy_mat(NUM_Z_STATES, NUM_Y_STATES);
@@ -456,7 +459,7 @@ Eigen::SparseMatrix<double> DroneTrajectory::dhdp(SystemState state, double time
     dhdp.push_back(T(desPitchRate, kitheta, state.alge(eitheta)*m_ctrlParams.at(pitch).ki ));
     dhdp.push_back(T(desPitchRate, kdtheta, state.alge(edtheta)*m_ctrlParams.at(pitch).kd ));
 
-    dhdp.push_back(T(desYawRate, kppsi, (m_ref.at(refyaw)(time) - 180/M_PI*state.plant(psi))*m_ctrlParams.at(yaw).kp ));
+    dhdp.push_back(T(desYawRate, kppsi, (state.alge(desYawRef) - 180/M_PI*state.plant(psi))*m_ctrlParams.at(yaw).kp ));
     dhdp.push_back(T(desYawRate, kipsi, state.alge(eipsi)*m_ctrlParams.at(yaw).ki ));
     dhdp.push_back(T(desYawRate, kdpsi, state.alge(edpsi)*m_ctrlParams.at(yaw).kd ));
 

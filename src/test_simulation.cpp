@@ -160,55 +160,62 @@ SystemState stateOnRoABoundary()
     initialState.plant(9) = 0.425983;
     initialState.plant(10) = 0.00125436;
     initialState.plant(11) = -0.00177402;
-    initialState.alge(0) = -2.22199;
-    initialState.alge(1) = -17.9702;
-    initialState.alge(2) = -16.8151;
-    initialState.alge(3) = 0.655338;
-    initialState.alge(4) = -1.32674;
-    initialState.alge(5) = -0.147003;
-    initialState.alge(6) = 0.0114084;
-    initialState.alge(7) = 0.00792153;
-    initialState.alge(8) = 0.0469763;
-    initialState.alge(9) = -13.874;
-    initialState.alge(10) = -16.8217;
-    initialState.alge(11) = 0.410062;
-    initialState.alge(12) = 3.24285;
-    initialState.alge(13) = 0.0451465;
-    initialState.alge(14) = 0.0807363;
-    initialState.alge(15) = 38050.7;
-    initialState.alge(16) = 3.16988;
-    initialState.alge(17) = -24.5161;
-    initialState.alge(18) = 22.556;
-    initialState.alge(19) = -2.36801;
-    initialState.alge(20) = -0.0990131;
-    initialState.alge(21) = -0.188172;
-    initialState.alge(22) = -1.08024;
-    initialState.alge(23) = 0.0827114;
-    initialState.alge(24) = 0.339614;
-    initialState.alge(25) = 1446.75;
-    initialState.alge(26) = 1456.06;
-    initialState.alge(27) = -21.666;
-    initialState.alge(28) = -21.7089;
-    initialState.alge(29) = -0.17174;
-    initialState.alge(30) = 162.264;
-    initialState.alge(31) = -142.955;
-    initialState.alge(32) = 0.146161;
-    initialState.alge(33) = -2.41921;
-    initialState.alge(34) = 2.0219;
-    initialState.alge(35) = -0.0722482;
-    initialState.alge(36) = -4.1726;
-    initialState.alge(37) = 51.7445;
-    initialState.alge(38) = 1587.62;
-    initialState.alge(39) = 1583.24;
-    initialState.alge(40) = 1581.6;
-    initialState.alge(41) = 1577.38;
-    initialState.alge(42) = 0.372623;
-    initialState.alge(43) = -4.5536e-05;
-    initialState.alge(44) = 7.05955e-07;
-    initialState.alge(45) = 2.10597e-06;
-    initialState.alge(46) = 20;
-    initialState.alge(47) = -20;
+    initialState.alge(eix) = -2.22199;
+    initialState.alge(edx) = -17.9702;
+    initialState.alge(desVelX) = -16.8151;
+    initialState.alge(eiy) = 0.655338;
+    initialState.alge(edy) = -1.32674;
+    initialState.alge(desVelY) = -0.147003;
+    initialState.alge(eiz) = 0.0114084;
+    initialState.alge(edz) = 0.00792153;
+    initialState.alge(desVelZ) = 0.0469763;
 
+    initialState.alge(eixdot) = -13.874;
+    initialState.alge(edxdot) = -16.8217;
+    initialState.alge(eiydot) = 0.410062;
+    initialState.alge(edydot) = 3.24285;
+    initialState.alge(eizdot) = 0.0451465;
+    initialState.alge(edzdot) = 0.0807363;
+    initialState.alge(desThrust) = 38050.7;
+
+    initialState.alge(eiphi) = 3.16988;
+    initialState.alge(edphi) = -24.5161;
+    initialState.alge(desRollRate) = 22.556;
+    initialState.alge(eitheta) = -2.36801;
+    initialState.alge(edtheta) = -0.0990131;
+    initialState.alge(desPitchRate) = -0.188172;
+    initialState.alge(desYawRef) = 0.0;
+    initialState.alge(eipsi) = -1.08024;
+    initialState.alge(edpsi) = 0.0827114;
+    initialState.alge(desYawRate) = 0.339614;
+
+    initialState.alge(delay_1_rollRate) = 1446.75;
+    initialState.alge(delay_2_rollRate) = 1456.06;
+    initialState.alge(delay_1_pitchRate) = -21.666;
+    initialState.alge(delay_2_pitchRate) = -21.7089;
+
+    initialState.alge(eip) = -0.17174;
+    initialState.alge(edp) = 162.264;
+    initialState.alge(desRollOutput) = -142.955;
+    initialState.alge(eiq) = 0.146161;
+    initialState.alge(edq) = -2.41921;
+    initialState.alge(desPitchOutput) = 2.0219;
+    initialState.alge(eir) = -0.0722482;
+    initialState.alge(edr) = -4.1726;
+    initialState.alge(desYawOutput) = 51.7445;
+
+    initialState.alge(w1) = 1587.62;
+    initialState.alge(w2) = 1583.24;
+    initialState.alge(w3) = 1581.6;
+    initialState.alge(w4) = 1577.38;
+
+    initialState.alge(ft) = 0.372623;
+    initialState.alge(tx) = -4.5536e-05;
+    initialState.alge(ty) = 7.05955e-07;
+    initialState.alge(tz) = 2.10597e-06;
+
+    initialState.alge(desRoll) = 20;
+    initialState.alge(desPitch) = -20;
     return initialState;
 }
 
@@ -351,176 +358,110 @@ void testTrajSens(Logger & log)
     std::vector<dwdwo> tstest = droneTrajectory.trajSensTest(stateCloseToRoABoundary());
     double max = 0;
     int index = 0;
-    // for (int i = 0; i < ts.size(); i++){
-    //     log << i << " " <<  (ts[i].dxdwo - tstest[i].dxdwo).cwiseAbs().maxCoeff() 
-    //              << " " << (ts[i].dydwo - tstest[i].dydwo).cwiseAbs().maxCoeff() 
-    //              << " " << (ts[i].dzdwo - tstest[i].dzdwo).cwiseAbs().maxCoeff() << std::endl;
-    //     // double max = 0;
-    //     // double temp_max = (ts[i].dxdwo - tstest[i].dxdwo).cwiseAbs().maxCoeff();
-    //     // if (temp_max > max) { max = temp_max;  index = i;}
-    //     // temp_max = (ts[i].dydwo - tstest[i].dydwo).cwiseAbs().maxCoeff();
-    //     // if (temp_max > max) { max = temp_max;  index = i;}
-    //     // temp_max = (ts[i].dzdwo - tstest[i].dzdwo).cwiseAbs().maxCoeff();
-    //     // if (temp_max > max) { max = temp_max; index = i;}
-    // }
-    // log << "ts diff " << max << " " << index << std::endl;
+    for (int i = 0; i < ts.size(); i++){
+        double temp_max = (ts[i].dxdwo - tstest[i].dxdwo).cwiseAbs().maxCoeff();
+        if (temp_max > max) { max = temp_max;  index = i;}
+        temp_max = (ts[i].dydwo - tstest[i].dydwo).cwiseAbs().maxCoeff();
+        if (temp_max > max) { max = temp_max;  index = i;}
+        temp_max = (ts[i].dzdwo - tstest[i].dzdwo).cwiseAbs().maxCoeff();
+        if (temp_max > max) { max = temp_max; index = i;}
+    }
+    log << "ts diff " << max << " " << index << std::endl;
 
-    index = 8351;
-    log << simResults.stateProgression.at(index).alge(desPitch) << std::endl;
-    log << "ts[index].dxdwo - tstest[index].dxdwo max" << std::endl;
-    log << (ts[index].dxdwo - tstest[index].dxdwo).cwiseAbs().maxCoeff() << std::endl;
-    log << "ts[index].dydwo - tstest[index].dydwo max" << std::endl;
-    log << (ts[index].dydwo - tstest[index].dydwo).cwiseAbs().maxCoeff() << std::endl;
-    log << "ts[index].dzdwo - tstest[index].dzdwo max" << std::endl;
-    log << (ts[index].dzdwo - tstest[index].dzdwo).cwiseAbs().maxCoeff() << std::endl;
+    std::vector<dwdp> tsp = droneTrajectory.trajSensParam(simResults, simResults.time.size());
+    std::vector<dwdp> tsptest = droneTrajectory.trajSensParamTest(initializeState());
+    max = 0; 
+    index = 0;
+    for (int i = 0; i < simResults.time.size(); i++){
+        double temp_max = (tsp[i].dxdp - tsptest[i].dxdp).cwiseAbs().maxCoeff();
+        if (temp_max > max) { max = temp_max; index = i; }
+        temp_max = (tsp[i].dydp - tsptest[i].dydp).cwiseAbs().maxCoeff();
+        if (temp_max > max) { max = temp_max; index = i;  }
+        temp_max = (tsp[i].dzdp - tsptest[i].dzdp).cwiseAbs().maxCoeff();
+        if (temp_max > max) { max = temp_max; index = i; }
+    }
+    log << "tsp diff " << max << " " << index << std::endl;
 
-    index = 8352;
-    log << simResults.stateProgression.at(index).alge(desPitch) << std::endl;
-    log << simResults.stateProgression.at(index+1).alge(desPitch) << std::endl;
+    std::vector<d2wdwo2> ts2 = droneTrajectory.secondOrdertrajSens(simResults, ts);
+    std::vector<d2wdwo2> ts2test = droneTrajectory.secondOrdertrajSensTest(initializeState());
+    max = 0; 
+    index = 0;
+    for (int i = 0; i < simResults.time.size(); i++){
+        Eigen::Tensor<double, 0> max_tensor = (ts2[i].d2xdwo2 - ts2test[i].d2xdwo2).abs().maximum();
+        double temp_max = max_tensor();
+        if (temp_max > max) { max = temp_max; index = i; }
+        max_tensor = (ts2[i].d2ydwo2 - ts2test[i].d2ydwo2).abs().maximum();
+        temp_max = max_tensor();
+        if (temp_max > max) { max = temp_max; index = i;  }
+        max_tensor = (ts2[i].d2zdwo2 - ts2test[i].d2zdwo2).abs().maximum();
+        temp_max = max_tensor();
+        if (temp_max > max) { max = temp_max; index = i; }
+    }
+    log << "ts2 diff " << max << " " << index << std::endl;
+
+    std::vector<d2wdwodp> ts2p = droneTrajectory.secondOrdertrajSensParams(simResults, ts, tsp);
+    std::vector<d2wdwodp> ts2testp = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
+    max = 0; 
+    index = 0;   
+    for (int i = 0; i < simResults.time.size(); i++){
+        Eigen::Tensor<double, 0> max_tensor = (ts2p[i].d2xdwodp - ts2testp[i].d2xdwodp).abs().maximum();
+        double temp_max = max_tensor();
+        if (temp_max > max) { max = temp_max; index = i; }
+        max_tensor = (ts2p[i].d2ydwodp - ts2testp[i].d2ydwodp).abs().maximum();
+        temp_max = max_tensor();
+        if (temp_max > max) { max = temp_max; index = i;  }
+        max_tensor = (ts2p[i].d2zdwodp - ts2testp[i].d2zdwodp).abs().maximum();
+        temp_max = max_tensor();
+        if (temp_max > max) { max = temp_max; index = i; }
+    }
+    log << "ts2p diff " << max << " " << index << std::endl;
+    G_tp gtp = droneTrajectory.calc_G_tp(tstest);
+    log << "tp: " << gtp.tp << std::endl;
+    double tol = 5e-8;
+    for(int i = 1; i < 50; i++)
+    {
+        gtp.tp = i;
+        d2w testd2w = droneTrajectory.calc_d2w(simResults, ts, gtp);
+        Eigen::Tensor<double, 0> diff_tensor = (testd2w.dwo2.d2xdwo2 - ts2.at(i).d2xdwo2).abs().maximum();
+        double diff_double = diff_tensor();
+        if ( diff_double > tol ) { log << "d2xdwo2 " << diff_double << " " << i << std::endl; }
+        diff_tensor = (testd2w.dwo2.d2ydwo2 - ts2.at(i).d2ydwo2).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > tol ) { log << "d2ydwo2 " << diff_double << " " << i << std::endl; }
+        diff_tensor = (testd2w.dwo2.d2zdwo2 - ts2.at(i).d2zdwo2).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > tol ) { log << "d2zdwo2 " << diff_double << " " << i << std::endl; }
+
+        diff_tensor = (testd2w.dwodp.d2xdwodp - ts2p.at(i).d2xdwodp).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > tol ) { log << "d2xdwodp " << diff_double << " " << i << std::endl; }
+        diff_tensor = (testd2w.dwodp.d2ydwodp - ts2p.at(i).d2ydwodp).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > tol ) { log << "d2xdwodp " << diff_double << " " << i << std::endl; }
+        diff_tensor = (testd2w.dwodp.d2zdwodp - ts2p.at(i).d2zdwodp).abs().maximum();
+        diff_double = diff_tensor();
+        if ( diff_double > tol ) { log << "d2zdwodp " << diff_double << " " << i << std::endl; }
+    }
+    log << "finished comparing d2w" << std::endl;
+    gtp = droneTrajectory.calc_G_tp(ts);
+    d2w d2w = droneTrajectory.calc_d2w(simResults, ts, gtp);
+    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG(ts.at(gtp.tp), d2w,  gtp);
+    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG_test = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), gtp, finalTime);
     
-    // for (int i = 0; i < NUM_Z_STATES; i++){
-    //     for(int j = 0; j < NUM_STATES; j++)
-    //     {
-    //         if(ts[index].dzdwo.coeff(i, j) != 0){
-    //             double percentDiff = (ts[index].dzdwo.coeff(i, j)-tstest[index].dzdwo.coeff(i, j))/ts[index].dzdwo.coeff(i, j);
-    //             if(std::abs(percentDiff) > max){
-    //                 max = std::abs(percentDiff);
-    //                 log << "percent diff: " << max << " i: " << i << " j: " << j << std::endl;
-    //                 log << ts[index].dzdwo.coeff(i, j) << " " << tstest[index].dzdwo.coeff(i, j) << std::endl;
-    //             }
-    //         }
-    //         if(tstest[index].dzdwo.coeff(i, j) != 0){
-    //             double percentDiff = (ts[index].dzdwo.coeff(i, j)-tstest[index].dzdwo.coeff(i, j))/tstest[index].dzdwo.coeff(i, j);
-    //             if(std::abs(percentDiff) > max){
-    //                 max =  std::abs(percentDiff);
-    //                 log << "percent diff: " << max << " i: " << i << " j: " << j << std::endl;
-    //                 log << ts[index].dzdwo.coeff(i, j) << " " << tstest[index].dzdwo.coeff(i, j) << std::endl;
-    //             }
-    //         }
-            
-    //     }
-    // }
+    log << "dG diff " << (dG-dG_test) << std::endl;
 
-    log << "ts[index].dxdwo - tstest[index].dxdwo max" << std::endl;
-    log << (ts[index].dxdwo - tstest[index].dxdwo).cwiseAbs().maxCoeff() << std::endl;
-    log << "ts[index].dydwo - tstest[index].dydwo max" << std::endl;
-    log << (ts[index].dydwo - tstest[index].dydwo).cwiseAbs().maxCoeff() << std::endl;
-    log << "ts[index].dzdwo - tstest[index].dzdwo max top rows" << std::endl;
-    log << (ts[index].dzdwo.topRows(15) - tstest[index].dzdwo.topRows(15)).cwiseAbs().maxCoeff() << std::endl;
-    log << "ts[index].dzdwo - tstest[index].dzdwo max" << std::endl;
-    log << (ts[index].dzdwo - tstest[index].dzdwo).cwiseAbs().maxCoeff() << std::endl;
-
-    log << "ts[index].dxdwo - tstest[index].dxdwo" << std::endl;
-    log << ts[index].dxdwo - tstest[index].dxdwo << std::endl;
-    log << "ts[index].dxdwo" << std::endl;
-    log << ts[index].dxdwo << std::endl;
-    log << "tstest[index].dxdwo" << std::endl;
-    log << tstest[index].dxdwo << std::endl;
-    log << "ts[index].dydwo - tstest[index].dydwo" << std::endl;
-    log << ts[index].dydwo - tstest[index].dydwo << std::endl;
-    log << "ts[index].dydwo" << std::endl;
-    log << ts[index].dydwo << std::endl;
-    log << "tstest[index].dydwo" << std::endl;
-    log << tstest[index].dydwo << std::endl;
-    log << "ts[index].dzdwo - tstest[index].dzdwo" << std::endl;
-    log << ts[index].dzdwo - tstest[index].dzdwo << std::endl;
-    log << "ts[index].dzdwo" << std::endl;
-    log << ts[index].dzdwo << std::endl;
-
-    // std::vector<dwdp> tsp = droneTrajectory.trajSensParam(simResults, simResults.time.size());
-    // std::vector<dwdp> tsptest = droneTrajectory.trajSensParamTest(initializeState());
-    // max = 0; 
-    // index = 0;
-    // for (int i = 0; i < simResults.time.size(); i++){
-    //     double temp_max = (tsp[i].dxdp - tsptest[i].dxdp).cwiseAbs().maxCoeff();
-    //     if (temp_max > max) { max = temp_max; index = i; }
-    //     temp_max = (tsp[i].dydp - tsptest[i].dydp).cwiseAbs().maxCoeff();
-    //     if (temp_max > max) { max = temp_max; index = i;  }
-    //     temp_max = (tsp[i].dzdp - tsptest[i].dzdp).cwiseAbs().maxCoeff();
-    //     if (temp_max > max) { max = temp_max; index = i; }
-    // }
-    // log << "tsp diff " << max << " " << index << std::endl;
-
-    // std::vector<d2wdwo2> ts2 = droneTrajectory.secondOrdertrajSens(simResults, ts);
-    // std::vector<d2wdwo2> ts2test = droneTrajectory.secondOrdertrajSensTest(initializeState());
-    // max = 0; 
-    // index = 0;
-    // for (int i = 0; i < simResults.time.size(); i++){
-    //     Eigen::Tensor<double, 0> max_tensor = (ts2[i].d2xdwo2 - ts2test[i].d2xdwo2).abs().maximum();
-    //     double temp_max = max_tensor();
-    //     if (temp_max > max) { max = temp_max; index = i; }
-    //     max_tensor = (ts2[i].d2ydwo2 - ts2test[i].d2ydwo2).abs().maximum();
-    //     temp_max = max_tensor();
-    //     if (temp_max > max) { max = temp_max; index = i;  }
-    //     max_tensor = (ts2[i].d2zdwo2 - ts2test[i].d2zdwo2).abs().maximum();
-    //     temp_max = max_tensor();
-    //     if (temp_max > max) { max = temp_max; index = i; }
-    // }
-    // log << "ts2 diff " << max << " " << index << std::endl;
-
-    // std::vector<d2wdwodp> ts2p = droneTrajectory.secondOrdertrajSensParams(simResults, ts, tsp);
-    // std::vector<d2wdwodp> ts2testp = droneTrajectory.secondOrdertrajSensParamsTest(initializeState());
-    // max = 0; 
-    // index = 0;   
-    // for (int i = 0; i < simResults.time.size(); i++){
-    //     Eigen::Tensor<double, 0> max_tensor = (ts2p[i].d2xdwodp - ts2testp[i].d2xdwodp).abs().maximum();
-    //     double temp_max = max_tensor();
-    //     if (temp_max > max) { max = temp_max; index = i; }
-    //     max_tensor = (ts2p[i].d2ydwodp - ts2testp[i].d2ydwodp).abs().maximum();
-    //     temp_max = max_tensor();
-    //     if (temp_max > max) { max = temp_max; index = i;  }
-    //     max_tensor = (ts2p[i].d2zdwodp - ts2testp[i].d2zdwodp).abs().maximum();
-    //     temp_max = max_tensor();
-    //     if (temp_max > max) { max = temp_max; index = i; }
-    // }
-    // log << "ts2p diff " << max << " " << index << std::endl;
-    // G_tp gtp = droneTrajectory.calc_G_tp(tstest);
-    // log << "tp: " << gtp.tp << std::endl;
-    // double tol = 5e-8;
-    // for(int i = 1; i < 50; i++)
-    // {
-    //     gtp.tp = i;
-    //     d2w testd2w = droneTrajectory.calc_d2w(simResults, ts, gtp);
-    //     Eigen::Tensor<double, 0> diff_tensor = (testd2w.dwo2.d2xdwo2 - ts2.at(i).d2xdwo2).abs().maximum();
-    //     double diff_double = diff_tensor();
-    //     if ( diff_double > tol ) { log << "d2xdwo2 " << diff_double << " " << i << std::endl; }
-    //     diff_tensor = (testd2w.dwo2.d2ydwo2 - ts2.at(i).d2ydwo2).abs().maximum();
-    //     diff_double = diff_tensor();
-    //     if ( diff_double > tol ) { log << "d2ydwo2 " << diff_double << " " << i << std::endl; }
-    //     diff_tensor = (testd2w.dwo2.d2zdwo2 - ts2.at(i).d2zdwo2).abs().maximum();
-    //     diff_double = diff_tensor();
-    //     if ( diff_double > tol ) { log << "d2zdwo2 " << diff_double << " " << i << std::endl; }
-
-    //     diff_tensor = (testd2w.dwodp.d2xdwodp - ts2p.at(i).d2xdwodp).abs().maximum();
-    //     diff_double = diff_tensor();
-    //     if ( diff_double > tol ) { log << "d2xdwodp " << diff_double << " " << i << std::endl; }
-    //     diff_tensor = (testd2w.dwodp.d2ydwodp - ts2p.at(i).d2ydwodp).abs().maximum();
-    //     diff_double = diff_tensor();
-    //     if ( diff_double > tol ) { log << "d2xdwodp " << diff_double << " " << i << std::endl; }
-    //     diff_tensor = (testd2w.dwodp.d2zdwodp - ts2p.at(i).d2zdwodp).abs().maximum();
-    //     diff_double = diff_tensor();
-    //     if ( diff_double > tol ) { log << "d2zdwodp " << diff_double << " " << i << std::endl; }
-    // }
-    // log << "finished comparing d2w" << std::endl;
-    // gtp = droneTrajectory.calc_G_tp(ts);
-    // d2w d2w = droneTrajectory.calc_d2w(simResults, ts, gtp);
-    // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG(ts.at(gtp.tp), d2w,  gtp);
-    // Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG_test = droneTrajectory.calc_dG_test(initializeState(), ts.at(gtp.tp), gtp, finalTime);
-    
-    // log << "dG diff " << (dG-dG_test) << std::endl;
-
-    // for(int i = 0; i < NUM_STATES+NUM_PARAMETERS; i++)
-    // {
-    //     if(dG(i)!= 0){
-    //         log << "i " << i << "dG diff %" << (dG(i)-dG_test(i))/dG(i) << std::endl;
-    //     }
-    // }
+    for(int i = 0; i < NUM_STATES+NUM_PARAMETERS; i++)
+    {
+        if(dG(i)!= 0){
+            log << "i " << i << "dG diff %" << (dG(i)-dG_test(i))/dG(i) << std::endl;
+        }
+    }
 }
 
 void testERAAlgo(Logger & log)
 {
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::string path = "../crazyflie_rl_sim/workspace/crazyflie_rl_sim/recordings/system_id_logs/square_test/traj.csv";
+    std::string path = "../crazyflie_rl_sim/workspace/crazyflie_rl_sim/recordings/system_id_logs/tall_hover/traj.csv";
     std::vector<DataPoint> traj = loadTrajectory(path);
     setActiveTrajectory(traj);
     std::array<double(*)(double), NUM_REF_STATES> ref = {interpolateX, interpolateY, interpolateZ, interpolateYaw};
@@ -555,190 +496,6 @@ void testSim(Logger & log)
 
     Logger yPlot("./build/y.txt");
     splotPlantState(simResults, yPlot, y);
-}
-
-Eigen::Vector<double, NUM_STATES> vz_stateCloseToRoABoundary()
-{
-    Eigen::Vector<double, NUM_STATES> vz = {
-        -2.84488e-08,
-         6.49673e-11,
-        -1.27123e-08,
-        -3.72008e-09,
-        -7.05403e-08,
-        -1.06216e-07,
-        -1.36627e-07,
-         6.36192e-10,
-        -5.25603e-08,
-        -6.10231e-11,
-         1.81503e-10,
-        -8.21654e-09,
-                  -0,
-                  -0,
-                  -0,
-                  -0,
-                  -0,
-                  -0,
-           1.285e-09,
-                  -0,
-                  -0,
-         4.73351e-10,
-                  -0,
-        -6.61786e-14,
-                  -0,
-        -4.24746e-11,
-                  -0,
-                  -0,
-        -7.76228e-11,
-                  -0,
-                  -0,
-        -1.63984e-08,
-                  -0,
-                  -0,
-        -3.92802e-10,
-                  -0,
-                  -0,
-         6.09986e-16,
-        -3.16742e-16,
-         3.98727e-15,
-        -2.25276e-15,
-        -3.78777e-11,
-                  -0,
-                  -0,
-        -1.74299e-09,
-                  -0,
-                  -0,
-        -5.48197e-11,
-                  -0,
-                  -0,
-                  -0,
-                  -0,
-                  -0,
-                  -0,
-        -4.30932e-11,
-        -5.24444e-09,
-        -2.58058e-10,
-        -2.79594e-07,
-                  -0,
-                  -0
-    };
-
-    return vz;
-}
-
-Eigen::Vector<double, NUM_PARAMETERS> vp_stateCloseToRoABoundary()
-{
-    Eigen::Vector<double, NUM_PARAMETERS> vp = {
-         -3.4627e-07,
-        -4.68415e-06,
-         5.17365e-07,
-        -3.50998e-11,
-         6.89135e-12,
-        -1.65925e-11,
-          1.7199e-10,
-         1.35183e-11,
-         1.13221e-09,
-         7.49887e-09,
-        -3.66293e-07,
-         8.67092e-09,
-        -2.87432e-12,
-        -3.69854e-13,
-         2.07048e-11,
-         5.56554e-11,
-         5.95553e-12,
-         3.12149e-10,
-         -9.8693e-11,
-        -7.71553e-11,
-         9.20922e-10,
-        -5.45863e-09,
-         2.92891e-08,
-        -5.88542e-08,
-         5.27344e-10,
-         5.03168e-10,
-        -5.56355e-10,
-         2.27796e-13,
-         4.28667e-15,
-        -1.75006e-11,
-        -1.60923e-11,
-        -4.95524e-13,
-         3.39489e-10,
-         2.46575e-11,
-         7.73515e-12,
-        -2.13172e-11
-    };
-    return vp;
-}
-
-
-void test_vp(Logger & log)
-{
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, zeroRef, zeroRef};
-    double finalTime = 500;
-    double simTime = 1e-3;
-    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
-    std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(stateCloseToRoABoundary(), true);
-
-    Logger splot("./build/splot.txt");
-    splotTrajectory(simResults, splot);
-
-    std::vector<dwdwo> ts = droneTrajectory.trajSens(simResults);
-    G_tp gtp = droneTrajectory.calc_G_tp(ts);
-    double og_gtp = gtp.G;
-    log <<  "G: " << gtp.G << " tp: " << gtp.tp << std::endl;
-    d2w d2w = droneTrajectory.calc_d2w(simResults, ts, gtp);
-    Eigen::Vector<double, NUM_STATES+NUM_PARAMETERS> dG = droneTrajectory.calc_dG(ts.at(gtp.tp), d2w, gtp);
-    Eigen::Vector<double, NUM_STATES> vz = dG.segment(0, NUM_STATES);
-    // Eigen::Vector<double, NUM_STATES> vz = vz_stateCloseToRoABoundary();
-    log << "vz " << std::endl << vz << std::endl;
-    Eigen::Vector<double, NUM_PARAMETERS> vp = dG.segment(NUM_STATES, NUM_PARAMETERS);
-    // Eigen::Vector<double, NUM_PARAMETERS> vp = vp_stateCloseToRoABoundary();
-    log << "vp " << std::endl << vp << std::endl;
-    std::array<PIDParameters, NUM_PIDS> og_params = droneTrajectory.m_ctrlParams;
-    double delta = 1e-05;
-    log << "change plant states" << std::endl;
-    for(int i = 0; i < NUM_PLANT_STATES; i++) {
-        SystemState test_state = stateCloseToRoABoundary();
-        test_state.plant(i) += std::copysign(delta, vz(i));
-        SimResults test_state_sim = droneTrajectory.Trajectory(test_state);
-        std::vector<dwdwo> test_state_ts = droneTrajectory.trajSens(test_state_sim);
-        gtp = droneTrajectory.calc_G_tp(test_state_ts);
-        log <<  "i: " <<  i <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
-    }
-    delta = 1e-05;
-    log << "change alge states" << std::endl;
-    for(int i = 0; i < NUM_ALGE_STATES; i++) {
-        SystemState test_state = stateCloseToRoABoundary();
-        test_state.alge(i) += std::copysign(delta, vz(NUM_PLANT_STATES + i));
-        SimResults test_state_sim = droneTrajectory.Trajectory(test_state);
-        std::vector<dwdwo> test_state_ts = droneTrajectory.trajSens(test_state_sim);
-        gtp = droneTrajectory.calc_G_tp(test_state_ts);
-        log <<  "i: " <<  i <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
-    }
-    delta = 1e-05;
-    log << "change parameters" << std::endl;
-    for(int i = 0; i < NUM_PIDS; i++) {
-        droneTrajectory.m_ctrlParams.at(i).kp = og_params.at(i).kp + std::copysign(delta, vp(i*NUM_PID_STATES));
-        SimResults kp_sim = droneTrajectory.Trajectory(stateCloseToRoABoundary());
-        std::vector<dwdwo> plus_kp = droneTrajectory.trajSens(kp_sim);
-        droneTrajectory.m_ctrlParams.at(i).kp = og_params.at(i).kp;    
-        gtp = droneTrajectory.calc_G_tp(plus_kp);
-        log <<  "i: " <<  i*NUM_PID_STATES <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
-
-        droneTrajectory.m_ctrlParams.at(i).ki = og_params.at(i).ki + std::copysign(delta, vp(i*NUM_PID_STATES + 1));
-        SimResults ki_sim = droneTrajectory.Trajectory(stateCloseToRoABoundary());
-        std::vector<dwdwo> plus_ki = droneTrajectory.trajSens(ki_sim);
-        droneTrajectory.m_ctrlParams.at(i).ki = og_params.at(i).ki; 
-        gtp = droneTrajectory.calc_G_tp(plus_ki);
-        log <<  "i: " << i*NUM_PID_STATES + 1 <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
-
-        droneTrajectory.m_ctrlParams.at(i).kd = og_params.at(i).kd + std::copysign(delta, vp(i*NUM_PID_STATES + 2));
-        SimResults kd_sim = droneTrajectory.Trajectory(stateCloseToRoABoundary());
-        std::vector<dwdwo> plus_kd = droneTrajectory.trajSens(kd_sim);
-        droneTrajectory.m_ctrlParams.at(i).kd = og_params.at(i).kd;  
-        gtp = droneTrajectory.calc_G_tp(plus_kd);
-        log <<  "i: " << i*NUM_PID_STATES + 2 <<" G: " << gtp.G << " tp: " << gtp.tp << " increased?: "  << (gtp.G > og_gtp) << std::endl;
-    }
 }
 
 Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
@@ -1057,7 +814,7 @@ int main()
     // test_closestzbar(log);
     // test_param(log);
     // test_sysid(log);
-    test_square_traj(log);
+    // test_square_traj(log);
     std::cout << ":D" << std::endl;
     return 0;
 }

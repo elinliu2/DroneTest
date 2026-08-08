@@ -566,7 +566,7 @@ void DroneTrajectory::dhdx_test(SystemState currState, SystemState prevState, do
 void DroneTrajectory::dhdz_test(SystemState currState, SystemState prevState, double time, double timestep)
 {
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzPlus = dhdzPlus(currState, timestep);
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzCurr = dhdzCurr();
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> exact_dhdzCurr = dhdzCurr(currState);
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzPlus;
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Z_STATES> delta_dhdzCurr;
     
@@ -651,7 +651,7 @@ void DroneTrajectory::dgdz_test(SystemState currState, SystemState prevState, do
 
 void DroneTrajectory::dhdy_test(SystemState currState, SystemState prevState, double time, double timestep)
 {
-    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> exact_dhdy = dhdy(timestep);
+    Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> exact_dhdy = dhdy(currState, timestep);
     Eigen::Matrix<double, NUM_Z_STATES, NUM_Y_STATES> delta_dhdy;
     
     double delta = 1e-5;

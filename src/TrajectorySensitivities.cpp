@@ -60,8 +60,8 @@ std::vector<dwdwo> DroneTrajectory::trajSens(SimResults const & simResults) cons
         Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], simResults.time[i], timestep);
         Eigen::SparseMatrix<double> dhdx_curr = dhdxCurr(simResults.stateProgression[i-1], timestep);
         Eigen::SparseMatrix<double> dhdz_plus = dhdzPlus(simResults.stateProgression[i], timestep); 
-        Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(); 
-        Eigen::SparseMatrix<double> dhdy_plus = dhdy(timestep);
+        Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(simResults.stateProgression[i]); 
+        Eigen::SparseMatrix<double> dhdy_plus = dhdy(simResults.stateProgression[i], timestep);
         Eigen::SparseMatrix<double> dgdz_plus = dgdz(simResults.stateProgression[i]);
         Eigen::SparseMatrix<double> dgdx_plus = dgdx(simResults.stateProgression[i]);
 
@@ -147,8 +147,8 @@ dwdwo DroneTrajectory::trajSens(SimResults const & simResults, int tp) const
         Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], simResults.time[i], timestep);
         Eigen::SparseMatrix<double> dhdx_curr = dhdxCurr(simResults.stateProgression[i-1], timestep);
         Eigen::SparseMatrix<double> dhdz_plus = dhdzPlus(simResults.stateProgression[i], timestep); 
-        Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(); 
-        Eigen::SparseMatrix<double> dhdy_plus = dhdy(timestep);
+        Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(simResults.stateProgression[i]); 
+        Eigen::SparseMatrix<double> dhdy_plus = dhdy(simResults.stateProgression[i], timestep);
         Eigen::SparseMatrix<double> dgdz_plus = dgdz(simResults.stateProgression[i]);
         Eigen::SparseMatrix<double> dgdx_plus = dgdx(simResults.stateProgression[i]);
 
@@ -231,8 +231,8 @@ std::vector<dwdp> DroneTrajectory::trajSensParam(SimResults const & simResults, 
         Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], simResults.time[i], timestep);
         Eigen::SparseMatrix<double> dhdx_curr = dhdxCurr(simResults.stateProgression[i-1], timestep);
         Eigen::SparseMatrix<double> dhdz_plus = dhdzPlus(simResults.stateProgression[i], timestep); 
-        Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(); 
-        Eigen::SparseMatrix<double> dhdy_plus = dhdy(timestep);
+        Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(simResults.stateProgression[i]); 
+        Eigen::SparseMatrix<double> dhdy_plus = dhdy(simResults.stateProgression[i], timestep);
         Eigen::SparseMatrix<double> dgdz_plus = dgdz(simResults.stateProgression[i]);
         Eigen::SparseMatrix<double> dgdx_plus = dgdx(simResults.stateProgression[i]);
         Eigen::SparseMatrix<double> dgdp_plus = dgdp(simResults.stateProgression[i]);
@@ -327,8 +327,8 @@ std::vector<dwddronep> DroneTrajectory::trajSensDroneParam(SimResults const & si
         Eigen::SparseMatrix<double> dhdx_plus = dhdxPlus(simResults.stateProgression[i], simResults.time[i], timestep);
         Eigen::SparseMatrix<double> dhdx_curr = dhdxCurr(simResults.stateProgression[i-1], timestep);
         Eigen::SparseMatrix<double> dhdz_plus = dhdzPlus(simResults.stateProgression[i], timestep); 
-        Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(); 
-        Eigen::SparseMatrix<double> dhdy_plus = dhdy(timestep);
+        Eigen::SparseMatrix<double> dhdz_curr = dhdzCurr(simResults.stateProgression[i]); 
+        Eigen::SparseMatrix<double> dhdy_plus = dhdy(simResults.stateProgression[i], timestep);
         Eigen::SparseMatrix<double> dgdz_plus = dgdz(simResults.stateProgression[i]);
         Eigen::SparseMatrix<double> dgdx_plus = dgdx(simResults.stateProgression[i]);
 
@@ -510,7 +510,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dhdx_plus_tensor(dhdx_plus.data(), NUM_Z_STATES, NUM_PLANT_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> b4 = dhdx_plus_tensor.contract(d2xdwo2_plus, contract_dims).eval();
 
-        dhdz_curr = dhdzCurr().toDense();
+        dhdz_curr = dhdzCurr(simResults.stateProgression[i]).toDense();
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dhdz_curr_tensor(dhdz_curr.data(), NUM_Z_STATES, NUM_Z_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> b5 = dhdz_curr_tensor.contract(d2zdwo2_curr, contract_dims).eval();
 
@@ -548,7 +548,7 @@ std::vector<d2wdwo2> DroneTrajectory::secondOrdertrajSens(SimResults const & sim
         d2ydwo2_plus = c1 + c2 + c3;
 
         // d2zdwo2_plus after y
-        dhdy_plus = dhdy(timestep);
+        dhdy_plus = dhdy(simResults.stateProgression[i], timestep);
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dhdy_plus_tensor(dhdy_plus.data(), NUM_Z_STATES, NUM_Y_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> b7 = dhdy_plus_tensor.contract(d2ydwo2_plus, contract_dims).eval();
         d2zdwo2_plus+= b7;
@@ -754,7 +754,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
         Eigen::Tensor<double, 3, Eigen::ColMajor> b8 = d2hdxplusdp.contract(dxdwo_plus_tensor, contract_dims);
         Eigen::Tensor<double, 3, Eigen::ColMajor> b9 = b8.shuffle(Eigen::array<int,3>{0,2,1});
 
-        dhdz_curr = dhdzCurr().toDense();
+        dhdz_curr = dhdzCurr(simResults.stateProgression[i]).toDense();
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dhdz_curr_tensor(dhdz_curr.data(), NUM_Z_STATES, NUM_Z_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> b5 = dhdz_curr_tensor.contract(d2zdwodp_curr, contract_dims).eval();
 
@@ -803,7 +803,7 @@ std::vector<d2wdwodp> DroneTrajectory::secondOrdertrajSensParams(SimResults cons
         d2ydwodp_plus = c1 + c2 + c3 + c6 + c7;
 
         // d2zdwodp_plus after y
-        dhdy_plus = dhdy(timestep);
+        dhdy_plus = dhdy(simResults.stateProgression[i], timestep);
         Eigen::TensorMap<Eigen::Tensor<double, 2,Eigen::ColMajor>> dhdy_plus_tensor(dhdy_plus.data(), NUM_Z_STATES, NUM_Y_STATES);
         Eigen::Tensor<double, 3, Eigen::ColMajor> b7 = dhdy_plus_tensor.contract(d2ydwodp_plus, contract_dims).eval();
 

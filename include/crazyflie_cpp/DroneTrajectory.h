@@ -13,7 +13,7 @@
 #define NUM_PLANT_STATES 12
 #define NUM_PIDS 12
 #define NUM_PARAMETERS 36
-#define NUM_Z_STATES 46
+#define NUM_Z_STATES 47
 #define NUM_Y_STATES 2
 #define NUM_ALGE_STATES (NUM_Y_STATES+NUM_Z_STATES)
 #define NUM_STATES (NUM_PLANT_STATES+NUM_ALGE_STATES)
@@ -118,7 +118,7 @@ enum ctrlIndex  {posX, posY, posZ, velX, velY, velZ, roll, pitch, yaw, rollRate,
 //                 delay_1_rollRate, delay_2_rollRate, delay_1_pitchRate, delay_2_pitchRate, desRoll, desPitch};
 enum algeIndex  {eix, edx, desVelX, eiy, edy, desVelY, eiz, edz, desVelZ, 
                 eixdot, edxdot, eiydot, edydot, eizdot, edzdot, desThrust, 
-                eiphi, edphi, desRollRate, eitheta, edtheta, desPitchRate, eipsi, edpsi, desYawRate, 
+                desYawRef, eiphi, edphi, desRollRate, eitheta, edtheta, desPitchRate, eipsi, edpsi, desYawRate, 
                 delay_1_rollRate, delay_2_rollRate, delay_1_pitchRate, delay_2_pitchRate,
                 eip, edp, desRollOutput, eiq, edq, desPitchOutput, eir, edr, desYawOutput, 
                 w1, w2, w3, w4, ft, tx, ty, tz, desRoll, desPitch};
@@ -273,6 +273,8 @@ class DroneTrajectory
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/modules/src/controller/position_controller_pid.c#L260
     double m_thrustScale = 1000;
     double m_thrustBase = 36000;
+    double m_attitude_update_dt = 1.0/1000;
+
     // need to convert motor pwm signal to angular velocity
     // want thrustBase = 36000 PWM == hover --> ft = mg
     // des_wi = sqrt(mg/(kf*4)) 
@@ -314,8 +316,8 @@ class DroneTrajectory
     Eigen::SparseMatrix<double> dhdxPlus(SystemState state, double time, double timestep) const;
     Eigen::SparseMatrix<double> dhdxCurr(SystemState prev, double timestep) const;
     Eigen::SparseMatrix<double> dhdzPlus(SystemState state, double timestep) const;
-    Eigen::SparseMatrix<double> dhdzCurr() const;
-    Eigen::SparseMatrix<double> dhdy(double timestep) const;
+    Eigen::SparseMatrix<double> dhdzCurr(SystemState state) const;
+    Eigen::SparseMatrix<double> dhdy(SystemState state, double timestep) const;
     Eigen::SparseMatrix<double> dhdp(SystemState state, double time);
     Eigen::SparseMatrix<double> dhddronep(SystemState state) const;
 

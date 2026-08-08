@@ -288,9 +288,8 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     algeStates(desRoll) = -std::clamp(algeStates(desRoll), -m_droneParams.pid_vel_roll_max,  m_droneParams.pid_vel_roll_max);
     algeStates(desPitch) = std::clamp(algeStates(desPitch), -m_droneParams.pid_vel_pitch_max,  m_droneParams.pid_vel_pitch_max);
 
-    double attitude_update_dt = 1.0/1000;
-    desYaw = capAngle(desYaw + m_ref.at(refyaw)(time)*attitude_update_dt);
-    double delta = capAngle(desYaw - 180/M_PI*plantState(psi));
+    algeStates(desYawRef) = currAlgeStates(desYawRef) + m_ref.at(refyaw)(time)*m_attitude_update_dt;
+    double delta = algeStates(desYawRef) - 180/M_PI*plantState(psi);
     
     algeStates(eiphi) = currAlgeStates(eiphi) + timestep*(algeStates(desRoll) - 180/M_PI*plantState(phi));
     algeStates(eitheta) = currAlgeStates(eitheta) + timestep*(algeStates(desPitch) - 180/M_PI*plantState(theta));
@@ -348,15 +347,15 @@ Eigen::Vector<double, NUM_ALGE_STATES> DroneTrajectory::CascadedPIDController(
     double m3 = motor_delay_factor*currAlgeStates(w3)/m_alpha + (1-motor_delay_factor)*m3_des;
     double m4 = motor_delay_factor*currAlgeStates(w4)/m_alpha + (1-motor_delay_factor)*m4_des;
 
-    double cf_m1 = interpolateM1(time);
-    double cf_m2 = interpolateM2(time);
-    double cf_m3 = interpolateM3(time);
-    double cf_m4 = interpolateM4(time);
+    // double cf_m1 = interpolateM1(time);
+    // double cf_m2 = interpolateM2(time);
+    // double cf_m3 = interpolateM3(time);
+    // double cf_m4 = interpolateM4(time);
 
-    double cf_thrust = (cf_m1+cf_m2+cf_m3+cf_m4)/4;
-    double cf_roll = (cf_m3+cf_m4 - (cf_m1+cf_m2))/2;
-    double cf_pitch = (cf_m1+cf_m4 - (cf_m2+cf_m3))/2;
-    double cf_yaw = (cf_m1+cf_m3 - (cf_m2+cf_m4))/4;
+    // double cf_thrust = (cf_m1+cf_m2+cf_m3+cf_m4)/4;
+    // double cf_roll = (cf_m3+cf_m4 - (cf_m1+cf_m2))/2;
+    // double cf_pitch = (cf_m1+cf_m4 - (cf_m2+cf_m3))/2;
+    // double cf_yaw = (cf_m1+cf_m3 - (cf_m2+cf_m4))/4;
 
     // m_logger << "T " << algeStates(desThrust) << " R " << algeStates(desRollOutput) << " P " << algeStates(desPitchOutput) << " Y " << algeStates(desYawOutput) << std::endl;
     // m_logger << "T " << cf_thrust << " R " << cf_roll << " P " << cf_pitch << " Y " << cf_yaw << std::endl;

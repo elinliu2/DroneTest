@@ -194,7 +194,7 @@ d2w DroneTrajectory::calc_d2w(SimResults const & simResults, std::vector<dwdwo> 
         Eigen::SparseMatrix<double> dhdx_plus_sparse = dhdxPlus(state_plus, time, timestep);
         Eigen::SparseMatrix<double> dhdx_curr_sparse = dhdxCurr(state_curr, timestep);
         Eigen::SparseMatrix<double> dhdz_plus_sparse = dhdzPlus(state_plus, timestep); 
-        Eigen::SparseMatrix<double> dhdz_curr_sparse = dhdzCurr(); 
+        Eigen::SparseMatrix<double> dhdz_curr_sparse = dhdzCurr(state_plus); 
         Eigen::SparseMatrix<double> dhdp_plus_sparse = dhdp(state_plus, time);
         dzdp_plus = dhdx_plus_sparse * dxdp_plus + dhdx_curr_sparse * dxdp_curr + dhdz_curr_sparse * dzdp_curr + dhdp_plus_sparse;
 
@@ -211,7 +211,7 @@ d2w DroneTrajectory::calc_d2w(SimResults const & simResults, std::vector<dwdwo> 
         dydp_plus = dgdz_plus_sparse * dzdp_plus + dgdx_plus_sparse * dxdp_plus + dgdp_plus_sparse;
 
         // dzdp n to m
-        Eigen::SparseMatrix<double> dhdy_plus_sparse = dhdy(timestep);
+        Eigen::SparseMatrix<double> dhdy_plus_sparse = dhdy(state_plus, timestep);
         dzdp_plus += dhdy_plus_sparse * dydp_plus;
         for(int zAftery = eiphi; zAftery < NUM_Z_STATES; zAftery ++){
             Eigen::Matrix<double, 1, NUM_PARAMETERS> tmp;
@@ -557,11 +557,11 @@ d2wdwo2 DroneTrajectory::calc_d2wdwo2(SimResults const & simResults, std::vector
         Eigen::SparseMatrix<double> dhdx_plus_sparse = dhdxPlus(state_plus, time, timestep);
         Eigen::SparseMatrix<double> dhdx_curr_sparse = dhdxCurr(state_curr, timestep);
         Eigen::SparseMatrix<double> dhdz_plus_sparse = dhdzPlus(state_plus, timestep); 
-        Eigen::SparseMatrix<double> dhdz_curr_sparse = dhdzCurr(); 
+        Eigen::SparseMatrix<double> dhdz_curr_sparse = dhdzCurr(state_plus); 
         Eigen::SparseMatrix<double> dhdp_plus_sparse = dhdp(state_plus, time);
         Eigen::SparseMatrix<double> dgdz_plus_sparse = dgdz(state_plus);
         Eigen::SparseMatrix<double> dgdx_plus_sparse = dgdx(state_plus);
-        Eigen::SparseMatrix<double> dhdy_plus_sparse = dhdy(timestep);
+        Eigen::SparseMatrix<double> dhdy_plus_sparse = dhdy(state_plus, timestep);
         
 
         // second order sensitivities
