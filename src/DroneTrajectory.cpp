@@ -112,6 +112,9 @@ SimResults DroneTrajectory::Trajectory(SystemState initialState, bool checkConve
     // {
     //     m_logger << "convergence status: " << simResults.converged << std::endl;
     // }
+     if (isConverging(simResults, m_ref, time)){
+        simResults.converged = true;
+    }
     return simResults;
 }
 

@@ -90,21 +90,21 @@ struct SimResults{
 
 std::array<PIDParameters, NUM_PIDS> inline defaultPIDParameters(){
     // https://github.com/bitcraze/crazyflie-firmware/blob/master/src/platform/interface/platform_defaults_tag.h#L46
-    PIDParameters posXpid = {2, 0, 0};
-    PIDParameters posYpid = {2, 0, 0};
-    PIDParameters posZpid = {2, 0.5, 0};
+    PIDParameters posXpid = {2, 1e-10, 1e-10};
+    PIDParameters posYpid = {2, 1e-10, 1e-10};
+    PIDParameters posZpid = {2, 0.5, 1e-10};
 
-    PIDParameters velXpid = {25, 1, 0};
-    PIDParameters velYpid = {25, 1, 0};
-    PIDParameters velZpid = {25, 15, 0};
+    PIDParameters velXpid = {25, 1, 1e-10};
+    PIDParameters velYpid = {25, 1, 1e-10};
+    PIDParameters velZpid = {25, 15, 1e-10};
 
-    PIDParameters rollpid  = {6, 3, 0, 0};
-    PIDParameters pitchpid = {6, 3, 0, 0};
+    PIDParameters rollpid  = {6, 3, 1e-10, 0};
+    PIDParameters pitchpid = {6, 3, 1e-10, 0};
     PIDParameters yawpid   = {6, 1, 0.35, 0};
 
     PIDParameters rollRatepid  = {250.0, 500, 2.5};
     PIDParameters pitchRatepid = {250.0, 500, 2.5};
-    PIDParameters yawRatepid   = {120.0, 16.7, 0};
+    PIDParameters yawRatepid   = {120.0, 16.7, 1e-10};
     return {posXpid, posYpid, posZpid, velXpid, velYpid, velZpid, rollpid, pitchpid, yawpid, rollRatepid, pitchRatepid, yawRatepid};
 }
 
@@ -281,7 +281,7 @@ class DroneTrajectory
     double m_alpha = sqrt(m_droneParams.mass*m_droneParams.g/(m_droneParams.kf*4))/m_thrustBase;    
 
     // For ERA algo gradient ascent step
-    double m_algo_alpha = 0.01;
+    double m_algo_alpha = 0.5;
     // For ERA algo Weighting Matrix
     Eigen::Matrix<double, NUM_STATES, NUM_STATES> m_Pinv = Eigen::Matrix<double, NUM_STATES, NUM_STATES>::Identity();
     // For ERA algo numerical tolerances for 

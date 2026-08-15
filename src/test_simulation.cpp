@@ -7,21 +7,8 @@
 
 double windDist(double time)
 {
-    if(time < 1){
-        return 0.525;
-    }
-
-    // if(time < 0.1){
-    //     return 0.019;
-    // }
-
-    return 0;
-}
-
-double testWindDist(double time)
-{
-    if(time < 0.05){
-        return 0.2;
+    if(time < 0.5){
+        return 1;
     }
     return 0;
 }
@@ -466,12 +453,12 @@ void testERAAlgo(Logger & log)
     setActiveTrajectory(traj);
     std::array<double(*)(double), NUM_REF_STATES> ref = {interpolateX, interpolateY, interpolateZ, interpolateYaw};
 
-    double finalTime = 12;
+    double finalTime = 50;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(initializeState());
-    log << simResults.stable << std::endl;
+    SimResults simResults = droneTrajectory.Trajectory(initializeState(), false);
+    log << simResults.stable << " " << simResults.converged << std::endl;
     zkpk zkpk = droneTrajectory.theGigaAlgo(initializeState());
     log << "zkpk" << std::endl;
     log << zkpk.zk << std::endl << std::endl;
@@ -580,57 +567,102 @@ Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
     // };
 
     // square traj
+    // Eigen::Vector<double, NUM_PARAMETERS> params = {
+    //     0.949178,
+    //         1,
+    //         1,
+    //     0.955509,
+    //         1,
+    //         1,
+    //     0.988354,
+    //     0.997718,
+    //         1,
+    //     0.936882,
+    //     0.998657,
+    //         1,
+    //     0.944227,
+    //     0.998879,
+    //         1,
+    //     0.978727,
+    //     0.996415,
+    //         1,
+    //     0.908343,
+    //     0.999385,
+    //         1,
+    //     0.91211,
+    //     1.00034,
+    //         1,
+    //     0.958529,
+    //     0.999797,
+    //     0.976927,
+    //     0.765037,
+    //     1.00315,
+    //     0.745839,
+    //     0.769431,
+    //     1.00403,
+    //     0.766602,
+    //     0.882404,
+    //     0.99906,
+    //         1,
+    // };
+
+    // hover 
     Eigen::Vector<double, NUM_PARAMETERS> params = {
-        0.949178,
+        0.99948,
             1,
             1,
-        0.955509,
+        0.99947,
             1,
             1,
-        0.988354,
-        0.997718,
+        0.999896,
+        0.999974,
             1,
-        0.936882,
-        0.998657,
+        0.999215,
+        0.999989,
             1,
-        0.944227,
-        0.998879,
+        0.999202,
+        0.999989,
             1,
-        0.978727,
-        0.996415,
+        0.999808,
+        0.999969,
             1,
-        0.908343,
-        0.999385,
+        0.998433,
+        0.999993,
             1,
-        0.91211,
-        1.00034,
+        0.998701,
+        0.999993,
             1,
-        0.958529,
-        0.999797,
-        0.976927,
-        0.765037,
-        1.00315,
-        0.745839,
-        0.769431,
-        1.00403,
-        0.766602,
-        0.882404,
-        0.99906,
+        0.999903,
             1,
-    };
+        0.999729,
+        0.990282,
+        0.999932,
+        0.985059,
+        1.00512,
+        1.00003,
+        1.01034,
+        0.998821,
+            1,
+            1    
+        };
+
     return params;
 }
 
 void test_param(Logger & log)
 {
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {zeroRef, oneRef, oneRef, ninetyRef};
-    double finalTime = 10;
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {windDist, noDist, noDist, noDist, noDist, noDist};
+    std::string path = "../crazyflie_rl_sim/workspace/crazyflie_rl_sim/recordings/system_id_logs/tall_hover/traj.csv";
+    std::vector<DataPoint> traj = loadTrajectory(path);
+    setActiveTrajectory(traj);
+    std::array<double(*)(double), NUM_REF_STATES> ref = {interpolateX, interpolateY, interpolateZ, interpolateYaw};
+
+    double finalTime = 50;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
-    // droneTrajectory.m_sf = get_test_param();
+    droneTrajectory.m_sf = get_test_param();
     std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(initializeState());
+    SimResults simResults = droneTrajectory.Trajectory(initializeState(), false);
 
     log << "stable? " << simResults.stable << std::endl;
 
@@ -640,85 +672,14 @@ void test_param(Logger & log)
     Logger xPlot("./build/x.txt");
     splotPlantState(simResults, xPlot, x, "x");
 
-    Logger yPlot("./build/y.txt");
-    splotPlantState(simResults, yPlot, y, "y");
+    // Logger yPlot("./build/y.txt");
+    // splotPlantState(simResults, yPlot, y, "y");
 
     Logger zPlot("./build/z.txt");
     splotPlantState(simResults, zPlot, z, "z");
 
-    Logger psiPlot("./build/psi.txt");
-    splotPlantState(simResults, psiPlot, psi, "Psi");
-}
-
-double squareRefx(double time){
-    if (time <= 4){
-        return 0;
-    } 
-    if (time <= 6){
-        return 1;
-    } 
-    return 0;
-}
-
-double squareRefy(double time){
-    if (time <= 5){
-        return 0;
-    } 
-    if (time <= 7){
-        return 1;
-    } 
-    return 0;
-}
-
-double squareRefz(double time){
-    if (time <= 8){
-        return 0.4;
-    } 
-    return 0;
-}
-
-double squareRefyaw(double time){
-    (void) time;
-    if (time <= 3){
-        return 0;
-    } 
-    if (time <= 4){
-        return 90;
-    } 
-    // if (time <= 5){
-    //     return 180;
-    // } 
-    // if (time <= 6){
-    //     return 270;
-    // } 
-    return 0;
-}
-
-void test_sysid(Logger & log)
-{
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
-    std::array<double(*)(double), NUM_REF_STATES> ref = {squareRefx, squareRefy, squareRefz, squareRefyaw};
-    double finalTime = 10;
-    double simTime = 1e-3;
-    DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
-    std::chrono::time_point start = std::chrono::steady_clock::now();
-    SimResults simResults = droneTrajectory.Trajectory(initializeState(), false);
-    log << "stable? " << simResults.stable << std::endl;
-    log << "Timestamp,x,y,z" << std::endl;
-    for(int i = 0; i < simResults.time.size(); i++){
-        log << simResults.time.at(i) << ", " 
-            << simResults.stateProgression.at(i).plant(x) << ", "
-            << simResults.stateProgression.at(i).plant(y) << ", "
-            << simResults.stateProgression.at(i).plant(z) << std::endl;
-    }
-    Logger psiPlot("./build/psi.txt");
-    splotPlantState(simResults, psiPlot, psi, "psi");
-}
-
-double hover(double time)
-{
-    if (time < 4)    { return interpolateZ(time); }
-    return 0.4;
+    // Logger psiPlot("./build/psi.txt");
+    // splotPlantState(simResults, psiPlot, psi, "Psi");
 }
 
 double capAngleTest(double angle)
@@ -807,7 +768,7 @@ void test_closestzbar(Logger & log) {
 int main()
 {
     Logger log("./build/log.txt");
-    // testERAAlgo(log);
+    testERAAlgo(log);
     // testTrajSens(log);
     // testSim(log);
     // test_vp(log);
