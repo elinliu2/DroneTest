@@ -819,7 +819,7 @@ void test_param(Logger & log)
     // std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, windDist, windDist, noDist};
     std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, oneRef, zeroRef};
-    double finalTime = 300;
+    double finalTime = 10;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     // droneTrajectory.m_sf = get_test_param();
@@ -829,21 +829,21 @@ void test_param(Logger & log)
     log << "stable? " << simResults.stable << std::endl;
 
     Logger splot("./build/splot.txt");
-    splotTrajectory(simResults, splot, "Initial Condition with ERA Parameters");
+    splotTrajectory(simResults, splot, "Initial Parameters No Disturbance");
 
-    Logger xPlot("./build/x.txt");
-    splotPlantState(simResults, xPlot, p, "Roll Velocity with Initial Condition and ERA Parameters");
+    // Logger xPlot("./build/x.txt");
+    // splotPlantState(simResults, xPlot, p, "Roll Velocity with Initial Condition and ERA Parameters");
 
-    Logger yPlot("./build/y.txt");
-    splotPlantState(simResults, yPlot, q, "Pitch Velocity with Initial Condition and ERA Parameters");
+    // Logger yPlot("./build/y.txt");
+    // splotPlantState(simResults, yPlot, q, "Pitch Velocity with Initial Condition and ERA Parameters");
 
-    log << "Timestamp,x,y,z,roll,pitch,yaw" << std::endl;
-    for(int i = 0; i < simResults.time.size(); i++){
-        Eigen::Vector<double, NUM_PLANT_STATES> plant = simResults.stateProgression.at(i).plant;
-        log << simResults.time.at(i) << "," << 
-            plant(x) << "," << plant(y) << "," << plant(z) << "," << 
-            plant(phi) << "," << plant(theta) << "," << plant(psi) << std::endl;
-    }
+    // log << "Timestamp,x,y,z,roll,pitch,yaw" << std::endl;
+    // for(int i = 0; i < simResults.time.size(); i++){
+    //     Eigen::Vector<double, NUM_PLANT_STATES> plant = simResults.stateProgression.at(i).plant;
+    //     log << simResults.time.at(i) << "," << 
+    //         plant(x) << "," << plant(y) << "," << plant(z) << "," << 
+    //         plant(phi) << "," << plant(theta) << "," << plant(psi) << std::endl;
+    // }
 }
 
 void test_closestzbar(Logger & log)
