@@ -816,12 +816,13 @@ Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 
 void test_param(Logger & log)
 {
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, windDist, windDist, noDist};
+    // std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, windDist, windDist, noDist};
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, noDist, noDist};
     std::array<double(*)(double), NUM_REF_STATES> ref = {oneRef, oneRef, oneRef, zeroRef};
     double finalTime = 300;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
-    droneTrajectory.m_sf = get_test_param();
+    // droneTrajectory.m_sf = get_test_param();
     std::chrono::time_point start = std::chrono::steady_clock::now();
     SimResults simResults = droneTrajectory.Trajectory(initializeState());
 
@@ -835,6 +836,14 @@ void test_param(Logger & log)
 
     Logger yPlot("./build/y.txt");
     splotPlantState(simResults, yPlot, q, "Pitch Velocity with Initial Condition and ERA Parameters");
+
+    log << "Timestamp,x,y,z,roll,pitch,yaw" << std::endl;
+    for(int i = 0; i < simResults.time.size(); i++){
+        Eigen::Vector<double, NUM_PLANT_STATES> plant = simResults.stateProgression.at(i).plant;
+        log << simResults.time.at(i) << "," << 
+            plant(x) << "," << plant(y) << "," << plant(z) << "," << 
+            plant(phi) << "," << plant(theta) << "," << plant(psi) << std::endl;
+    }
 }
 
 void test_closestzbar(Logger & log)
