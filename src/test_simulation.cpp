@@ -7,8 +7,8 @@
 
 double windDist(double time)
 {
-    if(time < 0.5){
-        return 1;
+    if(time < 0.1){
+        return 0.014;
     }
     return 0;
 }
@@ -608,42 +608,42 @@ Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 
     // hover 
     Eigen::Vector<double, NUM_PARAMETERS> params = {
-        0.99948,
-            1,
-            1,
-        0.99947,
-            1,
-            1,
-        0.999896,
-        0.999974,
-            1,
-        0.999215,
-        0.999989,
-            1,
-        0.999202,
-        0.999989,
-            1,
-        0.999808,
-        0.999969,
-            1,
-        0.998433,
-        0.999993,
-            1,
-        0.998701,
-        0.999993,
-            1,
-        0.999903,
-            1,
-        0.999729,
-        0.990282,
-        0.999932,
-        0.985059,
-        1.00512,
-        1.00003,
-        1.01034,
-        0.998821,
-            1,
-            1    
+        0.936783,
+                1,
+                1,
+        0.828449,
+                1,
+                1,
+        0.927043,
+        0.983078,
+                1,
+        0.908848,
+        0.998479,
+                1,
+        0.749677,
+        0.995035,
+                1,
+        0.938538,
+        0.961889,
+                1,
+        0.859102,
+        1.00302,
+                1,
+        0.857543,
+        0.991968,
+                1,
+        0.760886,
+        0.985986,
+        0.89672,
+        0.439734,
+        1.0485,
+        0.235717,
+        0.538209,
+        1.00589,
+        0.270961,
+        0.0766292,
+        0.98934,
+                1,
         };
 
     return params;
@@ -651,35 +651,44 @@ Eigen::Vector<double, NUM_PARAMETERS> get_test_param()
 
 void test_param(Logger & log)
 {
-    std::array<double(*)(double), NUM_DIST_STATES> dist = {windDist, noDist, noDist, noDist, noDist, noDist};
+    std::array<double(*)(double), NUM_DIST_STATES> dist = {noDist, noDist, noDist, noDist, windDist, windDist};
     std::string path = "../crazyflie_rl_sim/workspace/crazyflie_rl_sim/recordings/system_id_logs/tall_hover/traj.csv";
     std::vector<DataPoint> traj = loadTrajectory(path);
     setActiveTrajectory(traj);
     std::array<double(*)(double), NUM_REF_STATES> ref = {interpolateX, interpolateY, interpolateZ, interpolateYaw};
 
-    double finalTime = 50;
+    double finalTime = 20;
     double simTime = 1e-3;
     DroneTrajectory droneTrajectory(log, dist, ref, finalTime, simTime);
     droneTrajectory.m_sf = get_test_param();
     std::chrono::time_point start = std::chrono::steady_clock::now();
     SimResults simResults = droneTrajectory.Trajectory(initializeState(), false);
 
-    log << "stable? " << simResults.stable << std::endl;
+    // log << "stable? " << simResults.stable << std::endl;
 
     Logger splot("./build/splot.txt");
     splotTrajectory(simResults, splot, "splot");
 
-    Logger xPlot("./build/x.txt");
-    splotPlantState(simResults, xPlot, x, "x");
+    // Logger xPlot("./build/x.txt");
+    // splotPlantState(simResults, xPlot, x, "x");
 
     // Logger yPlot("./build/y.txt");
     // splotPlantState(simResults, yPlot, y, "y");
 
-    Logger zPlot("./build/z.txt");
-    splotPlantState(simResults, zPlot, z, "z");
+    // Logger zPlot("./build/z.txt");
+    // splotPlantState(simResults, zPlot, z, "z");
 
     // Logger psiPlot("./build/psi.txt");
     // splotPlantState(simResults, psiPlot, psi, "Psi");
+
+    log << "Timestamp,x,y,z,roll,pitch,yaw" << std::endl;
+    for(int i = 0; i < simResults.time.size(); i++){
+        Eigen::Vector<double, NUM_PLANT_STATES> plant = simResults.stateProgression.at(i).plant;
+        log << simResults.time.at(i) << "," << 
+            plant(x) << "," << plant(y) << "," << plant(z) << "," << 
+            plant(phi) << "," << plant(theta) << "," << plant(psi) << std::endl;
+    }
+
 }
 
 double capAngleTest(double angle)
@@ -768,12 +777,12 @@ void test_closestzbar(Logger & log) {
 int main()
 {
     Logger log("./build/log.txt");
-    testERAAlgo(log);
+    // testERAAlgo(log);
     // testTrajSens(log);
     // testSim(log);
     // test_vp(log);
     // test_closestzbar(log);
-    // test_param(log);
+    test_param(log);
     // test_sysid(log);
     // test_square_traj(log);
     std::cout << ":D" << std::endl;
